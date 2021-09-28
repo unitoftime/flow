@@ -7,6 +7,7 @@ import (
 	_ "image/png"
 	"encoding/json"
 	"io/ioutil"
+	"path"
 
 	"github.com/faiface/pixel"
 	"github.com/jstewart7/packer"
@@ -20,12 +21,12 @@ func NewLoad(filesystem fs.FS) *Load {
 	return &Load{filesystem}
 }
 
-func (load *Load) Open(path string) (fs.File, error) {
-	return load.filesystem.Open(path)
+func (load *Load) Open(filepath string) (fs.File, error) {
+	return load.filesystem.Open(filepath)
 }
 
-func (load *Load) Image(path string) (image.Image, error) {
-	file, err := load.filesystem.Open(path)
+func (load *Load) Image(filepath string) (image.Image, error) {
+	file, err := load.filesystem.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +39,8 @@ func (load *Load) Image(path string) (image.Image, error) {
 	return img, nil
 }
 
-func (load *Load) Sprite(path string) (*pixel.Sprite, error) {
-	img, err := load.Image(path)
+func (load *Load) Sprite(filepath string) (*pixel.Sprite, error) {
+	img, err := load.Image(filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +48,8 @@ func (load *Load) Sprite(path string) (*pixel.Sprite, error) {
 	return pixel.NewSprite(pic, pic.Bounds()), nil
 }
 
-func (load *Load) Json(path string, dat interface{}) error {
-	file, err := load.filesystem.Open(path)
+func (load *Load) Json(filepath string, dat interface{}) error {
+	file, err := load.filesystem.Open(filepath)
 	if err != nil {
 		return err
 	}
@@ -62,16 +63,18 @@ func (load *Load) Json(path string, dat interface{}) error {
 	return json.Unmarshal(jsonData, dat)
 }
 
-func (load *Load) Spritesheet(path string) (*Spritesheet, error) {
+func (load *Load) Spritesheet(filepath string) (*Spritesheet, error) {
 	//Load the Json
 	serializedSpritesheet := packer.SerializedSpritesheet{}
-	err := load.Json(path, &serializedSpritesheet)
+	err := load.Json(filepath, &serializedSpritesheet)
 	if err != nil {
 		return nil, err
 	}
 
+	imageFilepath := path.Join(path.Dir(filepath), serializedSpritesheet.ImageName)
+
 	// Load the image
-	img, err := load.Image(serializedSpritesheet.ImageName)
+	img, err := load.Image(imageFilepath)
 	if err != nil {
 		return nil, err
 	}
