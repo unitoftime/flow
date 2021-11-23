@@ -1,7 +1,7 @@
 package render
 
 import (
-	"time"
+	"image/color"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
@@ -11,15 +11,21 @@ import (
 )
 
 type Sprite struct {
-	Position pixel.Vec
 	*pixel.Sprite
+	Color color.NRGBA // TODO - performance on interfaces vs structs?
+	Scale pixel.Vec
 }
-// func (t *Sprite) ComponentSet(val interface{}) { *t = val.(Sprite) }
+func NewSprite(sprite *pixel.Sprite) Sprite {
+	return Sprite{
+		Sprite: sprite,
+		Color: color.NRGBA{255, 255, 255, 255},
+		Scale: pixel.V(1,1),
+	}
+}
 
 type Keybinds struct {
 	Up, Down, Left, Right pixelgl.Button
 }
-// func (t *Keybinds) ComponentSet(val interface{}) { *t = val.(Keybinds) }
 
 // Note: val should probably be between 0 and 1
 func Interpolate(A, B pixel.Vec, lowerBound, upperBound float64) pixel.Vec {
@@ -40,33 +46,36 @@ func Interpolate(A, B pixel.Vec, lowerBound, upperBound float64) pixel.Vec {
 }
 
 // TODO - interpolate based off of the time till the next fixedTimeStep?
-func InterpolateSpritePositions(world *ecs.World, dt time.Duration) {
-	view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
-	view.Map(func(id ecs.Id, comp ...interface{}) {
-		sprite := comp[0].(*Sprite)
-		transform := comp[1].(*physics.Transform)
-		// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
-		// 	sprite := a.(Sprite)
+// func InterpolateSpritePositions(world *ecs.World, dt time.Duration) {
+// 	view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
+// 	view.Map(func(id ecs.Id, comp ...interface{}) {
+// 		sprite := comp[0].(*Sprite)
+// 		transform := comp[1].(*physics.Transform)
+// 		// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
+// 		// 	sprite := a.(Sprite)
 
-		// transform := physics.Transform{}
-		// ok := ecs.Read(engine, id, &transform)
-		// if !ok { return }
-		physicsPosition := pixel.V(transform.X, transform.Y)
+// 		// transform := physics.Transform{}
+// 		// ok := ecs.Read(engine, id, &transform)
+// 		// if !ok { return }
+// 		physicsPosition := pixel.V(transform.X, transform.Y)
 
-		// TODO - make configurable
-		// sprite.Position = physicsPosition
-		sprite.Position = Interpolate(sprite.Position, physicsPosition, 1.0, 16.0)
-		// ecs.Write(engine, id, sprite)
-	})
-}
+// 		// TODO - make configurable
+// 		// sprite.Position = physicsPosition
+// 		sprite.Position = Interpolate(sprite.Position, physicsPosition, 1.0, 16.0)
+// 		// ecs.Write(engine, id, sprite)
+// 	})
+// }
 
+// TODO - how to do optional components? with some default val?
 func DrawSprites(win *pixelgl.Window, world *ecs.World) {
-	view := ecs.ViewAll(world, &Sprite{})
+	view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
 	view.Map(func(id ecs.Id, comp ...interface{}) {
 	// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
 		// sprite := a.(Sprite)
 		sprite := comp[0].(*Sprite)
-		sprite.Draw(win, pixel.IM.Scaled(pixel.ZV, 2.0).Moved(sprite.Position))
+		t := comp[1].(*physics.Transform)
+		mat := pixel.IM.ScaledXY(pixel.ZV, sprite.Scale).Moved(pixel.V(t.X, t.Y))
+		sprite.DrawColorMask(win, mat, sprite.Color)
 	})
 }
 

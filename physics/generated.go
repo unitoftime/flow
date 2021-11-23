@@ -14,6 +14,20 @@ func (t *TransformList) Delete(index int) {
 }
 func (t *TransformList) Len() int { return len(*t) }
 
+type RigidbodyList []Rigidbody
+func (t *RigidbodyList) ComponentSet(val interface{}) { *t = *val.(*RigidbodyList) }
+func (t *RigidbodyList) InternalRead(index int, val interface{}) { *val.(*Rigidbody) = (*t)[index] }
+func (t *RigidbodyList) InternalWrite(index int, val interface{}) { (*t)[index] = val.(Rigidbody) }
+func (t *RigidbodyList) InternalAppend(val interface{}) { (*t) = append((*t), val.(Rigidbody)) }
+func (t *RigidbodyList) InternalPointer(index int) interface{} { return &(*t)[index] }
+func (t *RigidbodyList) InternalReadVal(index int) interface{} { return (*t)[index] }
+func (t *RigidbodyList) Delete(index int) {
+	lastVal := (*t)[len(*t)-1]
+	(*t)[index] = lastVal
+	(*t) = (*t)[:len(*t)-1]
+}
+func (t *RigidbodyList) Len() int { return len(*t) }
+
 type InputList []Input
 func (t *InputList) ComponentSet(val interface{}) { *t = *val.(*InputList) }
 func (t *InputList) InternalRead(index int, val interface{}) { *val.(*Input) = (*t)[index] }

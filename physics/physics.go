@@ -2,11 +2,19 @@ package physics
 
 import (
 	"time"
+
+	"github.com/ungerik/go3d/float64/vec2"
+
 	"github.com/jstewart7/ecs"
 )
 
 type Transform struct {
 	X, Y float64
+}
+
+type Rigidbody struct {
+	Mass float64
+	Velocity vec2.T
 }
 
 type Input struct {
@@ -43,5 +51,20 @@ func HandleInput(world *ecs.World, dt time.Duration) {
 		}
 
 		// ecs.Write(engine, id, transform)
+	})
+}
+
+// Applies rigidbody physics
+func RigidbodyPhysics(world *ecs.World, dt time.Duration) {
+	view := ecs.ViewAll(world, &Transform{}, &Rigidbody{})
+	view.Map(func(id ecs.Id, comp ...interface{}) {
+		transform := comp[0].(*Transform)
+		rigidbody := comp[1].(*Rigidbody)
+
+		newTransform := vec2.T{transform.X, transform.Y}
+		delta := rigidbody.Velocity.Scaled(dt.Seconds())
+		newTransform.Add(&delta)
+		transform.X = newTransform[0]
+		transform.Y = newTransform[1]
 	})
 }
