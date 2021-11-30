@@ -1,8 +1,10 @@
 package render
 
 import (
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/pixelgl"
+	// "github.com/faiface/pixel"
+	// "github.com/faiface/pixel/pixelgl"
+
+	"github.com/jstewart7/glitch"
 
 	"github.com/jstewart7/flow/tilemap"
 	"github.com/jstewart7/flow/asset"
@@ -10,21 +12,21 @@ import (
 
 type TilemapRender struct {
 	spritesheet *asset.Spritesheet
-	batch *pixel.Batch
-	tileToSprite map[tilemap.TileType]*pixel.Sprite
+	pass *glitch.RenderPass
+	tileToSprite map[tilemap.TileType]*glitch.Sprite
 }
 
-func NewTilemapRender(spritesheet *asset.Spritesheet, tileToSprite map[tilemap.TileType]*pixel.Sprite) *TilemapRender {
+func NewTilemapRender(spritesheet *asset.Spritesheet, tileToSprite map[tilemap.TileType]*glitch.Sprite, pass *glitch.RenderPass) *TilemapRender {
 	// Note: Assumes that all sprites share the same spritesheet
 	return &TilemapRender{
 		spritesheet: spritesheet,
-		batch: pixel.NewBatch(&pixel.TrianglesData{}, spritesheet.Picture()),
+		pass: pass,
 		tileToSprite: tileToSprite,
 	}
 }
 
 func (r *TilemapRender) Clear() {
-	r.batch.Clear()
+	r.pass.Clear()
 }
 
 func (r *TilemapRender) Batch(t *tilemap.Tilemap) {
@@ -33,19 +35,23 @@ func (r *TilemapRender) Batch(t *tilemap.Tilemap) {
 			tile, ok := t.Get(x, y)
 			if !ok { continue }
 
-			pos := pixel.V(float64(x * t.TileSize), float64(y * t.TileSize))
+			pos := glitch.Vec2{float32(x * t.TileSize), float32(y * t.TileSize)}
 
 			sprite, ok := r.tileToSprite[tile.Type]
 			if !ok {
 				panic("Unable to find TileType")
 			}
 
-			mat := pixel.IM.Moved(pos)
-			sprite.Draw(r.batch, mat)
+			mat := glitch.Mat4Ident
+			mat.Translate(pos[0], pos[1], 0)
+			sprite.Draw(r.pass, mat)
+
+			// mat := pixel.IM.Moved(pos)
+			// sprite.Draw(r.batch, mat)
 		}
 	}
 }
 
-func (r *TilemapRender) Draw(win *pixelgl.Window) {
-	r.batch.Draw(win)
+func (r *TilemapRender) Draw(win *glitch.Window) {
+	r.pass.Draw(win)
 }

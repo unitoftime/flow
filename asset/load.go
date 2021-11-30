@@ -1,6 +1,7 @@
 package asset
 
 import (
+	"fmt"
 	"errors"
 	"io/fs"
 	"image"
@@ -9,7 +10,8 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/faiface/pixel"
+	// "github.com/faiface/pixel"
+	"github.com/jstewart7/glitch"
 	"github.com/jstewart7/packer"
 )
 
@@ -39,13 +41,16 @@ func (load *Load) Image(filepath string) (image.Image, error) {
 	return img, nil
 }
 
-func (load *Load) Sprite(filepath string) (*pixel.Sprite, error) {
+func (load *Load) Sprite(filepath string) (*glitch.Sprite, error) {
 	img, err := load.Image(filepath)
 	if err != nil {
 		return nil, err
 	}
-	pic := pixel.PictureDataFromImage(img)
-	return pixel.NewSprite(pic, pic.Bounds()), nil
+	// pic := pixel.PictureDataFromImage(img)
+	// return pixel.NewSprite(pic, pic.Bounds()), nil
+	fmt.Println(img)
+	texture := glitch.NewTexture(img)
+	return glitch.NewSprite(texture, texture.Bounds()), nil
 }
 
 func (load *Load) Json(filepath string, dat interface{}) error {
@@ -78,37 +83,38 @@ func (load *Load) Spritesheet(filepath string) (*Spritesheet, error) {
 	if err != nil {
 		return nil, err
 	}
-	pic := pixel.PictureDataFromImage(img)
+	// pic := pixel.PictureDataFromImage(img)
+	texture := glitch.NewTexture(img)
 
 	// Create the spritesheet object
-	bounds := pic.Bounds()
-	lookup := make(map[string]*pixel.Sprite)
+	bounds := texture.Bounds()
+	lookup := make(map[string]*glitch.Sprite)
 	for k, v := range serializedSpritesheet.Frames {
-		rect := pixel.R(
-			v.Frame.X,
-			bounds.H() - v.Frame.Y,
-			v.Frame.X + v.Frame.W,
-			bounds.H() - (v.Frame.Y + v.Frame.H)).Norm()
+		rect := glitch.R(
+			float32(v.Frame.X),
+			float32(float64(bounds.H()) - v.Frame.Y),
+			float32(v.Frame.X + v.Frame.W),
+			float32(float64(bounds.W()) - (v.Frame.Y + v.Frame.H))).Norm()
 
-		lookup[k] = pixel.NewSprite(pic, rect)
+		lookup[k] = glitch.NewSprite(texture, rect)
 	}
 
-	return NewSpritesheet(pic, lookup), nil
+	return NewSpritesheet(texture, lookup), nil
 }
 
 type Spritesheet struct {
-	picture pixel.Picture
-	lookup map[string]*pixel.Sprite
+	texture *glitch.Texture
+	lookup map[string]*glitch.Sprite
 }
 
-func NewSpritesheet(pic pixel.Picture, lookup map[string]*pixel.Sprite) *Spritesheet {
+func NewSpritesheet(tex *glitch.Texture, lookup map[string]*glitch.Sprite) *Spritesheet {
 	return &Spritesheet{
-		picture: pic,
+		texture: tex,
 		lookup: lookup,
 	}
 }
 
-func (s *Spritesheet) Get(name string) (*pixel.Sprite, error) {
+func (s *Spritesheet) Get(name string) (*glitch.Sprite, error) {
 	sprite, ok := s.lookup[name]
 	if !ok {
 		return nil, errors.New("Invalid sprite name!")
@@ -116,6 +122,6 @@ func (s *Spritesheet) Get(name string) (*pixel.Sprite, error) {
 	return sprite, nil
 }
 
-func (s *Spritesheet) Picture() pixel.Picture {
-	return s.picture
+func (s *Spritesheet) Picture() *glitch.Texture {
+	return s.texture
 }

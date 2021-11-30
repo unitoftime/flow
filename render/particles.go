@@ -5,9 +5,8 @@ import (
 
 	"github.com/jstewart7/ecs"
 
-	"github.com/faiface/pixel"
-
 	"github.com/jstewart7/flow/particle"
+	"github.com/jstewart7/glitch"
 )
 
 // TODO - Any way to do optional so that I can do all of this in a single loop?
@@ -46,8 +45,9 @@ func InterpolateParticles(world *ecs.World, dt time.Duration) {
 			sprite := comp[2].(*Sprite)
 
 			newSize := size.Get(life.Ratio())
-			spriteBounds := sprite.Frame()
-			sprite.Scale = pixel.V(newSize[0] / spriteBounds.W(), newSize[1] / spriteBounds.H())
+			spriteBounds := sprite.Bounds()
+			sprite.Scale = glitch.Vec2{float32(newSize[0]) / spriteBounds.W(), float32(newSize[1]) / spriteBounds.H()}
 		})
 	}
 }
+ 

@@ -3,36 +3,35 @@ package render
 import (
 	"image/color"
 
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/pixelgl"
+	"github.com/jstewart7/glitch"
 
 	"github.com/jstewart7/ecs"
 	"github.com/jstewart7/flow/physics"
 )
 
 type Sprite struct {
-	*pixel.Sprite
+	*glitch.Sprite
 	Color color.NRGBA // TODO - performance on interfaces vs structs?
-	Scale pixel.Vec
+	Scale glitch.Vec2
 }
-func NewSprite(sprite *pixel.Sprite) Sprite {
+func NewSprite(sprite *glitch.Sprite) Sprite {
 	return Sprite{
 		Sprite: sprite,
 		Color: color.NRGBA{255, 255, 255, 255},
-		Scale: pixel.V(1,1),
+		Scale: glitch.Vec2{1, 1},
 	}
 }
 
 type Keybinds struct {
-	Up, Down, Left, Right pixelgl.Button
+	Up, Down, Left, Right glitch.Key
 }
 
 // Note: val should probably be between 0 and 1
-func Interpolate(A, B pixel.Vec, lowerBound, upperBound float64) pixel.Vec {
+func Interpolate(A, B glitch.Vec2, lowerBound, upperBound float32) glitch.Vec2 {
 	delta := B.Sub(A)
 	dMag := delta.Len()
 
-	interpValue := 0.0
+	interpValue := float32(0.0)
 	if dMag > upperBound {
 		interpValue = 1.0
 	} else if dMag > lowerBound {
@@ -67,19 +66,23 @@ func Interpolate(A, B pixel.Vec, lowerBound, upperBound float64) pixel.Vec {
 // }
 
 // TODO - how to do optional components? with some default val?
-func DrawSprites(win *pixelgl.Window, world *ecs.World) {
+func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
 	view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
 	view.Map(func(id ecs.Id, comp ...interface{}) {
 	// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
 		// sprite := a.(Sprite)
 		sprite := comp[0].(*Sprite)
 		t := comp[1].(*physics.Transform)
-		mat := pixel.IM.ScaledXY(pixel.ZV, sprite.Scale).Moved(pixel.V(t.X, t.Y))
-		sprite.DrawColorMask(win, mat, sprite.Color)
+		// mat := pixel.IM.ScaledXY(pixel.ZV, sprite.Scale).Moved(pixel.V(t.X, t.Y))
+		mat := glitch.Mat4Ident
+		mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y), 1.0)
+		// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
+		col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+		sprite.DrawColorMask(pass, mat, col)
 	})
 }
 
-func CaptureInput(win *pixelgl.Window, world *ecs.World) {
+func CaptureInput(win *glitch.Window, world *ecs.World) {
 	view := ecs.ViewAll(world, &Keybinds{}, &physics.Input{})
 	view.Map(func(id ecs.Id, comp ...interface{}) {
 	// ecs.Each(engine, Keybinds{}, func(id ecs.Id, a interface{}) {
