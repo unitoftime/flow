@@ -2,15 +2,13 @@ package render
 
 import (
 	"github.com/jstewart7/glitch"
-	// "github.com/faiface/pixel"
-	// "github.com/faiface/pixel/pixelgl"
 )
 
 type Camera struct {
 	win *glitch.Window
 	Camera *glitch.CameraOrtho
 	Position glitch.Vec2
-	Zoom float32
+	Zoom float64
 }
 
 func NewCamera(win *glitch.Window, x, y float32) *Camera {
@@ -23,13 +21,13 @@ func NewCamera(win *glitch.Window, x, y float32) *Camera {
 }
 
 func (c *Camera) Update() {
-	// screenCenter := c.win.Bounds().Center()
+	screenCenter := c.win.Bounds().Center()
 
-	// movePos := glitch.Vec2{c.Position[0], c.Position[1]}.Add(screenCenter)
-	// c.mat = pixel.IM.Moved(movePos).Scaled(screenCenter, c.Zoom)
 	c.Camera.SetOrtho2D(c.win)
-	c.Camera.SetView2D(0, 0, 1.0, 1.0)
-	// c.Camera.SetView2D(movePos[0], movePos[1], c.Zoom, c.Zoom)
+	movePos := glitch.Vec2{c.Position[0], c.Position[1]}.Sub(screenCenter)
+	// c.mat = pixel.IM.Moved(movePos).Scaled(screenCenter, c.Zoom)
+	c.Camera.SetView2D(movePos[0], movePos[1], float32(c.Zoom), float32(c.Zoom))
+	// c.Camera.SetView2D(0, 0, 1.0, 1.0)
 }
 
 // type Camera struct {

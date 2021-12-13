@@ -75,9 +75,11 @@ func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
 		t := comp[1].(*physics.Transform)
 		// mat := pixel.IM.ScaledXY(pixel.ZV, sprite.Scale).Moved(pixel.V(t.X, t.Y))
 		mat := glitch.Mat4Ident
-		mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y), 1.0)
+		mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y), 0)
+		// mat.Scale(1.0, 1.0, 1.0).Translate(float32(t.X), float32(t.Y), 0)
 		// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
-		col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+		// col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+		col := glitch.RGBA{1, 1, 1, 1}
 		sprite.DrawColorMask(pass, mat, col)
 	})
 }

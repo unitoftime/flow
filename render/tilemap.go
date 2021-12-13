@@ -1,9 +1,6 @@
 package render
 
 import (
-	// "github.com/faiface/pixel"
-	// "github.com/faiface/pixel/pixelgl"
-
 	"github.com/jstewart7/glitch"
 
 	"github.com/jstewart7/flow/tilemap"
@@ -52,6 +49,6 @@ func (r *TilemapRender) Batch(t *tilemap.Tilemap) {
 	}
 }
 
-func (r *TilemapRender) Draw(win *glitch.Window) {
-	r.pass.Draw(win)
-}
+// func (r *TilemapRender) Draw(win *glitch.Window) {
+// 	r.pass.Draw(win)
+// }

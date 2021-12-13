@@ -1,7 +1,6 @@
 package asset
 
 import (
-	"fmt"
 	"errors"
 	"io/fs"
 	"image"
@@ -10,7 +9,6 @@ import (
 	"io/ioutil"
 	"path"
 
-	// "github.com/faiface/pixel"
 	"github.com/jstewart7/glitch"
 	"github.com/jstewart7/packer"
 )
@@ -48,7 +46,6 @@ func (load *Load) Sprite(filepath string) (*glitch.Sprite, error) {
 	}
 	// pic := pixel.PictureDataFromImage(img)
 	// return pixel.NewSprite(pic, pic.Bounds()), nil
-	fmt.Println(img)
 	texture := glitch.NewTexture(img)
 	return glitch.NewSprite(texture, texture.Bounds()), nil
 }
@@ -87,14 +84,20 @@ func (load *Load) Spritesheet(filepath string) (*Spritesheet, error) {
 	texture := glitch.NewTexture(img)
 
 	// Create the spritesheet object
-	bounds := texture.Bounds()
+	// bounds := texture.Bounds()
 	lookup := make(map[string]*glitch.Sprite)
 	for k, v := range serializedSpritesheet.Frames {
 		rect := glitch.R(
 			float32(v.Frame.X),
-			float32(float64(bounds.H()) - v.Frame.Y),
+			float32(v.Frame.Y),
 			float32(v.Frame.X + v.Frame.W),
-			float32(float64(bounds.W()) - (v.Frame.Y + v.Frame.H))).Norm()
+			float32(v.Frame.Y + v.Frame.H)).Norm()
+
+		// rect := glitch.R(
+		// 	float32(v.Frame.X),
+		// 	float32(float64(bounds.H()) - v.Frame.Y),
+		// 	float32(v.Frame.X + v.Frame.W),
+		// 	float32(float64(bounds.W()) - (v.Frame.Y + v.Frame.H))).Norm()
 
 		lookup[k] = glitch.NewSprite(texture, rect)
 	}
