@@ -1,11 +1,11 @@
-module github.com/jstewart7/flow
+module github.com/unitoftime/flow
 
 go 1.17
 
 require (
 	github.com/faiface/pixel v0.10.0
-	github.com/jstewart7/ecs v0.0.0-20210925153713-7d62c0f35800
-	github.com/jstewart7/packer v0.0.0-20210930000230-c9289d8d0c32
+	github.com/unitoftime/ecs v0.0.0-20210925153713-7d62c0f35800
+	github.com/unitoftime/packer v0.0.0-20210930000230-c9289d8d0c32
 	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/ungerik/go3d v0.0.0-20211026193542-07217314a07d
 )

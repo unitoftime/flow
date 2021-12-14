@@ -5,7 +5,7 @@ import (
 
 	"github.com/ungerik/go3d/float64/vec2"
 
-	"github.com/jstewart7/ecs"
+	"github.com/unitoftime/ecs"
 )
 
 type Transform struct {

@@ -1,10 +1,10 @@
 package render
 
 import (
-	"github.com/jstewart7/glitch"
+	"github.com/unitoftime/glitch"
 
-	"github.com/jstewart7/flow/tilemap"
-	"github.com/jstewart7/flow/asset"
+	"github.com/unitoftime/flow/tilemap"
+	"github.com/unitoftime/flow/asset"
 )
 
 type TilemapRender struct {

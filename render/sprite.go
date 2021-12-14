@@ -3,10 +3,10 @@ package render
 import (
 	"image/color"
 
-	"github.com/jstewart7/glitch"
+	"github.com/unitoftime/glitch"
 
-	"github.com/jstewart7/ecs"
-	"github.com/jstewart7/flow/physics"
+	"github.com/unitoftime/ecs"
+	"github.com/unitoftime/flow/physics"
 )
 
 type Sprite struct {

@@ -9,8 +9,8 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/jstewart7/glitch"
-	"github.com/jstewart7/packer"
+	"github.com/unitoftime/glitch"
+	"github.com/unitoftime/packer"
 )
 
 type Load struct {

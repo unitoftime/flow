@@ -3,10 +3,10 @@ package render
 import (
 	"time"
 
-	"github.com/jstewart7/ecs"
+	"github.com/unitoftime/ecs"
 
-	"github.com/jstewart7/flow/particle"
-	"github.com/jstewart7/glitch"
+	"github.com/unitoftime/flow/particle"
+	"github.com/unitoftime/glitch"
 )
 
 // TODO - Any way to do optional so that I can do all of this in a single loop?

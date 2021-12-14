@@ -1,7 +1,7 @@
 package render
 
 import (
-	"github.com/jstewart7/glitch"
+	"github.com/unitoftime/glitch"
 )
 
 type Camera struct {
