@@ -1,6 +1,6 @@
 module github.com/unitoftime/flow
 
-go 1.17
+go 1.18
 
 replace github.com/unitoftime/ecs => /home/jacob/go/src/github.com/unitoftime/ecs
 

@@ -67,12 +67,13 @@ func Interpolate(A, B glitch.Vec2, lowerBound, upperBound float32) glitch.Vec2 {
 
 // TODO - how to do optional components? with some default val?
 func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
-	view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
-	view.Map(func(id ecs.Id, comp ...interface{}) {
+	ecs.Map2(world, func(id ecs.Id, sprite *Sprite, t *physics.Transform) {
+	// view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
+	// view.Map(func(id ecs.Id, comp ...interface{}) {
 	// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
 		// sprite := a.(Sprite)
-		sprite := comp[0].(*Sprite)
-		t := comp[1].(*physics.Transform)
+		// sprite := comp[0].(*Sprite)
+		// t := comp[1].(*physics.Transform)
 		// mat := pixel.IM.ScaledXY(pixel.ZV, sprite.Scale).Moved(pixel.V(t.X, t.Y))
 		mat := glitch.Mat4Ident
 		mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y), 0)
@@ -85,8 +86,9 @@ func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
 }
 
 func CaptureInput(win *glitch.Window, world *ecs.World) {
-	view := ecs.ViewAll(world, &Keybinds{}, &physics.Input{})
-	view.Map(func(id ecs.Id, comp ...interface{}) {
+	ecs.Map2(world, func(id ecs.Id, keybinds *Keybinds, input *physics.Input) {
+	// view := ecs.ViewAll(world, &Keybinds{}, &physics.Input{})
+	// view.Map(func(id ecs.Id, comp ...interface{}) {
 	// ecs.Each(engine, Keybinds{}, func(id ecs.Id, a interface{}) {
 	// 	keybinds := a.(Keybinds)
 
@@ -94,8 +96,8 @@ func CaptureInput(win *glitch.Window, world *ecs.World) {
 		// ok := ecs.Read(engine, id, &input)
 		// if !ok { return }
 
-		keybinds := comp[0].(*Keybinds)
-		input := comp[1].(*physics.Input)
+		// keybinds := comp[0].(*Keybinds)
+		// input := comp[1].(*physics.Input)
 
 		input.Left = false
 		input.Right = false

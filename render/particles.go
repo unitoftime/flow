@@ -1,6 +1,7 @@
 package render
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/unitoftime/ecs"
@@ -13,24 +14,27 @@ import (
 func InterpolateParticles(world *ecs.World, dt time.Duration) {
 	// Lifetime
 	{
-		view := ecs.ViewAll(world, &particle.Lifetime{})
-		view.Map(func(id ecs.Id, comp ...interface{}) {
-			life := comp[0].(*particle.Lifetime)
+		ecs.Map(world, func(id ecs.Id, life *particle.Lifetime) {
+		// view := ecs.ViewAll(world, &particle.Lifetime{})
+		// view.Map(func(id ecs.Id, comp ...interface{}) {
+		// 	life := comp[0].(*particle.Lifetime)
 			life.Remaining -= dt
 
 			if life.Remaining <= 0 {
-				ecs.Tag(world, id, "delete")
+				fmt.Println("NEED TO DELETE PARTICLE")
+				// ecs.Tag(world, id, "delete")// TODO - Delete particles
 			}
 		})
 	}
 
 	// Color
 	{
-		view := ecs.ViewAll(world, &particle.Lifetime{}, &particle.Color{}, &Sprite{})
-		view.Map(func(id ecs.Id, comp ...interface{}) {
-			life := comp[0].(*particle.Lifetime)
-			color := comp[1].(*particle.Color)
-			sprite := comp[2].(*Sprite)
+		ecs.Map3(world, func(id ecs.Id, life *particle.Lifetime, color *particle.Color, sprite *Sprite) {
+		// view := ecs.ViewAll(world, &particle.Lifetime{}, &particle.Color{}, &Sprite{})
+		// view.Map(func(id ecs.Id, comp ...interface{}) {
+			// life := comp[0].(*particle.Lifetime)
+			// color := comp[1].(*particle.Color)
+			// sprite := comp[2].(*Sprite)
 
 			sprite.Color = color.Get(life.Ratio())
 		})
@@ -38,11 +42,12 @@ func InterpolateParticles(world *ecs.World, dt time.Duration) {
 
 	// Size
 	{
-		view := ecs.ViewAll(world, &particle.Lifetime{}, &particle.Size{}, &Sprite{})
-		view.Map(func(id ecs.Id, comp ...interface{}) {
-			life := comp[0].(*particle.Lifetime)
-			size := comp[1].(*particle.Size)
-			sprite := comp[2].(*Sprite)
+		ecs.Map3(world, func(id ecs.Id, life *particle.Lifetime, size *particle.Size, sprite *Sprite) {
+		// view := ecs.ViewAll(world, &particle.Lifetime{}, &particle.Size{}, &Sprite{})
+		// view.Map(func(id ecs.Id, comp ...interface{}) {
+			// life := comp[0].(*particle.Lifetime)
+			// size := comp[1].(*particle.Size)
+			// sprite := comp[2].(*Sprite)
 
 			newSize := size.Get(life.Ratio())
 			spriteBounds := sprite.Bounds()
@@ -50,4 +55,3 @@ func InterpolateParticles(world *ecs.World, dt time.Duration) {
 		})
 	}
 }
- 

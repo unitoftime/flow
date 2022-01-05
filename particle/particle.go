@@ -117,21 +117,21 @@ func (s *Size) Get(ratio float64) vec2.T {
 // - ComponentFactory
 //--------------------------------------------------------------------------------------------------
 type PrefabBuilder interface {
-	Add(ecs.Entity)
+	Add(*ecs.Entity)
 }
 
 type RingBuilder struct {
 	AngleRange vec2.T
 	RadiusRange vec2.T
 }
-func (p *RingBuilder) Add(prefab ecs.Entity) {
+func (p *RingBuilder) Add(prefab *ecs.Entity) {
 	angle := interp.Linear.Float64(p.AngleRange[0], p.AngleRange[1], rand.Float64())
 	radius := interp.Linear.Float64(p.RadiusRange[0], p.RadiusRange[1], rand.Float64())
 
 	vec := vec2.UnitX
 	vec.Scale(radius).Rotate(angle)
 
-	prefab.Write(physics.Transform{vec[0], vec[1]})
+	prefab.Add(ecs.C(physics.Transform{vec[0], vec[1]}))
 }
 
 // type AngleBuilder struct {
@@ -149,25 +149,26 @@ func (p *RingBuilder) Add(prefab ecs.Entity) {
 type TransformBuilder struct {
 	PosPositioner Vec2Positioner
 }
-func (p *TransformBuilder) Add(prefab ecs.Entity) {
+func (p *TransformBuilder) Add(prefab *ecs.Entity) {
 	pos := p.PosPositioner.Vec2(vec2.Zero)
-	prefab.Write(physics.Transform{pos[0], pos[1]})
+	prefab.Add(ecs.C(physics.Transform{pos[0], pos[1]}))
 }
 
 type RigidbodyBuilder struct {
 	Mass float64
 	VelPositioner Vec2Positioner
 }
-func (b *RigidbodyBuilder) Add(prefab ecs.Entity) {
-	transform := prefab.Read(physics.Transform{}).(physics.Transform)
+func (b *RigidbodyBuilder) Add(prefab *ecs.Entity) {
+	// transform := prefab.Read(physics.Transform{}).(physics.Transform)
+	transform, _ := ecs.ReadFromEntity[physics.Transform](prefab)
 	pos := vec2.T{transform.X, transform.Y}
 
 	vel := b.VelPositioner.Vec2(pos)
 
-	prefab.Write(physics.Rigidbody{
+	prefab.Add(ecs.C(physics.Rigidbody{
 		Mass: b.Mass,
 		Velocity: vel,
-	})
+	}))
 }
 
 // type ConstantBuilder struct {
@@ -244,7 +245,7 @@ type Emitter struct {
 	Probability float64
 	// Duration time.Duration
 	// Type ParticleType
-	Prefab ecs.Entity
+	Prefab *ecs.Entity
 
 	// SizeCurve, ColorCurve interp.Interp
 
@@ -308,10 +309,11 @@ func (e *Emitter) Spawn(entPos vec2.T, world *ecs.World) bool {
 		e.Builders[i].Add(e.Prefab)
 	}
 
-	transform := e.Prefab.Read(physics.Transform{}).(physics.Transform)
+	// transform := e.Prefab.Read(physics.Transform{}).(physics.Transform)
+	transform, _ := ecs.ReadFromEntity[physics.Transform](e.Prefab)
 	transform.X += entPos[0]
 	transform.Y += entPos[1]
-	e.Prefab.Write(transform)
+	e.Prefab.Add(ecs.C(transform))
 
 	// sizes := e.SizePositioner.Vec2(vec2.Zero)
 
