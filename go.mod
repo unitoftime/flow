@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/ungerik/go3d v0.0.0-20211026193542-07217314a07d
-	github.com/unitoftime/ecs v0.0.0-20211214003602-c89336df68ab
+	github.com/unitoftime/ecs v0.0.0-20220105184333-0c45de2067df
 	github.com/unitoftime/glitch v0.0.0-20211229194034-9f3f6025ad6c
 	github.com/unitoftime/packer v0.0.0-20211214011341-d04bb2072d16
 )

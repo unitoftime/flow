@@ -18,6 +18,8 @@ github.com/ungerik/go3d v0.0.0-20211026193542-07217314a07d h1:oW3sRcpbOkRfQE8u7K
 github.com/ungerik/go3d v0.0.0-20211026193542-07217314a07d/go.mod h1:ipEjrk2uLK4xX8ivWBPIVOD0fMtKyPI0strluUfIlYQ=
 github.com/unitoftime/ecs v0.0.0-20211214003602-c89336df68ab h1:0pkdbPf08uyHLfzoooIHLQzp02ohvHD5PNvENPOy/xE=
 github.com/unitoftime/ecs v0.0.0-20211214003602-c89336df68ab/go.mod h1:Q+7BK8kn4U/wC4pJjzFluAsGVUSX5ZPy5S74axPeLoE=
+github.com/unitoftime/ecs v0.0.0-20220105184333-0c45de2067df h1:H04wPhGqeIdC779HTFRzAjmzSEXaXRPGTWt3iMbhzHg=
+github.com/unitoftime/ecs v0.0.0-20220105184333-0c45de2067df/go.mod h1:873d7qy6W9H0GsBWLfpnohI3Bv6j90WreOgoq8HAUGo=
 github.com/unitoftime/gl v0.0.0-20211214004148-0b2bf5e8079d h1:K+4uIO4QOAcGG3cwiwhcP9sr6kb8czMdOUN+Ylpc2xI=
 github.com/unitoftime/gl v0.0.0-20211214004148-0b2bf5e8079d/go.mod h1:QM8eui86JJjs8VD99pWWhMeNbyBDR8UFGrzzvCp3okQ=
 github.com/unitoftime/glfw v0.0.0-20211214004214-579be7093d5c h1:aAqqHLhdwZZritWV2E7ynjMQfMD7i49C/pL9vaUrVow=
