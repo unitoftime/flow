@@ -2,16 +2,12 @@ module github.com/unitoftime/flow
 
 go 1.18
 
-replace github.com/unitoftime/ecs => /home/jacob/go/src/github.com/unitoftime/ecs
-
-replace github.com/unitoftime/packer => /home/jacob/go/src/github.com/unitoftime/packer
-
 require (
 	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/ungerik/go3d v0.0.0-20211026193542-07217314a07d
-	github.com/unitoftime/ecs v0.0.0-20210925153713-7d62c0f35800
-	github.com/unitoftime/glitch v0.0.0-20211214010820-9b01d2c93b6a
-	github.com/unitoftime/packer v0.0.0-20210930000230-c9289d8d0c32
+	github.com/unitoftime/ecs v0.0.0-20211214003602-c89336df68ab
+	github.com/unitoftime/glitch v0.0.0-20211229194034-9f3f6025ad6c
+	github.com/unitoftime/packer v0.0.0-20211214011341-d04bb2072d16
 )
 
 require (
