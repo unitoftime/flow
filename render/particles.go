@@ -1,7 +1,6 @@
 package render
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/unitoftime/ecs"
@@ -21,8 +20,7 @@ func InterpolateParticles(world *ecs.World, dt time.Duration) {
 			life.Remaining -= dt
 
 			if life.Remaining <= 0 {
-				fmt.Println("NEED TO DELETE PARTICLE")
-				// ecs.Tag(world, id, "delete")// TODO - Delete particles
+				ecs.Delete(world, id)
 			}
 		})
 	}
