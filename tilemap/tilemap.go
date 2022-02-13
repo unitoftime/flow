@@ -7,11 +7,11 @@ type Tile struct {
 }
 
 type Tilemap struct {
-	TileSize int // In pixels
+	TileSize [2]int // In pixels
 	tiles [][]Tile
 }
 
-func New(tiles [][]Tile, tileSize int) *Tilemap {
+func New(tiles [][]Tile, tileSize [2]int) *Tilemap {
 	return &Tilemap{
 		TileSize: tileSize,
 		tiles: tiles,
