@@ -60,11 +60,6 @@ func HandleInput(world *ecs.World, dt time.Duration) {
 // Applies rigidbody physics
 func RigidbodyPhysics(world *ecs.World, dt time.Duration) {
 	ecs.Map2(world, func(id ecs.Id, transform *Transform, rigidbody *Rigidbody) {
-	// view := ecs.ViewAll(world, &Transform{}, &Rigidbody{})
-	// view.Map(func(id ecs.Id, comp ...interface{}) {
-	// 	transform := comp[0].(*Transform)
-	// 	rigidbody := comp[1].(*Rigidbody)
-
 		newTransform := vec2.T{transform.X, transform.Y}
 		delta := rigidbody.Velocity.Scaled(dt.Seconds())
 		newTransform.Add(&delta)

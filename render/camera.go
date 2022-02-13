@@ -21,14 +21,16 @@ func NewCamera(win *glitch.Window, x, y float32) *Camera {
 }
 
 func (c *Camera) Update() {
+	// TODO - Note: This is just to center point (0, 0), this should be selected some other way
 	screenCenter := c.win.Bounds().Center()
 
 	c.Camera.SetOrtho2D(c.win)
 	movePos := glitch.Vec2{c.Position[0], c.Position[1]}.Sub(screenCenter)
-	// c.mat = pixel.IM.Moved(movePos).Scaled(screenCenter, c.Zoom)
+
 	c.Camera.SetView2D(movePos[0], movePos[1], float32(c.Zoom), float32(c.Zoom))
-	// c.Camera.SetView2D(0, 0, 1.0, 1.0)
 }
+
+
 
 // type Camera struct {
 // 	win *pixelgl.Window
