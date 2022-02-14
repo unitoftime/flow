@@ -5,26 +5,29 @@ import (
 )
 
 type Camera struct {
-	win *glitch.Window
 	Camera *glitch.CameraOrtho
 	Position glitch.Vec2
 	Zoom float64
+	bounds glitch.Rect
 }
 
-func NewCamera(win *glitch.Window, x, y float32) *Camera {
+
+func NewCamera(bounds glitch.Rect, x, y float32) *Camera {
 	return &Camera{
-		win: win,
 		Camera: glitch.NewCameraOrtho(),
 		Position: glitch.Vec2{x, y},
 		Zoom: 1.0,
+		bounds: bounds,
 	}
 }
 
-func (c *Camera) Update() {
-	// TODO - Note: This is just to center point (0, 0), this should be selected some other way
-	screenCenter := c.win.Bounds().Center()
+func (c *Camera) Update(bounds glitch.Rect) {
+	c.bounds = bounds
 
-	c.Camera.SetOrtho2D(c.win)
+	// TODO - Note: This is just to center point (0, 0), this should be selected some other way
+	screenCenter := bounds.Center()
+
+	c.Camera.SetOrtho2D(bounds)
 	movePos := glitch.Vec2{c.Position[0], c.Position[1]}.Sub(screenCenter)
 
 	c.Camera.SetView2D(movePos[0], movePos[1], float32(c.Zoom), float32(c.Zoom))

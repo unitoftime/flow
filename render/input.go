@@ -19,6 +19,9 @@ func MouseDrag(win *glitch.Window, camera *Camera, dragButton glitch.Key) {
 	}
 
 	if win.Pressed(dragButton) {
+		// this is the right ratio, but you have to pass this in someway maybe camera knows about FB scaling? Idk
+		// camera.Position[0] += (cursor.DragStart[0] - mX) / float32(camera.Zoom) * (camera.bounds.W() / 1920.0)
+		// camera.Position[1] += (cursor.DragStart[1] - mY) / float32(camera.Zoom) * (camera.bounds.W() / 1920.0)
 		camera.Position[0] += (cursor.DragStart[0] - mX) / float32(camera.Zoom)
 		camera.Position[1] += (cursor.DragStart[1] - mY) / float32(camera.Zoom)
 
