@@ -33,6 +33,13 @@ func (c *Camera) Update(bounds glitch.Rect) {
 	c.Camera.SetView2D(movePos[0], movePos[1], float32(c.Zoom), float32(c.Zoom))
 }
 
+func (c *Camera) Project(point glitch.Vec3) glitch.Vec3 {
+	return c.Camera.Project(point)
+}
+
+func (c *Camera) Unproject(point glitch.Vec3) glitch.Vec3 {
+	return c.Camera.Unproject(point)
+}
 
 
 // type Camera struct {
