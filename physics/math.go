@@ -33,6 +33,10 @@ func V2(x, y float64) Vec2 {
 	return Vec2{x, y}
 }
 
+func (v Vec2) Add(v2 Vec2) Vec2 {
+	return V2(v.X + v2.X, v.Y + v2.Y)
+}
+
 func (v Vec2) Sub(v2 Vec2) Vec2 {
 	return V2(v.X - v2.X, v.Y - v2.Y)
 }
@@ -48,4 +52,13 @@ func (v Vec2) Len() float64 {
 
 func (v Vec2) Scaled(s float64) Vec2 {
 	return V2(s * v.X, s * v.Y)
+}
+
+func (v Vec2) Rotated(radians float64) Vec2 {
+	sin := math.Sin(radians)
+	cos := math.Cos(radians)
+	return V2(
+		v.X * cos - v.Y * sin,
+		v.X * sin + v.Y * cos,
+	)
 }

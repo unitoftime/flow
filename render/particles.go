@@ -34,7 +34,7 @@ func InterpolateParticles(world *ecs.World, dt time.Duration) {
 		ecs.Map3(world, func(id ecs.Id, life *particle.Lifetime, size *particle.Size, sprite *Sprite) {
 			newSize := size.Get(life.Ratio())
 			spriteBounds := sprite.Bounds()
-			sprite.Scale = glitch.Vec2{float32(newSize[0]) / spriteBounds.W(), float32(newSize[1]) / spriteBounds.H()}
+			sprite.Scale = glitch.Vec2{float32(newSize.X) / spriteBounds.W(), float32(newSize.Y) / spriteBounds.H()}
 		})
 	}
 }

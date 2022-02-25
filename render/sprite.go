@@ -9,6 +9,20 @@ import (
 	"github.com/unitoftime/flow/physics"
 )
 
+// Represents multiple sprites
+type MultiSprite struct {
+	Sprites []Sprite
+}
+func NewMultiSprite(sprites ...Sprite) MultiSprite {
+	m := MultiSprite{
+		Sprites: make([]Sprite, len(sprites)),
+	}
+	for i := range sprites {
+		m.Sprites[i] = sprites[i]
+	}
+	return m
+}
+
 type Sprite struct {
 	*glitch.Sprite
 	Color color.NRGBA // TODO - performance on interfaces vs structs?
@@ -74,6 +88,19 @@ func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
 		// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 		col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
 		sprite.DrawColorMask(pass, mat, col)
+	})
+}
+
+func DrawMultiSprites(pass *glitch.RenderPass, world *ecs.World) {
+	ecs.Map2(world, func(id ecs.Id, mSprite *MultiSprite, t *physics.Transform) {
+		for _, sprite := range mSprite.Sprites {
+			mat := glitch.Mat4Ident
+			mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y), 0)
+
+			// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
+			col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+			sprite.DrawColorMask(pass, mat, col)
+		}
 	})
 }
 

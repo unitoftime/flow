@@ -39,14 +39,15 @@ func (load *Load) Image(filepath string) (image.Image, error) {
 	return img, nil
 }
 
-func (load *Load) Sprite(filepath string) (*glitch.Sprite, error) {
+// Loads a single sprite from a filepath of an image
+func (load *Load) Sprite(filepath string, smooth bool) (*glitch.Sprite, error) {
 	img, err := load.Image(filepath)
 	if err != nil {
 		return nil, err
 	}
 	// pic := pixel.PictureDataFromImage(img)
 	// return pixel.NewSprite(pic, pic.Bounds()), nil
-	texture := glitch.NewTexture(img)
+	texture := glitch.NewTexture(img, smooth)
 	return glitch.NewSprite(texture, texture.Bounds()), nil
 }
 
@@ -65,7 +66,7 @@ func (load *Load) Json(filepath string, dat interface{}) error {
 	return json.Unmarshal(jsonData, dat)
 }
 
-func (load *Load) Spritesheet(filepath string) (*Spritesheet, error) {
+func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error) {
 	//Load the Json
 	serializedSpritesheet := packer.SerializedSpritesheet{}
 	err := load.Json(filepath, &serializedSpritesheet)
@@ -81,7 +82,7 @@ func (load *Load) Spritesheet(filepath string) (*Spritesheet, error) {
 		return nil, err
 	}
 	// pic := pixel.PictureDataFromImage(img)
-	texture := glitch.NewTexture(img)
+	texture := glitch.NewTexture(img, smooth)
 
 	// Create the spritesheet object
 	// bounds := texture.Bounds()
@@ -123,6 +124,14 @@ func (s *Spritesheet) Get(name string) (*glitch.Sprite, error) {
 		return nil, errors.New("Invalid sprite name!")
 	}
 	return sprite, nil
+}
+
+func (s *Spritesheet) GetNinePanel(name string, border glitch.Rect) (*glitch.NinePanelSprite, error) {
+	sprite, ok := s.lookup[name]
+	if !ok {
+		return nil, errors.New("Invalid sprite name!")
+	}
+	return glitch.SpriteToNinePanel(sprite, border), nil
 }
 
 func (s *Spritesheet) Picture() *glitch.Texture {
