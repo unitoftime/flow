@@ -27,12 +27,14 @@ type Sprite struct {
 	*glitch.Sprite
 	Color color.NRGBA // TODO - performance on interfaces vs structs?
 	Scale glitch.Vec2
+	Layer uint8
 }
 func NewSprite(sprite *glitch.Sprite) Sprite {
 	return Sprite{
 		Sprite: sprite,
 		Color: color.NRGBA{255, 255, 255, 255},
 		Scale: glitch.Vec2{1, 1},
+		Layer: glitch.DefaultLayer,
 	}
 }
 
@@ -87,6 +89,7 @@ func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
 
 		// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 		col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+		pass.SetLayer(sprite.Layer)
 		sprite.DrawColorMask(pass, mat, col)
 	})
 }
@@ -99,6 +102,7 @@ func DrawMultiSprites(pass *glitch.RenderPass, world *ecs.World) {
 
 			// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 			col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+			pass.SetLayer(sprite.Layer)
 			sprite.DrawColorMask(pass, mat, col)
 		}
 	})
