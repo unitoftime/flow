@@ -5,6 +5,7 @@ import (
 
 	"github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/physics"
+	"github.com/zyedidia/generic/queue"
 )
 
 // This is basically a reversable hash of the X and Y position of the chunk
@@ -121,6 +122,14 @@ func (c *Chunkmap) GetTile(pos TilePosition) (Tile, bool) {
 	return chunk.Get(pos)
 }
 
+// TODO - maybe in the future
+// func (c *Chunkmap) SetTile(pos TilePosition, tile Tile) bool {
+// 	chunkId := c.TileToChunk(pos)
+// 	chunk, ok := c.GetChunk(chunkId)
+// 	if !ok { return false }
+// 	chunk.Set(pos, tile)
+// }
+
 func (c *Chunkmap) TileToPosition(tilePos TilePosition) (float32, float32) {
 	x, y := c.math.Position(tilePos.X, tilePos.Y, c.TileSize)
 	return x, y
@@ -138,6 +147,48 @@ func (c *Chunkmap) GetEdgeNeighbors(x, y int) []TilePosition {
 		TilePosition{x, y+1},
 		TilePosition{x, y-1},
 	}
+}
+
+func (c *Chunkmap) GetChunkEdgeNeighbors(pos ChunkPosition) []ChunkPosition {
+	return []ChunkPosition{
+		ChunkPosition{pos.X+1, pos.Y},
+		ChunkPosition{pos.X-1, pos.Y},
+		ChunkPosition{pos.X, pos.Y+1},
+		ChunkPosition{pos.X, pos.Y-1},
+	}
+}
+
+func (c *Chunkmap) GetPerimeter() map[ChunkPosition]bool {
+	perimeter := make(map[ChunkPosition]bool) // List of chunkPositions that are the perimeter
+	processed := make(map[ChunkPosition]bool) // List of chunkPositions that we've already processed
+
+	var start ChunkPosition
+	for chunkId := range c.chunks {
+		start = ChunkToPosition(chunkId)
+		break
+	}
+
+	q := queue.New[ChunkPosition]()
+	q.Enqueue(start)
+
+	for !q.Empty() {
+		current := q.Dequeue()
+
+		neighbors := c.GetChunkEdgeNeighbors(current)
+		for _, next := range neighbors {
+			_, ok := c.GetChunk(ChunkPositionToChunk(next))
+			if ok {
+				// If the chunk's neighbor exists, then add it and keep processing
+				q.Enqueue(next)
+				processed[next] = true
+				continue
+			}
+
+			perimeter[next] = true
+		}
+	}
+
+	return perimeter
 }
 
 // TODO - optimize in a locality sort of way
