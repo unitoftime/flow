@@ -1,6 +1,7 @@
 package asset
 
 import (
+	"fmt"
 	"errors"
 	"io/fs"
 	"image"
@@ -121,7 +122,7 @@ func NewSpritesheet(tex *glitch.Texture, lookup map[string]*glitch.Sprite) *Spri
 func (s *Spritesheet) Get(name string) (*glitch.Sprite, error) {
 	sprite, ok := s.lookup[name]
 	if !ok {
-		return nil, errors.New("Invalid sprite name!")
+		return nil, errors.New(fmt.Sprintf("Invalid sprite name: %s", name))
 	}
 	return sprite, nil
 }
@@ -129,7 +130,7 @@ func (s *Spritesheet) Get(name string) (*glitch.Sprite, error) {
 func (s *Spritesheet) GetNinePanel(name string, border glitch.Rect) (*glitch.NinePanelSprite, error) {
 	sprite, ok := s.lookup[name]
 	if !ok {
-		return nil, errors.New("Invalid sprite name!")
+		return nil, errors.New(fmt.Sprintf("Invalid sprite name: %s", name))
 	}
 	return glitch.SpriteToNinePanel(sprite, border), nil
 }
