@@ -1,4 +1,4 @@
-package tilemap
+package tile
 
 // Inspired By: http://www.cr31.co.uk/stagecast/wang/1sideedge.html
 

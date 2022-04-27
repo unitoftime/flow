@@ -1,4 +1,4 @@
-package tilemap
+package tile
 
 import (
 	"github.com/unitoftime/ecs"
@@ -18,6 +18,20 @@ type TilePosition struct {
 	X, Y int
 }
 
+type Rect struct {
+	Min, Max TilePosition
+}
+func R(minX, minY, maxX, maxY int) Rect {
+	return Rect{
+		TilePosition{minX, minY},
+		TilePosition{maxX, maxY},
+	}
+}
+func (r Rect) Contains(pos TilePosition) bool {
+	return pos.X < r.Max.X && pos.X > r.Min.X && pos.Y < r.Max.Y && pos.Y > r.Min.Y
+}
+
+
 type Collider struct {
 	Width, Height int // Size of the collider in terms of tiles
 }
@@ -26,6 +40,7 @@ type Tilemap struct {
 	TileSize [2]int // In pixels
 	tiles [][]Tile
 	math Math
+	Offset physics.Vec2 // In world space positioning
 }
 
 func New(tiles [][]Tile, tileSize [2]int, math Math) *Tilemap {
@@ -33,6 +48,7 @@ func New(tiles [][]Tile, tileSize [2]int, math Math) *Tilemap {
 		TileSize: tileSize,
 		tiles: tiles,
 		math: math,
+		Offset: physics.Vec2{},
 	}
 }
 
@@ -45,20 +61,22 @@ func (t *Tilemap) Height() int {
 	return len(t.tiles[0])
 }
 
-// Migrate to use TilePosition
-func (t *Tilemap) Get(x, y int) (Tile, bool) {
-	if x < 0 || x >= len(t.tiles) || y < 0 || y >= len(t.tiles[x]) {
+func (t *Tilemap) Get(pos TilePosition) (Tile, bool) {
+	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
 		return Tile{}, false
 	}
 
-	return t.tiles[x][y], true
+	return t.tiles[pos.X][pos.Y], true
 }
 
 func (t *Tilemap) TileToPosition(tilePos TilePosition) (float32, float32) {
-	return t.math.Position(tilePos.X, tilePos.Y, t.TileSize)
+	x, y := t.math.Position(tilePos.X, tilePos.Y, t.TileSize)
+	return (x + float32(t.Offset.X)), (y + float32(t.Offset.Y))
 }
 
 func (t *Tilemap) PositionToTile(x, y float32) TilePosition {
+	x -= float32(t.Offset.X)
+	y -= float32(t.Offset.Y)
 	tX, tY := t.math.PositionToTile(x, y, t.TileSize)
 	return TilePosition{tX, tY}
 }

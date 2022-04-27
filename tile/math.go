@@ -1,4 +1,4 @@
-package tilemap
+package tile
 
 import (
 	"math"
