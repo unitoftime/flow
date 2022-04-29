@@ -53,6 +53,18 @@ func NewChunkmap(chunkSize int, tileSize [2]int, math Math, expansionLambda func
 	}
 }
 
+// Returns the worldspace position of a chunk
+func (c *Chunkmap) ToPosition(chunkPos ChunkPosition) physics.Vec2 {
+	offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
+		[2]int{c.TileSize[0]*c.ChunkSize, c.TileSize[1]*c.ChunkSize})
+
+	offset := physics.Vec2{
+		float64(offX),
+		float64(offY) - (0.5 * float64(c.ChunkSize) * float64(c.TileSize[1])) + float64(c.TileSize[1]/2),
+	}
+	return offset
+}
+
 func (c *Chunkmap) TileToChunk(tilePos TilePosition) ChunkId {
 	if tilePos.X < 0 {
 		tilePos.X -= (c.ChunkSize - 1)
@@ -65,6 +77,16 @@ func (c *Chunkmap) TileToChunk(tilePos TilePosition) ChunkId {
 
 	chunkId := ChunkPositionToChunk(ChunkPosition{int32(chunkX), int32(chunkY)})
 	return chunkId
+}
+
+// Returns the center tile of a chunk
+func (c *Chunkmap) ChunkToTile(chunkPos ChunkPosition) TilePosition {
+	tileX := int(chunkPos.X) * c.ChunkSize
+	tileY := int(chunkPos.Y) * c.ChunkSize
+
+	tilePos := TilePosition{tileX, tileY}
+
+	return tilePos
 }
 
 // TODO - It might be cool to have a function which returns a rectangle of chunks as a list (To automatically cull out sections we don't want)
@@ -86,14 +108,22 @@ func (c *Chunkmap) GetChunk(chunkId ChunkId) (*Tilemap, bool) {
 
 func (c *Chunkmap) CreateChunk(chunkPos ChunkPosition) *Tilemap {
 	chunkId := ChunkPositionToChunk(chunkPos)
+	chunk, ok := c.GetChunk(chunkId)
+	if ok {
+		return chunk // Return the chunk and don't create, if the chunk is already made
+	}
+
+	tileOffset := c.ChunkToTile(chunkPos)
+
 	tiles := make([][]Tile, c.ChunkSize, c.ChunkSize)
 	for x := range tiles {
 		tiles[x] = make([]Tile, c.ChunkSize, c.ChunkSize)
 		for y := range tiles[x] {
-			tiles[x][y] = c.expansion(x, y)
+			// fmt.Println(x, y, tileOffset.X, tileOffset.Y)
+			tiles[x][y] = c.expansion(x + tileOffset.X, y + tileOffset.Y)
 		}
 	}
-	chunk := New(tiles, c.TileSize, c.math)
+	chunk = New(tiles, c.TileSize, c.math)
 
 	// chunkPos := ChunkToPosition(chunkId)
 	offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
@@ -119,7 +149,11 @@ func (c *Chunkmap) GetTile(pos TilePosition) (Tile, bool) {
 		return Tile{}, false
 	}
 
-	return chunk.Get(pos)
+	chunkPos := ChunkToPosition(chunkId)
+	tileOffset := c.ChunkToTile(chunkPos)
+	localTilePos := TilePosition{pos.X - tileOffset.X, pos.Y - tileOffset.Y}
+	// fmt.Println("chunk.Get:", chunkPos, pos, localTilePos)
+	return chunk.Get(localTilePos)
 }
 
 // TODO - maybe in the future
@@ -179,8 +213,11 @@ func (c *Chunkmap) GetPerimeter() map[ChunkPosition]bool {
 			_, ok := c.GetChunk(ChunkPositionToChunk(next))
 			if ok {
 				// If the chunk's neighbor exists, then add it and keep processing
-				q.Enqueue(next)
-				processed[next] = true
+				_, alreadyProcessed := processed[next]
+				if !alreadyProcessed {
+					q.Enqueue(next)
+					processed[next] = true
+				}
 				continue
 			}
 
