@@ -1,45 +1,20 @@
 package tile
 
 import (
-	"encoding/binary"
-
 	"github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/physics"
 	"github.com/zyedidia/generic/queue"
 )
 
-// This is basically a reversable hash of the X and Y position of the chunk
-type ChunkId uint64
 type ChunkPosition struct {
 	X, Y int32
-}
-
-// TODO - Investigate: Is this slow? Might need endianness correct in case of sending this data accross hardware (save/load files, etc?)
-
-// Based on the chunk X and Y position, calculate the ChunkId
-func ChunkPositionToChunk(pos ChunkPosition) ChunkId {
-	// Note: On casting int32 to uint32 (memory layout shouldn't change): https://stackoverflow.com/questions/50815512/when-casting-an-int64-to-uint64-is-the-sign-retained
-	var buf [8]byte
-	binary.LittleEndian.PutUint32(buf[0:4], uint32(pos.X))
-	binary.LittleEndian.PutUint32(buf[4:8], uint32(pos.Y))
-
-	return ChunkId(binary.LittleEndian.Uint64(buf[:]))
-}
-// Based on the ChunkId, calculate the chunk's X and Y position
-func ChunkToPosition(id ChunkId) ChunkPosition {
-	var buf [8]byte
-	binary.LittleEndian.PutUint64(buf[:], uint64(id))
-
-	x := int32(binary.LittleEndian.Uint32(buf[0:4]))
-	y := int32(binary.LittleEndian.Uint32(buf[4:8]))
-	return ChunkPosition{x, y}
 }
 
 type Chunkmap struct {
 	ChunkSize int // TODO - implies only square chunks
 	TileSize [2]int // In pixels
 	math Math
-	chunks map[ChunkId]*Tilemap
+	chunks map[ChunkPosition]*Tilemap
 	expansion func(x, y int) Tile // This is a function that deterministically calculates what each tile should be for each position
 }
 
@@ -48,7 +23,7 @@ func NewChunkmap(chunkSize int, tileSize [2]int, math Math, expansionLambda func
 		ChunkSize: chunkSize,
 		TileSize: tileSize,
 		math: math,
-		chunks: make(map[ChunkId]*Tilemap),
+		chunks: make(map[ChunkPosition]*Tilemap),
 		expansion: expansionLambda,
 	}
 }
@@ -65,7 +40,7 @@ func (c *Chunkmap) ToPosition(chunkPos ChunkPosition) physics.Vec2 {
 	return offset
 }
 
-func (c *Chunkmap) TileToChunk(tilePos TilePosition) ChunkId {
+func (c *Chunkmap) TileToChunk(tilePos TilePosition) ChunkPosition {
 	if tilePos.X < 0 {
 		tilePos.X -= (c.ChunkSize - 1)
 	}
@@ -75,8 +50,7 @@ func (c *Chunkmap) TileToChunk(tilePos TilePosition) ChunkId {
 	chunkX := tilePos.X / c.ChunkSize
 	chunkY := tilePos.Y / c.ChunkSize
 
-	chunkId := ChunkPositionToChunk(ChunkPosition{int32(chunkX), int32(chunkY)})
-	return chunkId
+	return ChunkPosition{int32(chunkX), int32(chunkY)}
 }
 
 // Returns the center tile of a chunk
@@ -98,8 +72,8 @@ func (c *Chunkmap) GetAllChunks() []*Tilemap {
 	return ret
 }
 
-func (c *Chunkmap) GetChunk(chunkId ChunkId) (*Tilemap, bool) {
-	chunk, ok := c.chunks[chunkId]
+func (c *Chunkmap) GetChunk(chunkPos ChunkPosition) (*Tilemap, bool) {
+	chunk, ok := c.chunks[chunkPos]
 	if !ok {
 		return nil, false
 	}
@@ -107,8 +81,8 @@ func (c *Chunkmap) GetChunk(chunkId ChunkId) (*Tilemap, bool) {
 }
 
 func (c *Chunkmap) CreateChunk(chunkPos ChunkPosition) *Tilemap {
-	chunkId := ChunkPositionToChunk(chunkPos)
-	chunk, ok := c.GetChunk(chunkId)
+	// chunkId := ChunkPositionToChunk(chunkPos)
+	chunk, ok := c.GetChunk(chunkPos)
 	if ok {
 		return chunk // Return the chunk and don't create, if the chunk is already made
 	}
@@ -133,7 +107,7 @@ func (c *Chunkmap) CreateChunk(chunkPos ChunkPosition) *Tilemap {
 	chunk.Offset.Y = float64(offY)
 
 	// Write back
-	c.chunks[chunkId] = chunk
+	c.chunks[chunkPos] = chunk
 	return chunk
 }
 
@@ -143,13 +117,12 @@ func (c *Chunkmap) NumChunks() int {
 }
 
 func (c *Chunkmap) GetTile(pos TilePosition) (Tile, bool) {
-	chunkId := c.TileToChunk(pos)
-	chunk, ok := c.GetChunk(chunkId)
+	chunkPos := c.TileToChunk(pos)
+	chunk, ok := c.GetChunk(chunkPos)
 	if !ok {
 		return Tile{}, false
 	}
 
-	chunkPos := ChunkToPosition(chunkId)
 	tileOffset := c.ChunkToTile(chunkPos)
 	localTilePos := TilePosition{pos.X - tileOffset.X, pos.Y - tileOffset.Y}
 	// fmt.Println("chunk.Get:", chunkPos, pos, localTilePos)
@@ -196,9 +169,10 @@ func (c *Chunkmap) GetPerimeter() map[ChunkPosition]bool {
 	perimeter := make(map[ChunkPosition]bool) // List of chunkPositions that are the perimeter
 	processed := make(map[ChunkPosition]bool) // List of chunkPositions that we've already processed
 
+	// Just start at some random chunkPosition (whichever is first
 	var start ChunkPosition
-	for chunkId := range c.chunks {
-		start = ChunkToPosition(chunkId)
+	for chunkPos := range c.chunks {
+		start = chunkPos
 		break
 	}
 
@@ -210,7 +184,7 @@ func (c *Chunkmap) GetPerimeter() map[ChunkPosition]bool {
 
 		neighbors := c.GetChunkEdgeNeighbors(current)
 		for _, next := range neighbors {
-			_, ok := c.GetChunk(ChunkPositionToChunk(next))
+			_, ok := c.GetChunk(next)
 			if ok {
 				// If the chunk's neighbor exists, then add it and keep processing
 				_, alreadyProcessed := processed[next]
@@ -246,8 +220,8 @@ func (c *Chunkmap) RecalculateEntities(world *ecs.World) {
 
 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
 			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
-				chunkId := c.TileToChunk(TilePosition{x, y})
-				chunk, ok := c.GetChunk(chunkId)
+				chunkPos := c.TileToChunk(TilePosition{x, y})
+				chunk, ok := c.GetChunk(chunkPos)
 				if !ok { panic("Something has been built on a chunk that doesn't exist!") }
 				localTilePosition := chunk.PositionToTile(float32(transform.X), float32(transform.Y))
 				chunk.tiles[localTilePosition.X][localTilePosition.Y].Entity = id // Store the entity
