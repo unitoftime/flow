@@ -25,6 +25,10 @@ import (
 // 	return V2(v.X - v2.X, v.Y - v2.Y)
 // }
 
+type Vec3 struct {
+	X, Y, Z float64
+}
+
 type Vec2 struct {
 	X, Y float64
 }

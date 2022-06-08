@@ -10,6 +10,7 @@ import (
 
 type Transform struct {
 	X, Y float64
+	Height float64
 }
 
 type Rigidbody struct {
@@ -22,7 +23,6 @@ type Input struct {
 }
 
 func HandleInput(world *ecs.World, dt time.Duration) {
-	// view := ecs.ViewAll2[Input, Transform](world)
 	ecs.Map2(world, func(id ecs.Id, input *Input, transform *Transform) {
 		// Note: 100 good starting point, 200 seemed like a good max
 		speed := 125.0
@@ -45,7 +45,6 @@ func HandleInput(world *ecs.World, dt time.Duration) {
 // Applies rigidbody physics
 func RigidbodyPhysics(world *ecs.World, dt time.Duration) {
 	ecs.Map2(world, func(id ecs.Id, transform *Transform, rigidbody *Rigidbody) {
-		// newTransform := vec2.T{transform.X, transform.Y}
 		newTransform := Vec2{transform.X, transform.Y}
 		delta := rigidbody.Velocity.Scaled(dt.Seconds())
 		newTransform = newTransform.Add(delta)

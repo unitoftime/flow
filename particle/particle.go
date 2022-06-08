@@ -132,7 +132,7 @@ func (p *RingBuilder) Add(prefab *ecs.Entity) {
 	vec := physics.Vec2{1, 0}
 	vec.Scaled(radius).Rotated(angle)
 
-	prefab.Add(ecs.C(physics.Transform{vec.X, vec.Y}))
+	prefab.Add(ecs.C(physics.Transform{vec.X, vec.Y, 0}))
 }
 
 // type AngleBuilder struct {
@@ -152,7 +152,7 @@ type TransformBuilder struct {
 }
 func (p *TransformBuilder) Add(prefab *ecs.Entity) {
 	pos := p.PosPositioner.Vec2(physics.Vec2{})
-	prefab.Add(ecs.C(physics.Transform{pos.X, pos.Y}))
+	prefab.Add(ecs.C(physics.Transform{pos.X, pos.Y, 0}))
 }
 
 type RigidbodyBuilder struct {
