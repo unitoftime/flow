@@ -156,6 +156,41 @@ func (c *Chunkmap) GetEdgeNeighbors(x, y int) []TilePosition {
 	}
 }
 
+func (c *Chunkmap) GetNeighborsAtDistance(x, y int, dist int) []TilePosition {
+	distance := make(map[TilePosition]int)
+
+	q := queue.New[TilePosition]()
+	q.Enqueue(TilePosition{x, y})
+
+	for !q.Empty() {
+		current := q.Dequeue()
+
+		d := distance[current]
+		if d >= dist { continue } // Don't need to search past our limit
+
+		neighbors := c.GetEdgeNeighbors(current.X, current.Y)
+		for _, next := range neighbors {
+			_, ok := c.GetTile(next)
+			if !ok { continue } // Skip as neighbor doesn't actually exist (ie could be OOB)
+
+			// If we haven't already walked over this neighbor, then enqueue it and add it to our path
+			_, exists := distance[next]
+			if !exists {
+				q.Enqueue(next)
+				distance[next] = 1 + distance[current]
+			}
+		}
+	}
+
+	// Pull out all of the tiles that are at the correct distance
+	ret := make([]TilePosition, 0)
+	for pos, d := range distance {
+		if d != dist { continue } // Don't return if distance isn't corect
+		ret = append(ret, pos)
+	}
+	return ret
+}
+
 func (c *Chunkmap) GetChunkEdgeNeighbors(pos ChunkPosition) []ChunkPosition {
 	return []ChunkPosition{
 		ChunkPosition{pos.X+1, pos.Y},

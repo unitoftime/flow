@@ -18,6 +18,14 @@ type TilePosition struct {
 	X, Y int
 }
 
+func ManhattanDistance(a, b TilePosition) int {
+	dx := a.X - b.X
+	dy := a.Y - b.Y
+	if dx < 0 { dx = -dx }
+	if dy < 0 { dy = -dy }
+	return dx + dy
+}
+
 type Rect struct {
 	Min, Max TilePosition
 }
