@@ -39,8 +39,10 @@ var Sinusoid *Equation = &Equation{
 
 type Interp interface {
 	Uint8(uint8, uint8, float64) uint8
+	Float32(float32, float32, float64) float32
 	Float64(float64, float64, float64) float64
 	Vec2(vec2.T, vec2.T, float64) vec2.T
+
 }
 
 type Lerp struct {
@@ -48,6 +50,11 @@ type Lerp struct {
 func (i *Lerp) Float64(a, b float64, t float64) float64 {
 	m := b - a // Slope = Rise over run | Note: Run = (1 - 0)
 	y := (m * t) + a
+	return y
+}
+func (i *Lerp) Float32(a, b float32, t float64) float32 {
+	m := b - a // Slope = Rise over run | Note: Run = (1 - 0)
+	y := (m * float32(t)) + a
 	return y
 }
 func (i *Lerp) Uint8(a, b uint8, t float64) uint8 {
@@ -69,6 +76,10 @@ func (i *Bezier) Float64(a, b float64, t float64) float64 {
 	iValue := i.T.Point(t)
 	return Linear.Float64(a, b, iValue[1])
 }
+func (i *Bezier) Float32(a, b float32, t float64) float32 {
+	iValue := i.T.Point(t)
+	return Linear.Float32(a, b, iValue[1])
+}
 func (i *Bezier) Uint8(a, b uint8, t float64) uint8 {
 	iValue := i.T.Point(t)
 	return Linear.Uint8(a, b, iValue[1])
@@ -84,6 +95,10 @@ type Equation struct {
 func (i *Equation) Float64(a, b float64, t float64) float64 {
 	iValue := i.Func.Interp(t)
 	return Linear.Float64(a, b, iValue)
+}
+func (i *Equation) Float32(a, b float32, t float64) float32 {
+	iValue := i.Func.Interp(t)
+	return Linear.Float32(a, b, iValue)
 }
 func (i *Equation) Uint8(a, b uint8, t float64) uint8 {
 	iValue := i.Func.Interp(t)

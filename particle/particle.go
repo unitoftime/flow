@@ -2,7 +2,6 @@ package particle
 
 import (
 	"time"
-	// "math"
 	"image/color"
 	"math/rand"
 
@@ -147,6 +146,17 @@ func (p *RingBuilder) Add(prefab *ecs.Entity) {
 // 	})
 // }
 
+// TODO - Should I just build this into the emitter?
+type LifetimeBuilder struct {
+	Range physics.Vec2 // Specified in seconds
+}
+func (b *LifetimeBuilder) Add(prefab *ecs.Entity) {
+	seconds := interp.Linear.Float64(b.Range.X, b.Range.Y, rand.Float64())
+	prefab.Add(ecs.C(
+		NewLifetime(time.Duration(seconds * 1000) * time.Millisecond),
+	))
+}
+
 type TransformBuilder struct {
 	PosPositioner Vec2Positioner
 }
@@ -205,9 +215,11 @@ func (p *RectPositioner) Vec2(A physics.Vec2) physics.Vec2 {
 	return physics.Vec2{x, y}
 }
 
-type CopyPositioner struct {}
+type CopyPositioner struct {
+	Scale float64
+}
 func (p *CopyPositioner) Vec2(A physics.Vec2) physics.Vec2 {
-	return A
+	return A.Scaled(p.Scale)
 }
 
 type AnglePositioner struct {
@@ -226,7 +238,7 @@ func (p *RingPositioner) Vec2(A physics.Vec2) physics.Vec2 {
 	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
 
 	vec := physics.Vec2{1, 0}
-	vec.Scaled(radius).Rotated(angle)
+	vec = vec.Scaled(radius).Rotated(angle)
 	return vec
 }
 
@@ -239,8 +251,10 @@ func (p *RingPositioner) Vec2(A physics.Vec2) physics.Vec2 {
 
 // An emitter is used to spawn particles in a certain way
 type Emitter struct {
-	Max int
-	Rate float64 // Rate in seconds
+	// Max int
+	Rate float64 // Spawn how many per frame
+	period int
+
 	OneShot bool
 	Loop bool
 	Probability float64
@@ -279,7 +293,23 @@ func (e *Emitter) Update(world *ecs.World, position physics.Vec2, dt time.Durati
 	// 	count = int(numParticles)
 	// }
 
-	count = 1
+	if e.Rate == 0 {
+		return // Exit early if rate is set to 0
+	}
+
+	// 1/rate is the period, scaled to ms and then converted to duration
+	// period := time.Duration(1000 * (1 / e.Rate)) * time.Millisecond
+	period := int(1 / e.Rate)
+	if period < 1.0 {
+		count = int(e.Rate)
+	} else {
+		if e.period < 0 {
+			e.period = period
+			count = 1
+		}
+
+		e.period--
+	}
 
 	for i := 0; i < count; i++ {
 		randP := rand.Float64()
