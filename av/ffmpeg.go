@@ -13,9 +13,11 @@ type FFmpeg struct {
 	Buffer []byte
 }
 
-func NewFFmpeg(width, height int, filename string) (*FFmpeg, error) {
+func NewFFmpeg(width, height, fps int, filename string) (*FFmpeg, error) {
 	cmdWxH := fmt.Sprintf("%dx%d", width, height)
-	cmd := exec.Command("ffmpeg", "-r", "60", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", cmdWxH, "-i", "-", "-threads", "0", "-preset", "fast", "-y", "-pix_fmt", "yuv420p", "-crf", "21", "-vf", "vflip", filename)
+	fpsStr := fmt.Sprintf("%d", fps)
+	cmd := exec.Command("ffmpeg", "-r", fpsStr, "-f", "rawvideo", "-pix_fmt", "rgba", "-s", cmdWxH, "-i", "-", "-threads", "0", "-preset", "fast", "-y", "-pix_fmt", "yuv420p", "-crf", "21", "-vf", "vflip", filename)
+	fmt.Println(fpsStr, cmd)
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
