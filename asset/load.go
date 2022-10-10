@@ -7,6 +7,7 @@ import (
 	"image"
 	_ "image/png"
 	"encoding/json"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path"
 
@@ -65,6 +66,21 @@ func (load *Load) Json(filepath string, dat interface{}) error {
 	}
 
 	return json.Unmarshal(jsonData, dat)
+}
+
+func (load *Load) Yaml(filepath string, dat interface{}) error {
+	file, err := load.filesystem.Open(filepath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	yamlData, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	return yaml.Unmarshal(yamlData, dat)
 }
 
 func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error) {

@@ -8,6 +8,7 @@ require (
 	github.com/unitoftime/ecs v0.0.0-20220225135209-c211f050ac5b
 	github.com/unitoftime/glitch v0.0.0-20220419153159-328d6cd2b6eb
 	github.com/unitoftime/packer v0.0.0-20220105185326-f541e031de11
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
 require (
@@ -18,6 +19,6 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20220419150520-fcf8e05a6f4f // indirect
 	github.com/unitoftime/gl v0.0.0-20220419140725-98e3994f0517 // indirect
 	github.com/unitoftime/glfw v0.0.0-20220419140736-97f7f8b3927b // indirect
-	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 // indirect
+	golang.org/x/image v0.0.0-20220902085622-e7cb96979f69 // indirect
 	honnef.co/go/js/dom v0.0.0-20210725211120-f030747120f2 // indirect
 )
