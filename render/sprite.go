@@ -109,19 +109,8 @@ func DrawMultiSprites(pass *glitch.RenderPass, world *ecs.World) {
 }
 
 func CaptureInput(win *glitch.Window, world *ecs.World) {
+	// TODO - technically this should only run for the player Ids?
 	ecs.Map2(world, func(id ecs.Id, keybinds *Keybinds, input *physics.Input) {
-	// view := ecs.ViewAll(world, &Keybinds{}, &physics.Input{})
-	// view.Map(func(id ecs.Id, comp ...interface{}) {
-	// ecs.Each(engine, Keybinds{}, func(id ecs.Id, a interface{}) {
-	// 	keybinds := a.(Keybinds)
-
-		// input := physics.Input{}
-		// ok := ecs.Read(engine, id, &input)
-		// if !ok { return }
-
-		// keybinds := comp[0].(*Keybinds)
-		// input := comp[1].(*physics.Input)
-
 		input.Left = false
 		input.Right = false
 		input.Up = false
@@ -139,7 +128,5 @@ func CaptureInput(win *glitch.Window, world *ecs.World) {
 		if win.Pressed(keybinds.Down) {
 			input.Down = true
 		}
-
-		// ecs.Write(engine, id, input)
 	})
 }

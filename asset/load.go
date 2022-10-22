@@ -10,6 +10,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path"
+	
+	"time"
 
 	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/packer"
@@ -83,6 +85,87 @@ func (load *Load) Yaml(filepath string, dat interface{}) error {
 	return yaml.Unmarshal(yamlData, dat)
 }
 
+//TODO - move Aseprite stuff to another package?
+type AseSheet struct {
+	Frames []AseFrame `json:frames`
+	Meta AseMeta
+}
+type AseFrame struct {
+	Filename string `json:filename`
+	//Frame todo
+	Duration int `json:duration`
+}
+type AseMeta struct {
+	FrameTags []AseFrameTag `json:frameTags`
+}
+type AseFrameTag struct {
+	Name string `json:name`
+	From int `json:from`
+	To int `json:to`
+	Direction string `json:direction`
+}
+
+// Loads an aseprite spritesheet.
+func (load *Load) AseSheet(filepath string) (*AseSheet, error) {
+	dat := AseSheet{}
+	err := load.Json(filepath, &dat)
+	if err != nil {
+		return nil, err
+	}
+	return &dat, nil
+}
+
+// TODO - Assumes that all animations share the same spritesheet
+type Animation struct {
+	spritesheet *Spritesheet
+	Frames map[string][]AnimationFrame
+}
+type AnimationFrame struct {
+	Name string
+	Sprite *glitch.Sprite
+	Duration time.Duration
+	MirrorY bool
+}
+// TODO - Assumptions: frame name is <filename>_<framenumber>.png (Aseprite doesn't export the file name. But you could maybe repack their spritesheet into your own)
+func (load *Load) AseAnimation(spritesheet *Spritesheet, filepath string) (*Animation, error) {
+	base := path.Base(filepath)
+	baseNoExt := base[:len(base)-len(path.Ext(base))]
+
+	aseSheet, err := load.AseSheet(filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	anim := Animation{
+		spritesheet: spritesheet,
+		Frames: make(map[string][]AnimationFrame),
+	}
+
+	for _, frameTag := range aseSheet.Meta.FrameTags {
+		// TODO - implement other directions
+		if frameTag.Direction != "forward" {
+			panic("NonForward frametag not supported!")
+		}
+
+		frames := make([]AnimationFrame, 0)
+		for i := frameTag.From; i <= frameTag.To; i++ {
+			spriteName := fmt.Sprintf("%s_%d.png", baseNoExt, i)
+			sprite, err := spritesheet.Get(spriteName)
+			if err != nil {
+				return nil, err
+			}
+			frames = append(frames, AnimationFrame{
+				Name: spriteName,
+				Sprite: sprite,
+				Duration: time.Duration(aseSheet.Frames[i].Duration) * time.Millisecond,
+				MirrorY: false,
+			})
+		}
+		anim.Frames[frameTag.Name] = frames
+	}
+
+	return &anim, nil
+}
 func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error) {
 	//Load the Json
 	serializedSpritesheet := packer.SerializedSpritesheet{}
@@ -143,6 +226,7 @@ func (s *Spritesheet) Get(name string) (*glitch.Sprite, error) {
 	return sprite, nil
 }
 
+// https://www.aseprite.org/docs/slices/#:~:text=With%20the%20Slice%20tool,some%20extra%20user%20defined%20information.
 func (s *Spritesheet) GetNinePanel(name string, border glitch.Rect) (*glitch.NinePanelSprite, error) {
 	sprite, ok := s.lookup[name]
 	if !ok {
@@ -154,3 +238,16 @@ func (s *Spritesheet) GetNinePanel(name string, border glitch.Rect) (*glitch.Nin
 func (s *Spritesheet) Picture() *glitch.Texture {
 	return s.texture
 }
+
+// // Gets multiple frames with the same prefix name. Indexing starts at 0
+// func (s *Spritesheet) GetFrames(name, ext string, length int) ([]*glitch.Sprite, error) {
+// 	ret := make([]*glitch.Sprite, length)
+// 	for i := range names {
+// 		sprite, err := s.Get(fmt.Sprintf("%s%d%s", name, i, ext))
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		ret[i] = sprite
+// 	}
+// 	return ret, nil
+// }
