@@ -22,7 +22,9 @@ func NewFFmpeg(width, height, fps int, filename string) (*FFmpeg, error) {
 	cmdWxH := fmt.Sprintf("%dx%d", width, height)
 	fpsStr := fmt.Sprintf("%d", fps)
 	// You can adjust the quality by altering the -crf option in the command line (lower numbers are better quality). Don't forget to change the resolution (-s) and framerate (-r) to match what you want, as well.
-	cmd := exec.Command("ffmpeg", "-r", fpsStr, "-f", "rawvideo", "-pix_fmt", "rgba", "-s", cmdWxH, "-i", "-", "-threads", "0", "-preset", "fast", "-y", "-pix_fmt", "yuv420p", "-crf", "21", "-vf", "vflip", filename)
+	// The range of the quantizer scale is 0-51: where 0 is lossless, 23 is default, and 51 is worst possible. A lower value is a higher quality and a subjectively sane range is 18-28. Consider 18 to be visually lossless or nearly so: it should look the same or nearly the same as the input but it isn't technically lossless.
+	// YT Recommended: https://trac.ffmpeg.org/wiki/Encode/YouTube
+	cmd := exec.Command("ffmpeg", "-r", fpsStr, "-f", "rawvideo", "-pix_fmt", "rgba", "-s", cmdWxH, "-i", "-", "-threads", "0", "-preset", "fast", "-y", "-pix_fmt", "yuv420p", "-crf", "18", "-vf", "vflip", filename)
 	fmt.Println(fpsStr, cmd)
 
 	stdin, err := cmd.StdinPipe()

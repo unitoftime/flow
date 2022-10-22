@@ -11,7 +11,7 @@ import (
 
 // TODO - remove constants
 const (
-	frameBufferSize                   = 100
+	frameBufferSize                   = 10
 	sampleRate                        = 44100
 	channelCount                      = 2
 	bitDepth                          = 8
@@ -64,12 +64,13 @@ func (f *FFmpegStream) Fps() int {
 
 func (f *FFmpegStream) Seek(timestamp time.Duration) error {
 	f.pause = true
-	f.reset()
+	f.reset()// TODO - instead of this, drop frames in receive loop whose presentationtime doesn't match
 	err := f.media.Streams()[0].Rewind(timestamp)
 	if err != nil {
 		return err
 	}
 
+	f.currentFrame = 0
 	f.pause = false
 	return nil
 }
@@ -86,7 +87,7 @@ func (f *FFmpegStream) GetImage() (*image.RGBA, int, error) {
 
 	// fmt.Println("GetImage")
 	frame, ok := <- f.imageChan
-	// fmt.Println("GetImageFinish")
+	// fmt.Printf("GetImageFinish %p\n", frame)
 	if !ok { return nil, f.currentFrame, nil }
 
 	curFrame := f.currentFrame
@@ -113,7 +114,7 @@ vidLoop:
 	for {
 		select {
 		case <-f.imageChan:
-			fmt.Println("Cleared Frame")
+			// fmt.Println("Cleared Frame")
 		default:
 			break vidLoop
 		}
@@ -197,7 +198,7 @@ func (f *FFmpegStream) listen() error {
 
 			switch packet.Type() {
 			case reisen.StreamVideo:
-				fmt.Println("reisen.StreamVideo")
+				// fmt.Println("reisen.StreamVideo")
 				s := f.media.Streams()[packet.StreamIndex()].(*reisen.VideoStream)
 				videoFrame, gotFrame, err := s.ReadVideoFrame()
 
@@ -215,10 +216,12 @@ func (f *FFmpegStream) listen() error {
 					continue
 				}
 
+				// fmt.Println(videoFrame.PresentationOffset())
+
 				f.imageChan <- videoFrame.Image()
 
 			case reisen.StreamAudio:
-				fmt.Println("reisen.StreamAudio")
+				// fmt.Println("reisen.StreamAudio")
 				s := f.media.Streams()[packet.StreamIndex()].(*reisen.AudioStream)
 				audioFrame, gotFrame, err := s.ReadAudioFrame()
 
