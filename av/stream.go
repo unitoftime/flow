@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"image"
+
 	"github.com/zergon321/reisen"
 )
 
@@ -80,6 +81,7 @@ func (f *FFmpegStream) GetImage() (*image.RGBA, int, error) {
 	case err, ok := <-f.errChan:
 		if ok {
 			fmt.Println("ERROR", err)
+			panic(err)
 		}
 
 	default:
@@ -88,7 +90,7 @@ func (f *FFmpegStream) GetImage() (*image.RGBA, int, error) {
 	// fmt.Println("GetImage")
 	frame, ok := <- f.imageChan
 	// fmt.Printf("GetImageFinish %p\n", frame)
-	if !ok { return nil, f.currentFrame, nil }
+	if !ok { return nil, f.currentFrame, fmt.Errorf("Channel Closed!") }
 
 	curFrame := f.currentFrame
 	f.currentFrame++

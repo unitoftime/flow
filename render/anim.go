@@ -12,7 +12,7 @@ import (
 type Frame struct {
 	sprite *glitch.Sprite
 	Dur time.Duration
-	Mount map[string]glitch.Vec2
+	mount map[string]glitch.Vec2
 	MirrorY bool
 	// MirrorX bool
 }
@@ -20,8 +20,23 @@ func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
 	return Frame{
 		sprite: sprite,
 		Dur: dur,
-		Mount: make(map[string]glitch.Vec2),
+		mount: make(map[string]glitch.Vec2),
 	}
+}
+
+func (f *Frame) SetMount(name string, point glitch.Vec2) {
+	f.mount[name] = point
+}
+
+func (f *Frame) Mount(name string) glitch.Vec2 {
+	pos, ok := f.mount[name]
+	if !ok {
+		return glitch.Vec2{}
+	}
+	if f.MirrorY {
+		pos[0] = -pos[0]
+	}
+	return pos
 }
 
 type Animation struct {

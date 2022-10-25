@@ -166,6 +166,17 @@ func (load *Load) AseAnimation(spritesheet *Spritesheet, filepath string) (*Anim
 
 	return &anim, nil
 }
+
+func (load *Load) Mountpoints(filepath string) (packer.MountFrames, error) {
+	mountFrames := packer.MountFrames{}
+	err := load.Json(filepath, &mountFrames)
+	if err != nil {
+		return packer.MountFrames{}, err
+	}
+
+	return mountFrames, nil
+}
+
 func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error) {
 	//Load the Json
 	serializedSpritesheet := packer.SerializedSpritesheet{}
