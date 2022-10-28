@@ -62,23 +62,27 @@ func Interpolate(A, B glitch.Vec2, lowerBound, upperBound float32) glitch.Vec2 {
 
 // TODO - interpolate based off of the time till the next fixedTimeStep?
 // func InterpolateSpritePositions(world *ecs.World, dt time.Duration) {
-// 	view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
-// 	view.Map(func(id ecs.Id, comp ...interface{}) {
-// 		sprite := comp[0].(*Sprite)
-// 		transform := comp[1].(*physics.Transform)
-// 		// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
-// 		// 	sprite := a.(Sprite)
-
-// 		// transform := physics.Transform{}
-// 		// ok := ecs.Read(engine, id, &transform)
-// 		// if !ok { return }
-// 		physicsPosition := pixel.V(transform.X, transform.Y)
-
-// 		// TODO - make configurable
-// 		// sprite.Position = physicsPosition
-// 		sprite.Position = Interpolate(sprite.Position, physicsPosition, 1.0, 16.0)
-// 		// ecs.Write(engine, id, sprite)
+// 	ecs.Map2(world, func(id ecs.Id, sprite *Sprite, t *physics.Transform, rt *RenderTransform) {
+		
 // 	})
+
+// 	// view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
+// 	// view.Map(func(id ecs.Id, comp ...interface{}) {
+// 	// 	sprite := comp[0].(*Sprite)
+// 	// 	transform := comp[1].(*physics.Transform)
+// 	// 	// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
+// 	// 	// 	sprite := a.(Sprite)
+
+// 	// 	// transform := physics.Transform{}
+// 	// 	// ok := ecs.Read(engine, id, &transform)
+// 	// 	// if !ok { return }
+// 	// 	physicsPosition := pixel.V(transform.X, transform.Y)
+
+// 	// 	// TODO - make configurable
+// 	// 	// sprite.Position = physicsPosition
+// 	// 	sprite.Position = Interpolate(sprite.Position, physicsPosition, 1.0, 16.0)
+// 	// 	// ecs.Write(engine, id, sprite)
+// 	// })
 // }
 
 // TODO - how to do optional components? with some default val?

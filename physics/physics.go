@@ -25,21 +25,25 @@ type Input struct {
 func HandleInput(world *ecs.World, dt time.Duration) {
 	ecs.Map2(world, func(id ecs.Id, input *Input, transform *Transform) {
 		// Note: 100 good starting point, 200 seemed like a good max
-		speed := 125.0
-
-		if input.Left {
-			transform.X -= speed * dt.Seconds()
-		}
-		if input.Right {
-			transform.X += speed * dt.Seconds()
-		}
-		if input.Up {
-			transform.Y += speed * dt.Seconds()
-		}
-		if input.Down {
-			transform.Y -= speed * dt.Seconds()
-		}
+		BasicMMOPhysics(input, transform, dt)
 	})
+}
+
+func BasicMMOPhysics(input *Input, transform *Transform, dt time.Duration) {
+	speed := 125.0
+
+	if input.Left {
+		transform.X -= speed * dt.Seconds()
+	}
+	if input.Right {
+		transform.X += speed * dt.Seconds()
+	}
+	if input.Up {
+		transform.Y += speed * dt.Seconds()
+	}
+	if input.Down {
+		transform.Y -= speed * dt.Seconds()
+	}
 }
 
 // Applies rigidbody physics
