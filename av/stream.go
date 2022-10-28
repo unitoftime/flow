@@ -30,6 +30,8 @@ type FFmpegStream struct {
 	imageChan chan *image.RGBA
 	audioChan chan [2]float64
 	errChan chan error
+
+	AudioEnabled bool // Used to turn on audio streaming
 }
 
 func NewFFmpegStream(filename string, startTime time.Duration) (*FFmpegStream, error) {
@@ -74,6 +76,10 @@ func (f *FFmpegStream) Seek(timestamp time.Duration) error {
 	f.currentFrame = 0
 	f.pause = false
 	return nil
+}
+
+func (f *FFmpegStream) GetAudioStream() chan [2]float64 {
+	return f.audioChan
 }
 
 func (f *FFmpegStream) GetImage() (*image.RGBA, int, error) {
@@ -269,8 +275,9 @@ func (f *FFmpegStream) listen() error {
 					}
 
 					sample[1] = result
-					// TODO - I'm not ready to figure out audio streams. Commenting out for now
-					// f.audioChan <- sample
+					if f.AudioEnabled {
+						f.audioChan <- sample
+					}
 				}
 			}
 		}
