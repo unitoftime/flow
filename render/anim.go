@@ -45,9 +45,9 @@ type Animation struct {
 	frames map[string][]Frame // This is the map of all animations and their associated frames
 	animName string
 	curAnim []Frame // This is the current animation frames that we are operating on
-	Layer uint8
 	Color color.NRGBA // TODO - performance on interfaces vs structs?
 	Scale glitch.Vec2
+	// translation glitch.Vec3
 }
 
 func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
@@ -55,11 +55,14 @@ func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
 		frames: frames,
 		Color: color.NRGBA{255, 255, 255, 255},
 		Scale: glitch.Vec2{1, 1},
-		Layer: glitch.DefaultLayer,
 	}
 	anim.SetAnimation(startingAnim)
 	return anim
 }
+
+// func (a *Animation) SetTranslation(pos glitch.Vec3) {
+// 	a.translation = pos
+// }
 
 func (a *Animation) SetAnimation(name string) {
 	if name == a.animName { return } // Skip if we aren't actually changing the animation
@@ -97,8 +100,10 @@ func (anim *Animation) Update(dt time.Duration) {
 }
 
 // Draws the animation to the render pass
-func (anim *Animation) Draw(pass *glitch.RenderPass, t *physics.Transform) {
+func (anim *Animation) Draw(target glitch.BatchTarget, t *physics.Transform) {
 	frame := anim.curAnim[anim.frameIdx]
+
+	// frame.sprite.SetTranslation(anim.translation)
 
 	mat := glitch.Mat4Ident
 	mat.Scale(anim.Scale[0], anim.Scale[1], 1.0)
@@ -110,9 +115,7 @@ func (anim *Animation) Draw(pass *glitch.RenderPass, t *physics.Transform) {
 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 	col := glitch.RGBA{float32(anim.Color.R)/255.0, float32(anim.Color.G)/255.0, float32(anim.Color.B)/255.0, float32(anim.Color.A)/255.0}
 
-	pass.SetLayer(anim.Layer)
-
-	frame.sprite.DrawColorMask(pass, mat, col)
+	frame.sprite.DrawColorMask(target, mat, col)
 }
 
 func PlayAnimations(pass *glitch.RenderPass, world *ecs.World, dt time.Duration) {
