@@ -39,7 +39,6 @@ func (r Rect) Contains(pos TilePosition) bool {
 	return pos.X < r.Max.X && pos.X > r.Min.X && pos.Y < r.Max.Y && pos.Y > r.Min.Y
 }
 
-
 type Collider struct {
 	Width, Height int // Size of the collider in terms of tiles
 }
@@ -98,6 +97,12 @@ func (t *Tilemap) GetEdgeNeighbors(x, y int) []TilePosition {
 	}
 }
 
+// TODO - this might not work for pointy-top tilemaps
+func (t *Tilemap) BoundsAt(pos TilePosition) (float64, float64, float64, float64) {
+	x, y := t.TileToPosition(pos)
+	return float64(x) - float64(t.TileSize[0]/2), float64(y) - float64(t.TileSize[1]/2), float64(x) + float64(t.TileSize[0]/2), float64(y) + float64(t.TileSize[1]/2)
+}
+
 // Recalculates all of the entities that are on tiles based on tile colliders
 func (t *Tilemap) RecalculateEntities(world *ecs.World) {
 	// Clear Entities
@@ -117,4 +122,23 @@ func (t *Tilemap) RecalculateEntities(world *ecs.World) {
 			}
 		}
 	})
+}
+
+// Returns a list of tiles that are overlapping the collider at a position
+func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *physics.CircleCollider) []TilePosition {
+	minX := x - collider.Radius
+	maxX := x + collider.Radius
+	minY := y - collider.Radius
+	maxY := y + collider.Radius
+
+	min := t.PositionToTile(float32(minX), float32(minY))
+	max := t.PositionToTile(float32(maxX), float32(maxY))
+
+	ret := make([]TilePosition, 0)
+	for tx := min.X; tx <= max.X; tx++ {
+		for ty := min.Y; ty <= max.Y; ty++ {
+			ret = append(ret, TilePosition{tx, ty})
+		}
+	}
+	return ret
 }

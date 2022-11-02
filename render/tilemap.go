@@ -30,7 +30,7 @@ func (r *TilemapRender) Clear() {
 
 func (r *TilemapRender) Batch(tmap *tile.Tilemap) {
 	for x := 0; x < tmap.Width(); x++ {
-		for y := 0; y < tmap.Height(); y++ {
+		for y := tmap.Height(); y >= 0; y-- {
 			t, ok := tmap.Get(tile.TilePosition{x, y})
 			if !ok { continue }
 
