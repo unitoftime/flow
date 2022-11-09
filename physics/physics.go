@@ -2,6 +2,7 @@ package physics
 
 import (
 	"time"
+	"math"
 
 	"github.com/unitoftime/ecs"
 )
@@ -9,6 +10,13 @@ import (
 type Transform struct {
 	X, Y float64
 	Height float64
+}
+
+// TODO - combine this with vec2 primitives
+func (a *Transform) DistanceTo(b *Transform) float64 {
+	dx := a.X - b.X
+	dy := a.Y - b.Y
+	return math.Sqrt(dx * dx + dy * dy)
 }
 
 type Rigidbody struct {

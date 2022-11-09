@@ -1,6 +1,8 @@
 package render
 
 import (
+	// "math"
+
 	"github.com/unitoftime/glitch"
 )
 
@@ -22,6 +24,10 @@ func NewCamera(bounds glitch.Rect, x, y float32) *Camera {
 }
 
 func (c *Camera) Update(bounds glitch.Rect) {
+	// // Snap camera
+	// c.Position[0] = float32(math.Round(float64(c.Position[0])))
+	// c.Position[1] = float32(math.Round(float64(c.Position[1])))
+
 	c.bounds = bounds
 
 	// TODO - Note: This is just to center point (0, 0), this should be selected some other way
