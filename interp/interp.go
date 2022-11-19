@@ -33,6 +33,14 @@ var EaseIn *Bezier = &Bezier{
 		vec2.T{1.0, 1.0},
 	},
 }
+var EaseInOut *Bezier = &Bezier{
+	bezier2.T{
+		vec2.T{0.0, 0.0},
+		vec2.T{1.0, 0.0},
+		vec2.T{0.0, 1.0},
+		vec2.T{1.0, 1.0},
+	},
+}
 var Sinusoid *Equation = &Equation{
 	Func: SinFunc{},
 }
