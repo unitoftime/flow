@@ -60,7 +60,7 @@ func (l *SocketListener) Accept() (*Socket, error) {
 	}
 
 	framedConn := NewFrameConn(c)
-	return NewConnectedSocket(framedConn, l.serdes), nil
+	return newConnectedSocket(framedConn, l.serdes), nil
 }
 func (l *SocketListener) Close() error {
 	return l.listener.Close()
@@ -69,6 +69,7 @@ func (l *SocketListener) Addr() net.Addr {
 	return l.listener.Addr()
 }
 
+// TODO - (When I migrate to TCP) TCP will send 0 byte messages to indicate closes, websockets sends them without closing
 type WebsocketListener struct {
 	httpServer http.Server
 	originPatterns []string
@@ -131,7 +132,7 @@ func (l *WebsocketListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Build the socket and push to channel
 	ctx := context.Background()
 	conn := websocket.NetConn(ctx, c, websocket.MessageBinary)
-	sock := NewConnectedSocket(conn, l.serdes)
+	sock := newConnectedSocket(conn, l.serdes)
 	l.pendingAccepts <- sock
 }
 
@@ -197,7 +198,7 @@ func (c *Config) Listen() (Listener, error) {
 }
 
 func (c *Config) Dial() (*Socket, error) {
-	sock, err := NewSocket(c.Url, c.Serdes)
+	sock, err := newSocket(c.Url, c.Serdes, c.TlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +214,7 @@ func (c *Config) Dial() (*Socket, error) {
 // --------------------------------------------------------------------------------
 
 // Continually attempts to reconnect to the proxy if disconnected. If connected, receives data and sends over the networkChannel
-// TODO! - I should restructure this, and instead of a reconnect loop. I should dynamically reconnect when I detect disconnect errors.
+// TODO - It might be nice to not have a reconnect loop and just handle reconnects automatically
 func ReconnectLoop(sock *Socket, handler func(*Socket) error) {
 	for {
 		if sock.Closed.Load() { break } // Exit if the ClientConn has been closed
@@ -251,6 +252,8 @@ type Socket struct {
 	url string            // The URL to connect to
 	scheme string         // The scheme of the parsed URL
 	host string           // The host of the parsed URL
+	tlsConfig *tls.Config // This is the config for tls, nil if not using tls
+
 	encoder Serdes        // The encoder to use for serialization
 	conn net.Conn         // The underlying network connection to send and receive on
 
@@ -264,7 +267,7 @@ type Socket struct {
 }
 
 // TODO - Combine NewSocket and NewConnectedSocket
-func NewSocket(network string, encoder Serdes) (*Socket, error) {
+func newSocket(network string, encoder Serdes, tlsConfig *tls.Config) (*Socket, error) {
 	u, err := url.Parse(network)
 	if err != nil {
 		return nil, err
@@ -274,13 +277,14 @@ func NewSocket(network string, encoder Serdes) (*Socket, error) {
 		scheme: u.Scheme,
 		host: u.Host,
 		url: network,
+		tlsConfig: tlsConfig,
 		encoder: encoder,
 		recvBuf: make([]byte, MaxRecvMsgSize),
 	}
 	return &sock, nil
 }
 
-func NewConnectedSocket(conn net.Conn, encoder Serdes) *Socket {
+func newConnectedSocket(conn net.Conn, encoder Serdes) *Socket {
 	sock := Socket{
 		// Create a Framed connection and set it to our connection
 		// conn: NewFrameConn(conn),
@@ -295,19 +299,10 @@ func (s *Socket) Dial() error {
 	// log.Print("Dialing", s.url)
 	// Handle websockets
 	if s.scheme == "ws" || s.scheme == "wss" {
-		// // TODO - Do this for local testing (Right now I'm doing insecure skip verify)
-		// Ref: https://github.com/jcbsmpsn/golang-https-example
-		// cert, err := os.ReadFile("cert.pem")
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// caCertPool := x509.NewCertPool()
-		// caCertPool.AppendCertsFromPEM(caCert)
-
 		// ctx := context.Background()
 		// wsConn, _, err := websocket.Dial(ctx, s.url, nil)
 		ctx := context.Background()
-		wsConn, err := dialWs(ctx, s.url)
+		wsConn, err := dialWs(ctx, s.url, s.tlsConfig)
 
 
 		// log.Println("Connection Response:", resp)
