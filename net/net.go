@@ -215,14 +215,14 @@ func (c *Config) Dial() (*Socket, error) {
 
 // Continually attempts to reconnect to the proxy if disconnected. If connected, receives data and sends over the networkChannel
 // TODO - It might be nice to not have a reconnect loop and just handle reconnects automatically
-func ReconnectLoop(sock *Socket, handler func(*Socket) error) {
+ func ReconnectLoop(sock *Socket, handler func(*Socket) error) {
 	for {
 		if sock.Closed.Load() { break } // Exit if the ClientConn has been closed
 
 		err := sock.Dial()
 		if err != nil {
 			// log.Warn().Err(err).Msg("Client Websocket Dial Failed")
-			time.Sleep(5 * time.Second) // TODO - Probably want some random value so everyone isn't reconnecting simultaneously
+			time.Sleep(5 * time.Second) // TODO - Probably want some random value so everyone isn't reconnecting simultaneously. Probably switch this to be some sort of exponential backoff
 			continue
 		}
 
@@ -288,7 +288,7 @@ func newConnectedSocket(conn net.Conn, encoder Serdes) *Socket {
 	sock := Socket{
 		// Create a Framed connection and set it to our connection
 		// conn: NewFrameConn(conn),
-		conn: conn, // TODO - need to frame when doing TCP and not frame when doing WS. How to handle? Maybe move server abstraction over or something?
+		conn: conn,
 		encoder: encoder,
 		recvBuf: make([]byte, MaxRecvMsgSize),
 	}

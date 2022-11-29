@@ -4,6 +4,7 @@ package net
 
 import (
 	"context"
+	"crypto/tls"
 
 	"nhooyr.io/websocket"
 )

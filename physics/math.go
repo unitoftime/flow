@@ -47,6 +47,9 @@ func (v Vec2) Sub(v2 Vec2) Vec2 {
 
 func (v Vec2) Norm() Vec2 {
 	len := v.Len()
+	if len == 0 {
+		return Vec2{}
+	}
 	return V2(v.X/len, v.Y/len)
 }
 

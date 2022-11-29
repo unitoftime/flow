@@ -10,6 +10,14 @@ import (
 	"github.com/zergon321/reisen"
 )
 
+func GetMediaDuration(filename string) (time.Duration, error) {
+	media, err := reisen.NewMedia(filename)
+	if err != nil { return 0, err }
+	defer media.Close()
+
+	return media.Duration()
+}
+
 // TODO - remove constants
 const (
 	frameBufferSize                   = 10
