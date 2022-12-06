@@ -1,6 +1,7 @@
 package net
 
 import (
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -110,20 +111,15 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn *Socket) {
 
 	peerConnection, err := webrtc.NewPeerConnection(config)
 	if err != nil {
-		panic(err)
+		l.pendingAcceptErrors <- err
+		return
 	}
-	// TODO - when Should I close?
-	// defer func() {
-	// 	if err := peerConnection.Close(); err != nil {
-	// 		fmt.Printf("cannot close peerConnection: %v\n", err)
-	// 	}
-	// }()
 
 	// When an ICE candidate is available send to the other Pion instance
 	// the other Pion instance will add this candidate by calling AddICECandidate
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
 		if c == nil {
-			return
+			return // Do nothing because the ice candidate was nil for some reason
 		}
 
 		candidatesMux.Lock()
@@ -134,9 +130,10 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn *Socket) {
 			pendingCandidates = append(pendingCandidates, c)
 		} else {
 			candidateMsg := RtcCandidateMsg{c.ToJSON()}
-			onICECandidateErr := wsConn.Send(candidateMsg)
-			if onICECandidateErr != nil {
-				panic(onICECandidateErr)
+			err := wsConn.Send(candidateMsg)
+			if err != nil {
+				l.pendingAcceptErrors <- fmt.Errorf("OnIceCandidate Send - Possible websocket disconnect: %w", err)
+				return
 			}
 		}
 	})
@@ -192,9 +189,10 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn *Socket) {
 
 		switch msg := anyMsg.(type) {
 		case RtcCandidateMsg:
-			candidateErr := peerConnection.AddICECandidate(msg.CandidateInit)
-			if candidateErr != nil {
-				panic(candidateErr)
+			err := peerConnection.AddICECandidate(msg.CandidateInit)
+			if err != nil {
+				l.pendingAcceptErrors <- fmt.Errorf("RtcCandidateMsg Recv - Failed to add candidate: %w", err)
+				return
 			}
 
 		case RtcSdpMsg:
@@ -202,34 +200,40 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn *Socket) {
 			sdp.Type = msg.Type
 			sdp.SDP = msg.SDP
 
-			if err := peerConnection.SetRemoteDescription(sdp); err != nil {
-				panic(err)
+			err := peerConnection.SetRemoteDescription(sdp)
+			if err != nil {
+				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to set remote description: %w", err)
+				return
 			}
 
 			// Create an answer to send to the other process
 			answer, err := peerConnection.CreateAnswer(nil)
 			if err != nil {
-				panic(err)
+				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to create answer: %w", err)
+				return
 			}
 
 			answerMessage := RtcSdpMsg{ answer.Type, answer.SDP }
 			err = wsConn.Send(answerMessage)
 			if err != nil {
-				panic(err)
+				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to send SDP answer: %w", err)
+				return
 			}
 
 			// Sets the LocalDescription, and starts our UDP listeners
 			err = peerConnection.SetLocalDescription(answer)
 			if err != nil {
-				panic(err)
+				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to set local SDP: %w", err)
+				return
 			}
 
 			candidatesMux.Lock()
 			for _, c := range pendingCandidates {
 				candidateMsg := RtcCandidateMsg{c.ToJSON()}
-				onICECandidateErr := wsConn.Send(candidateMsg)
-				if onICECandidateErr != nil {
-					panic(onICECandidateErr)
+				err := wsConn.Send(candidateMsg)
+				if err != nil {
+					l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to send RtcCandidate: %w", err)
+					return
 				}
 			}
 			candidatesMux.Unlock()
@@ -353,7 +357,7 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 
 	peerConnection, err := webrtc.NewPeerConnection(config)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	// TODO - when should I close the peerConnection?
 	// defer func() {
@@ -362,6 +366,7 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 	// 	}
 	// }()
 
+	caughtError := make(chan error)
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
 		if c == nil {
 			return
@@ -375,9 +380,10 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 			pendingCandidates = append(pendingCandidates, c)
 		} else {
 			candidateMsg := RtcCandidateMsg{c.ToJSON()}
-			onICECandidateErr := wSock.Send(candidateMsg)
-			if onICECandidateErr != nil {
-				panic(onICECandidateErr)
+			err := wSock.Send(candidateMsg)
+			if err != nil {
+				caughtError <- err
+				return
 			}
 		}
 	})
@@ -388,6 +394,7 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 
 			if errors.Is(err, ErrNetwork) {
 				log.Warn().Err(err).Msg("dialWebRtc: NetworkErr")
+				caughtError <- err
 				return
 			} else if errors.Is(err, ErrSerdes) {
 				log.Error().Err(err).Msg("dialWebRtc:  SerdesErr")
@@ -397,9 +404,10 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 
 			switch msg := anyMsg.(type) {
 			case RtcCandidateMsg:
-				candidateErr := peerConnection.AddICECandidate(msg.CandidateInit)
-				if candidateErr != nil {
-					panic(candidateErr)
+				err := peerConnection.AddICECandidate(msg.CandidateInit)
+				if err != nil {
+					caughtError <- err
+					return
 				}
 
 			case RtcSdpMsg:
@@ -407,8 +415,10 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 				sdp.Type = msg.Type
 				sdp.SDP = msg.SDP
 
-				if sdpErr := peerConnection.SetRemoteDescription(sdp); sdpErr != nil {
-					panic(sdpErr)
+				err := peerConnection.SetRemoteDescription(sdp)
+				if err != nil {
+					caughtError <- err
+					return
 				}
 
 				candidatesMux.Lock()
@@ -416,9 +426,10 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 
 				for _, c := range pendingCandidates {
 					candidateMsg := RtcCandidateMsg{c.ToJSON()}
-					onICECandidateErr := wSock.Send(candidateMsg)
-					if onICECandidateErr != nil {
-						panic(onICECandidateErr)
+					err := wSock.Send(candidateMsg)
+					if err != nil {
+						caughtError <- err
+						return
 					}
 				}
 			}
@@ -428,7 +439,7 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 	// Create a datachannel with label 'data'
 	dataChannel, err := peerConnection.CreateDataChannel("data", nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// Set the handler for Peer connection state
@@ -441,7 +452,8 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
 			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
 			log.Error().Msg("Peer Connection has gone to failed")
-			// TODO - do some cancellation
+
+			caughtError <- fmt.Errorf("Peer Connection has gone to failed")
 		}
 	})
 
@@ -466,20 +478,20 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 	// Create an offer to send to the other process
 	offer, err := peerConnection.CreateOffer(nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// Sets the LocalDescription, and starts our UDP listeners
 	// Note: this will start the gathering of ICE candidates
 	if err = peerConnection.SetLocalDescription(offer); err != nil {
-		panic(err)
+		return err
 	}
 
 	offerMessage := RtcSdpMsg{ offer.Type, offer.SDP }
 	err = wSock.Send(offerMessage)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	select{} // TODO! - Do Cancellation: I guess we don't want to loop we just want to wait here until we need to reconnect? Not sure how to exit
+	return <- caughtError
 }
