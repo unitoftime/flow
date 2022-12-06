@@ -13,12 +13,14 @@ import (
 	"context"
 
 	"nhooyr.io/websocket"
+
+	// "github.com/cevatbarisyilmaz/lossy" // For simulating packet loss
 )
 
 // TODO - Ensure sent messages remain under this
 // Calculation: 1460 Byte = 1500 Byte - 20 Byte IP Header - 20 Byte TCP Header
-const MaxMsgSize = 1460 // bytes
-const MaxRecvMsgSize = 4 * 1024 // 4 KB // TODO - this is arbitrary
+// const MaxMsgSize = 1460 // bytes
+const MaxRecvMsgSize = 4 * 1024 // 8 KB // TODO - this is arbitrary
 
 var ErrSerdes = errors.New("serdes errror")
 var ErrNetwork = errors.New("network error")
@@ -190,6 +192,12 @@ func (c *Config) Listen() (Listener, error) {
 			return nil, err
 		}
 		return listener, nil
+	} else if u.Scheme == "webrtc" {
+		listener, err := newWebRtcListener(c)
+		if err != nil {
+			return nil, err
+		}
+		return listener, nil
 	} else if u.Scheme == "ws" {
 		panic("Not implemented yet")
 	} else {
@@ -215,25 +223,26 @@ func (c *Config) Dial() (*Socket, error) {
 
 // Continually attempts to reconnect to the proxy if disconnected. If connected, receives data and sends over the networkChannel
 // TODO - It might be nice to not have a reconnect loop and just handle reconnects automatically
- func ReconnectLoop(sock *Socket, handler func(*Socket) error) {
+func ReconnectLoop(sock *Socket, handler func(*Socket) error) {
 	for {
 		if sock.Closed.Load() { break } // Exit if the ClientConn has been closed
 
 		err := sock.Dial()
 		if err != nil {
-			// log.Warn().Err(err).Msg("Client Websocket Dial Failed")
+			// log.Warn().Err(err).Msg("ReconnectLoop Dial Failed")
 			time.Sleep(5 * time.Second) // TODO - Probably want some random value so everyone isn't reconnecting simultaneously. Probably switch this to be some sort of exponential backoff
 			continue
 		}
 
 		// Start the handler
 		err = handler(sock)
+		// log.Warn().Err(err).Msg("ReconnectLoop handler finished")
 		if err != nil {
-			// log.Warn().Err(err).Msg("ReconnectLoop handler finished")
-
 			// TODO - Is this a good idea?
 			// Try to close the connection one last time
+			// if sock.conn != nil {
 			sock.conn.Close()
+			// }
 
 			// Set connected to false, because we just closed it
 			sock.Connected.Store(false)
@@ -244,7 +253,6 @@ func (c *Config) Dial() (*Socket, error) {
 	// Final attempt to cleanup the connection
 	sock.Connected.Store(false)
 	sock.conn.Close()
-	// log.Print("Exiting ClientConn.ReconnectLoop")
 }
 
 // This is a wrapper for the client websocket connection
@@ -295,6 +303,16 @@ func newConnectedSocket(conn net.Conn, encoder Serdes) *Socket {
 	return &sock
 }
 
+// func (s *Socket) SimulateLoss() {
+// 	bandwidth := 0 // <- Inf // 1048 // 8 Kbit/s
+// 	minLatency := 200 * time.Millisecond
+// 	maxLatency := 280 * time.Millisecond
+// 	packetLossRate := 0.15
+// 	headerOverhead := lossy.UDPv4MinHeaderOverhead
+// 	lossyConn := lossy.NewConn(s.conn, bandwidth, minLatency, maxLatency, packetLossRate, headerOverhead)
+// 	s.conn = lossyConn
+// }
+
 func (s *Socket) Dial() error {
 	// log.Print("Dialing", s.url)
 	// Handle websockets
@@ -320,6 +338,12 @@ func (s *Socket) Dial() error {
 		s.conn = NewFrameConn(conn)
 		s.Connected.Store(true)
 		return nil
+	} else if s.scheme == "webrtc" {
+		err := dialWebRtc(s)
+		if err != nil { return err }
+
+		s.Connected.Store(true)
+		return nil
 	}
 
 	return fmt.Errorf("Failed to Dial, unknown ClientConn")
@@ -339,7 +363,7 @@ func (s *Socket) Close() error {
 // Sends the message through the connection
 func (s *Socket) Send(msg any) error {
 	if s.conn == nil {
-		return fmt.Errorf("Socket Closed")
+		return fmt.Errorf("Send Socket Closed")
 	}
 
 	ser, err := s.encoder.Marshal(msg)
@@ -350,7 +374,6 @@ func (s *Socket) Send(msg any) error {
 	s.sendMut.Lock()
 	defer s.sendMut.Unlock()
 
-	// log.Println("ClientSendUpdate:", len(ser))
 	_, err = s.conn.Write(ser)
 	if err != nil {
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
@@ -361,7 +384,7 @@ func (s *Socket) Send(msg any) error {
 // Reads the next message (blocking) on the connection
 func (s *Socket) Recv() (any, error) {
 	if s.conn == nil {
-		return nil, fmt.Errorf("Socket Closed")
+		return nil, fmt.Errorf("Recv Socket Closed")
 	}
 
 	s.recvMut.Lock()
@@ -369,7 +392,6 @@ func (s *Socket) Recv() (any, error) {
 
 	n, err := s.conn.Read(s.recvBuf)
 	if err != nil {
-		// log.Warn().Err(err).Msg("Failed to receive")
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
 		return nil, err
 	}
