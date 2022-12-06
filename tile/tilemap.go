@@ -2,7 +2,7 @@ package tile
 
 import (
 	"github.com/unitoftime/ecs"
-	"github.com/unitoftime/flow/physics"
+	"github.com/unitoftime/flow/phy2"
 )
 
 type TileType uint8
@@ -47,7 +47,7 @@ type Tilemap struct {
 	TileSize [2]int // In pixels
 	tiles [][]Tile
 	math Math
-	Offset physics.Vec2 // In world space positioning
+	Offset phy2.Vec2 // In world space positioning
 }
 
 func New(tiles [][]Tile, tileSize [2]int, math Math) *Tilemap {
@@ -55,7 +55,7 @@ func New(tiles [][]Tile, tileSize [2]int, math Math) *Tilemap {
 		TileSize: tileSize,
 		tiles: tiles,
 		math: math,
-		Offset: physics.Vec2{},
+		Offset: phy2.Vec2{},
 	}
 }
 
@@ -113,8 +113,8 @@ func (t *Tilemap) RecalculateEntities(world *ecs.World) {
 	}
 
 	// Recompute all entities with TileColliders
-	ecs.Map2(world, func(id ecs.Id, collider *Collider, transform *physics.Transform) {
-		tilePos := t.PositionToTile(float32(transform.X), float32(transform.Y))
+	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
+		tilePos := t.PositionToTile(float32(pos.X), float32(pos.Y))
 
 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
 			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
@@ -125,7 +125,7 @@ func (t *Tilemap) RecalculateEntities(world *ecs.World) {
 }
 
 // Returns a list of tiles that are overlapping the collider at a position
-func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *physics.CircleCollider) []TilePosition {
+func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollider) []TilePosition {
 	minX := x - collider.Radius
 	maxX := x + collider.Radius
 	minY := y - collider.Radius

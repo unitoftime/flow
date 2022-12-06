@@ -9,7 +9,7 @@ import (
 
 	"github.com/unitoftime/ecs"
 
-	"github.com/unitoftime/flow/physics"
+	"github.com/unitoftime/flow/phy2"
 	// "github.com/unitoftime/flow/timer"
 	"github.com/unitoftime/flow/interp"
 )
@@ -92,9 +92,9 @@ func (c *Color) Get(ratio float64) color.NRGBA {
 
 type Size struct {
 	Interp interp.Interp
-	Start, End physics.Vec2
+	Start, End phy2.Vec2
 }
-func NewSize(interpolation interp.Interp, start, end physics.Vec2) Size {
+func NewSize(interpolation interp.Interp, start, end phy2.Vec2) Size {
 	return Size{
 		Interp: interpolation,
 		Start: start,
@@ -102,9 +102,9 @@ func NewSize(interpolation interp.Interp, start, end physics.Vec2) Size {
 	}
 }
 
-func (s *Size) Get(ratio float64) physics.Vec2 {
+func (s *Size) Get(ratio float64) phy2.Vec2 {
 	ratio = Clamp(0, 1.0, ratio)
-	size := physics.Vec2{
+	size := phy2.Vec2{
 		s.Interp.Float64(s.Start.X, s.End.X, ratio),
 		s.Interp.Float64(s.Start.Y, s.End.Y, ratio),
 	}
@@ -120,27 +120,27 @@ type PrefabBuilder interface {
 }
 
 type RingBuilder struct {
-	AngleRange physics.Vec2
-	RadiusRange physics.Vec2
+	AngleRange phy2.Vec2
+	RadiusRange phy2.Vec2
 }
 func (p *RingBuilder) Add(prefab *ecs.Entity) {
 	angle := interp.Linear.Float64(p.AngleRange.X, p.AngleRange.Y, rand.Float64())
 	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
 
 	// vec := vec2.UnitX
-	vec := physics.Vec2{1, 0}
+	vec := phy2.Vec2{1, 0}
 	vec.Scaled(radius).Rotated(angle)
 
-	prefab.Add(ecs.C(physics.Transform{vec.X, vec.Y, 0}))
+	prefab.Add(ecs.C(phy2.Pos{vec.X, vec.Y}))
 }
 
 // type AngleBuilder struct {
 // 	Scale float64
 // }
 // func (p *AngleBuilder) Add(prefab ecs.Entity) {
-// 	transform := prefab.Read(physics.Transform{}).(physics.Transform)
+// 	transform := prefab.Read(phy2.Transform{}).(phy2.Transform)
 // 	pos := vec2.T{transform.X, transform.Y}
-// 	prefab.Write(physics.Rigidbody{
+// 	prefab.Write(phy2.Rigidbody{
 // 		Mass: 1,
 // 		Velocity: pos.Normalize().Scaled(p.Scale),
 // 	})
@@ -148,7 +148,7 @@ func (p *RingBuilder) Add(prefab *ecs.Entity) {
 
 // TODO - Should I just build this into the emitter?
 type LifetimeBuilder struct {
-	Range physics.Vec2 // Specified in seconds
+	Range phy2.Vec2 // Specified in seconds
 }
 func (b *LifetimeBuilder) Add(prefab *ecs.Entity) {
 	seconds := interp.Linear.Float64(b.Range.X, b.Range.Y, rand.Float64())
@@ -161,8 +161,8 @@ type TransformBuilder struct {
 	PosPositioner Vec2Positioner
 }
 func (p *TransformBuilder) Add(prefab *ecs.Entity) {
-	pos := p.PosPositioner.Vec2(physics.Vec2{})
-	prefab.Add(ecs.C(physics.Transform{pos.X, pos.Y, 0}))
+	pos := p.PosPositioner.Vec2(phy2.Vec2{})
+	prefab.Add(ecs.C(phy2.Pos{pos.X, pos.Y}))
 }
 
 type RigidbodyBuilder struct {
@@ -170,13 +170,14 @@ type RigidbodyBuilder struct {
 	VelPositioner Vec2Positioner
 }
 func (b *RigidbodyBuilder) Add(prefab *ecs.Entity) {
-	// transform := prefab.Read(physics.Transform{}).(physics.Transform)
-	transform, _ := ecs.ReadFromEntity[physics.Transform](prefab)
-	pos := physics.Vec2{transform.X, transform.Y}
+	// transform := prefab.Read(phy2.Transform{}).(phy2.Transform)
+	// transform, _ := ecs.ReadFromEntity[phy2.Transform](prefab)
+	// pos := phy2.Vec2{transform.X, transform.Y}
+	pos, _ := ecs.ReadFromEntity[phy2.Pos](prefab)
 
-	vel := b.VelPositioner.Vec2(pos)
+	vel := b.VelPositioner.Vec2(phy2.Vec2(pos))
 
-	prefab.Add(ecs.C(physics.Rigidbody{
+	prefab.Add(ecs.C(phy2.Rigidbody{
 		Mass: b.Mass,
 		Velocity: vel,
 	}))
@@ -192,52 +193,52 @@ func (b *RigidbodyBuilder) Add(prefab *ecs.Entity) {
 // - Positioners
 //--------------------------------------------------------------------------------------------------
 type Vec2Positioner interface {
-	Vec2(A physics.Vec2) physics.Vec2
+	Vec2(A phy2.Vec2) phy2.Vec2
 }
 
 type ConstantPositioner struct {
-	Value physics.Vec2
+	Value phy2.Vec2
 }
-func (p *ConstantPositioner) Vec2(A physics.Vec2) physics.Vec2 {
+func (p *ConstantPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 	return p.Value
 }
 
 type RectPositioner struct {
-	Min, Max physics.Vec2 // TODO - rectangle passed in
+	Min, Max phy2.Vec2 // TODO - rectangle passed in
 }
-func (p *RectPositioner) Vec2(A physics.Vec2) physics.Vec2 {
+func (p *RectPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 	w := p.Max.X - p.Min.X
 	h := p.Max.Y - p.Min.Y
 
 	x := w * rand.Float64() + p.Min.X
 	y := h * rand.Float64() + p.Min.Y
 
-	return physics.Vec2{x, y}
+	return phy2.Vec2{x, y}
 }
 
 type CopyPositioner struct {
 	Scale float64
 }
-func (p *CopyPositioner) Vec2(A physics.Vec2) physics.Vec2 {
+func (p *CopyPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 	return A.Scaled(p.Scale)
 }
 
 type AnglePositioner struct {
 	Scale float64
 }
-func (p *AnglePositioner) Vec2(A physics.Vec2) physics.Vec2 {
+func (p *AnglePositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 	return A.Norm().Scaled(p.Scale)
 }
 
 type RingPositioner struct {
-	AngleRange physics.Vec2
-	RadiusRange physics.Vec2
+	AngleRange phy2.Vec2
+	RadiusRange phy2.Vec2
 }
-func (p *RingPositioner) Vec2(A physics.Vec2) physics.Vec2 {
+func (p *RingPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 	angle := interp.Linear.Float64(p.AngleRange.X, p.AngleRange.Y, rand.Float64())
 	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
 
-	vec := physics.Vec2{1, 0}
+	vec := phy2.Vec2{1, 0}
 	vec = vec.Scaled(radius).Rotated(angle)
 	return vec
 }
@@ -245,8 +246,8 @@ func (p *RingPositioner) Vec2(A physics.Vec2) physics.Vec2 {
 // type FirePositioner struct {
 	
 // }
-// func (p *FirePositioner) Vec2(A physics.Vec2) physics.Vec2 {
-// 	return physics.Vec2{-A.X, 5}
+// func (p *FirePositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+// 	return phy2.Vec2{-A.X, 5}
 // }
 
 // An emitter is used to spawn particles in a certain way
@@ -281,7 +282,7 @@ type Emitter struct {
 	// AlphaPositioner Vec2Positioner
 }
 
-func (e *Emitter) Update(world *ecs.World, position physics.Vec2, dt time.Duration) {
+func (e *Emitter) Update(world *ecs.World, position phy2.Vec2, dt time.Duration) {
 	count := 0
 	// if e.OneShot {
 	// 	count = e.Max
@@ -314,7 +315,7 @@ func (e *Emitter) Update(world *ecs.World, position physics.Vec2, dt time.Durati
 	for i := 0; i < count; i++ {
 		randP := rand.Float64()
 		if randP < e.Probability {
-			ok := e.Spawn(physics.Vec2{position.X, position.Y}, world)
+			ok := e.Spawn(phy2.Vec2{position.X, position.Y}, world)
 			if !ok { break }
 		}
 	}
@@ -323,7 +324,7 @@ func (e *Emitter) Update(world *ecs.World, position physics.Vec2, dt time.Durati
 	// particles.Accel = ecs.Accelerator{pixel.V(position.X, position.Y)}
 }
 
-func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
+func (e *Emitter) Spawn(entPos phy2.Vec2, world *ecs.World) bool {
 	// If we don't loop, then only emit a Total equal to Max
 	// if !e.Loop {
 	// 	if p.Total > p.Max {
@@ -340,11 +341,15 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 		e.Builders[i].Add(e.Prefab)
 	}
 
-	// transform := e.Prefab.Read(physics.Transform{}).(physics.Transform)
-	transform, _ := ecs.ReadFromEntity[physics.Transform](e.Prefab)
-	transform.X += entPos.X
-	transform.Y += entPos.Y
-	e.Prefab.Add(ecs.C(transform))
+	// transform := e.Prefab.Read(phy2.Transform{}).(phy2.Transform)
+	// transform, _ := ecs.ReadFromEntity[phy2.Transform](e.Prefab)
+	// transform.X += entPos.X
+	// transform.Y += entPos.Y
+	// e.Prefab.Add(ecs.C(transform))
+	pos, _ := ecs.ReadFromEntity[phy2.Pos](e.Prefab)
+	pos.X += entPos.X
+	pos.Y += entPos.Y
+	e.Prefab.Add(ecs.C(pos))
 
 	// sizes := e.SizePositioner.Vec2(vec2.Zero)
 
@@ -357,15 +362,15 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 // type ParticleType uint8
 
 // type Particle struct {
-// 	Position physics.Vec2
-// 	Velocity physics.Vec2
+// 	Position phy2.Vec2
+// 	Velocity phy2.Vec2
 
 // 	// Interpolation Values
-// 	Size physics.Vec2
-// 	Red physics.Vec2
-// 	Green physics.Vec2
-// 	Blue physics.Vec2
-// 	Alpha physics.Vec2
+// 	Size phy2.Vec2
+// 	Red phy2.Vec2
+// 	Green phy2.Vec2
+// 	Blue phy2.Vec2
+// 	Alpha phy2.Vec2
 // 	Type ParticleType
 // 	MaxLife, Life time.Duration
 // 	ratio float64 // Life ratio 0 = Full Life | 1 = No Life
@@ -406,10 +411,10 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 // }
 
 // type Accelerator struct {
-// 	Position physics.Vec2
+// 	Position phy2.Vec2
 // }
 
-// func (a *Accelerator) GetAcceleration(p *Particle) physics.Vec2 {
+// func (a *Accelerator) GetAcceleration(p *Particle) phy2.Vec2 {
 // 	vec := vec2.Sub(&a.Position, &p.Position)
 // 	return vec.Scaled(0.01)
 // }
@@ -428,7 +433,7 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 // }
 
 // type PathUpdater struct {
-// 	Path []physics.Vec2
+// 	Path []phy2.Vec2
 // }
 
 // func (u PathUpdater) Update(p *Particle, dt time.Duration) {
@@ -487,14 +492,14 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 // }
 
 // type PathPositioner struct {
-// 	Path []physics.Vec2
+// 	Path []phy2.Vec2
 // 	Lengths []float64
 // 	TotalLength float64
-// 	Variation physics.Vec2
+// 	Variation phy2.Vec2
 // }
 
-// func RandomPath(start, end physics.Vec2, n int, pathVariation float64, variation physics.Vec2) *PathPositioner {
-// 	path := make([]physics.Vec2, n)
+// func RandomPath(start, end phy2.Vec2, n int, pathVariation float64, variation phy2.Vec2) *PathPositioner {
+// 	path := make([]phy2.Vec2, n)
 
 // 	// iValues := make(float64, n)
 // 	// iValues.X = 0 // Interpolate to start point
@@ -525,7 +530,7 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 // 	return StraightPath(path, variation)
 // }
 
-// func StraightPath(path []physics.Vec2, variation physics.Vec2) *PathPositioner {
+// func StraightPath(path []phy2.Vec2, variation phy2.Vec2) *PathPositioner {
 // 	lengths := make([]float64, 0, len(path)-1)
 // 	totalLength := 0.0
 // 	for i := 0; i < len(path)-1; i++ {
@@ -543,7 +548,7 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 // 	}
 // }
 
-// func (p *PathPositioner) Vec2(A physics.Vec2) physics.Vec2 {
+// func (p *PathPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 // 	rnd := rand.Float64() * p.TotalLength
 
 // 	// Find a random interpolation value along the TotalLength
@@ -563,7 +568,7 @@ func (e *Emitter) Spawn(entPos physics.Vec2, world *ecs.World) bool {
 // 	rndVal := v.Normalize().Scale(rnd)
 // 	point := vec2.Add(&p.Path[index], rndVal)
 
-// 	variation := physics.Vec2{
+// 	variation := phy2.Vec2{
 // 		p.Variation.X * (rand.Float64() * 2 - 1),
 // 		p.Variation.Y * (rand.Float64() * 2 - 1),
 // 	}

@@ -4,9 +4,7 @@ import (
 	"image/color"
 
 	"github.com/unitoftime/glitch"
-
-	"github.com/unitoftime/ecs"
-	"github.com/unitoftime/flow/physics"
+	"github.com/unitoftime/flow/phy2"
 )
 
 // Represents multiple sprites
@@ -38,99 +36,84 @@ func NewSprite(sprite *glitch.Sprite) Sprite {
 	}
 }
 
-type Keybinds struct {
-	Up, Down, Left, Right glitch.Key
+func (sprite *Sprite) Draw(pass *glitch.RenderPass, pos *phy2.Pos) {
+	mat := glitch.Mat4Ident
+	mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(pos.X), float32(pos.Y), 0)
+
+	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
+	col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+	pass.SetLayer(sprite.Layer)
+	sprite.DrawColorMask(pass, mat, col)
 }
 
-// Note: val should probably be between 0 and 1
-func Interpolate(A, B glitch.Vec2, lowerBound, upperBound float32) glitch.Vec2 {
-	delta := B.Sub(A)
-	dMag := delta.Len()
-
-	interpValue := float32(0.0)
-	if dMag > upperBound {
-		interpValue = 1.0
-	} else if dMag > lowerBound {
-		// y - y1 = m(x - x1)
-		slope := 1/(upperBound - lowerBound)
-		interpValue = slope * (dMag - lowerBound) + 0
-	}
-
-	deltaScaled := delta.Scaled(interpValue)
-	return A.Add(deltaScaled)
-}
-
-// TODO - interpolate based off of the time till the next fixedTimeStep?
-// func InterpolateSpritePositions(world *ecs.World, dt time.Duration) {
-// 	ecs.Map2(world, func(id ecs.Id, sprite *Sprite, t *physics.Transform, rt *RenderTransform) {
-		
-// 	})
-
-// 	// view := ecs.ViewAll(world, &Sprite{}, &physics.Transform{})
-// 	// view.Map(func(id ecs.Id, comp ...interface{}) {
-// 	// 	sprite := comp[0].(*Sprite)
-// 	// 	transform := comp[1].(*physics.Transform)
-// 	// 	// ecs.Each(engine, Sprite{}, func(id ecs.Id, a interface{}) {
-// 	// 	// 	sprite := a.(Sprite)
-
-// 	// 	// transform := physics.Transform{}
-// 	// 	// ok := ecs.Read(engine, id, &transform)
-// 	// 	// if !ok { return }
-// 	// 	physicsPosition := pixel.V(transform.X, transform.Y)
-
-// 	// 	// TODO - make configurable
-// 	// 	// sprite.Position = physicsPosition
-// 	// 	sprite.Position = Interpolate(sprite.Position, physicsPosition, 1.0, 16.0)
-// 	// 	// ecs.Write(engine, id, sprite)
-// 	// })
+// type Keybinds struct {
+// 	Up, Down, Left, Right glitch.Key
 // }
 
-// TODO - how to do optional components? with some default val?
-func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
-	ecs.Map2(world, func(id ecs.Id, sprite *Sprite, t *physics.Transform) {
-		mat := glitch.Mat4Ident
-		mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y + t.Height), 0)
+// // Note: val should probably be between 0 and 1
+// func Interpolate(A, B glitch.Vec2, lowerBound, upperBound float32) glitch.Vec2 {
+// 	delta := B.Sub(A)
+// 	dMag := delta.Len()
 
-		// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
-		col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
-		pass.SetLayer(sprite.Layer)
-		sprite.DrawColorMask(pass, mat, col)
-	})
-}
+// 	interpValue := float32(0.0)
+// 	if dMag > upperBound {
+// 		interpValue = 1.0
+// 	} else if dMag > lowerBound {
+// 		// y - y1 = m(x - x1)
+// 		slope := 1/(upperBound - lowerBound)
+// 		interpValue = slope * (dMag - lowerBound) + 0
+// 	}
 
-func DrawMultiSprites(pass *glitch.RenderPass, world *ecs.World) {
-	ecs.Map2(world, func(id ecs.Id, mSprite *MultiSprite, t *physics.Transform) {
-		for _, sprite := range mSprite.Sprites {
-			mat := glitch.Mat4Ident
-			mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y + t.Height), 0)
+// 	deltaScaled := delta.Scaled(interpValue)
+// 	return A.Add(deltaScaled)
+// }
 
-			// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
-			col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
-			pass.SetLayer(sprite.Layer)
-			sprite.DrawColorMask(pass, mat, col)
-		}
-	})
-}
+// // TODO - how to do optional components? with some default val?
+// func DrawSprites(pass *glitch.RenderPass, world *ecs.World) {
+// 	ecs.Map2(world, func(id ecs.Id, sprite *Sprite, t *phy2.Transform) {
+// 		mat := glitch.Mat4Ident
+// 		mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y + t.Height), 0)
 
-func CaptureInput(win *glitch.Window, world *ecs.World) {
-	// TODO - technically this should only run for the player Ids?
-	ecs.Map2(world, func(id ecs.Id, keybinds *Keybinds, input *physics.Input) {
-		input.Left = false
-		input.Right = false
-		input.Up = false
-		input.Down = false
+// 		// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
+// 		col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+// 		pass.SetLayer(sprite.Layer)
+// 		sprite.DrawColorMask(pass, mat, col)
+// 	})
+// }
 
-		if win.Pressed(keybinds.Left) {
-			input.Left = true
-		}
-		if win.Pressed(keybinds.Right) {
-			input.Right = true
-		}
-		if win.Pressed(keybinds.Up) {
-			input.Up = true
-		}
-		if win.Pressed(keybinds.Down) {
-			input.Down = true
-		}
-	})
-}
+// func DrawMultiSprites(pass *glitch.RenderPass, world *ecs.World) {
+// 	ecs.Map2(world, func(id ecs.Id, mSprite *MultiSprite, t *phy2.Transform) {
+// 		for _, sprite := range mSprite.Sprites {
+// 			mat := glitch.Mat4Ident
+// 			mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(t.X), float32(t.Y + t.Height), 0)
+
+// 			// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
+// 			col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+// 			pass.SetLayer(sprite.Layer)
+// 			sprite.DrawColorMask(pass, mat, col)
+// 		}
+// 	})
+// }
+
+// func CaptureInput(win *glitch.Window, world *ecs.World) {
+// 	// TODO - technically this should only run for the player Ids?
+// 	ecs.Map2(world, func(id ecs.Id, keybinds *Keybinds, input *phy2.Input) {
+// 		input.Left = false
+// 		input.Right = false
+// 		input.Up = false
+// 		input.Down = false
+
+// 		if win.Pressed(keybinds.Left) {
+// 			input.Left = true
+// 		}
+// 		if win.Pressed(keybinds.Right) {
+// 			input.Right = true
+// 		}
+// 		if win.Pressed(keybinds.Up) {
+// 			input.Up = true
+// 		}
+// 		if win.Pressed(keybinds.Down) {
+// 			input.Down = true
+// 		}
+// 	})
+// }

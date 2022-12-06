@@ -2,7 +2,7 @@ package tile
 
 import (
 	"github.com/unitoftime/ecs"
-	"github.com/unitoftime/flow/physics"
+	"github.com/unitoftime/flow/phy2"
 	"github.com/zyedidia/generic/queue"
 )
 
@@ -29,11 +29,11 @@ func NewChunkmap(chunkSize int, tileSize [2]int, math Math, expansionLambda func
 }
 
 // Returns the worldspace position of a chunk
-func (c *Chunkmap) ToPosition(chunkPos ChunkPosition) physics.Vec2 {
+func (c *Chunkmap) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
 	offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
 		[2]int{c.TileSize[0]*c.ChunkSize, c.TileSize[1]*c.ChunkSize})
 
-	offset := physics.Vec2{
+	offset := phy2.Vec2{
 		float64(offX),
 		float64(offY) - (0.5 * float64(c.ChunkSize) * float64(c.TileSize[1])) + float64(c.TileSize[1]/2),
 	}
@@ -250,15 +250,15 @@ func (c *Chunkmap) RecalculateEntities(world *ecs.World) {
 	}
 
 	// Recompute all entities with TileColliders
-	ecs.Map2(world, func(id ecs.Id, collider *Collider, transform *physics.Transform) {
-		tilePos := c.PositionToTile(float32(transform.X), float32(transform.Y))
+	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
+		tilePos := c.PositionToTile(float32(pos.X), float32(pos.Y))
 
 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
 			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
 				chunkPos := c.TileToChunk(TilePosition{x, y})
 				chunk, ok := c.GetChunk(chunkPos)
 				if !ok { panic("Something has been built on a chunk that doesn't exist!") }
-				localTilePosition := chunk.PositionToTile(float32(transform.X), float32(transform.Y))
+				localTilePosition := chunk.PositionToTile(float32(pos.X), float32(pos.Y))
 				chunk.tiles[localTilePosition.X][localTilePosition.Y].Entity = id // Store the entity
 			}
 		}

@@ -1,4 +1,4 @@
-package physics
+package phy2
 
 import (
 	"math"
@@ -60,9 +60,13 @@ func (c *CircleCollider) LayerMask(layer CollisionLayer) bool {
 	return (c.HitLayer & layer) > 0 // One layer must overlap for the layermask to work
 }
 
-func (c *CircleCollider) Contains(yProjection float64, transform Transform) bool {
-	dx := transform.X - c.CenterX
-	dy := transform.Y - c.CenterY
+func (c *CircleCollider) Contains(yProjection float64, pos Pos) bool {
+	// dx := transform.X - c.CenterX
+	// dy := transform.Y - c.CenterY
+	// dist := math.Hypot(dx, yProjection * dy)
+	// return dist < c.Radius
+	dx := pos.X - c.CenterX
+	dy := pos.Y - c.CenterY
 	dist := math.Hypot(dx, yProjection * dy)
 	return dist < c.Radius
 }

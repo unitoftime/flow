@@ -5,10 +5,11 @@ import (
 	"image/color"
 
 	"github.com/unitoftime/glitch"
-	"github.com/unitoftime/ecs"
-	"github.com/unitoftime/flow/physics"
+	// "github.com/unitoftime/ecs"
+	"github.com/unitoftime/flow/phy2"
 )
 
+// This is an animation frame
 type Frame struct {
 	sprite *glitch.Sprite
 	Dur time.Duration
@@ -100,7 +101,7 @@ func (anim *Animation) Update(dt time.Duration) {
 }
 
 // Draws the animation to the render pass
-func (anim *Animation) Draw(target glitch.BatchTarget, t *physics.Transform) {
+func (anim *Animation) Draw(target glitch.BatchTarget, pos *phy2.Pos) {
 	frame := anim.curAnim[anim.frameIdx]
 
 	// frame.sprite.SetTranslation(anim.translation)
@@ -111,17 +112,9 @@ func (anim *Animation) Draw(target glitch.BatchTarget, t *physics.Transform) {
 		mat.Scale(-1.0, 1.0, 1.0)
 	}
 
-	mat.Translate(float32(t.X), float32(t.Y + t.Height), 0)
+	mat.Translate(float32(pos.X), float32(pos.Y), 0)
 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 	col := glitch.RGBA{float32(anim.Color.R)/255.0, float32(anim.Color.G)/255.0, float32(anim.Color.B)/255.0, float32(anim.Color.A)/255.0}
 
 	frame.sprite.DrawColorMask(target, mat, col)
-}
-
-func PlayAnimations(pass *glitch.RenderPass, world *ecs.World, dt time.Duration) {
-	ecs.Map2(world, func(id ecs.Id, anim *Animation, t *physics.Transform) {
-		anim.Update(dt)
-
-		anim.Draw(pass, t)
-	})
 }
