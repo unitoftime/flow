@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"errors"
+	"math/rand"
 	"time"
 	"net"
 	"net/url"
@@ -272,6 +273,10 @@ type Socket struct {
 
 	Closed atomic.Bool    // Used to indicate that the user has requested to close this ClientConn
 	Connected atomic.Bool // Used to indicate that the underlying connection is still active
+
+	Packetloss float64
+	// MinDelay time.Duration
+	// MinDelay time.Duration
 }
 
 // TODO - Combine NewSocket and NewConnectedSocket
@@ -366,6 +371,11 @@ func (s *Socket) Send(msg any) error {
 		return fmt.Errorf("Send Socket Closed")
 	}
 
+	if rand.Float64() < s.Packetloss {
+		fmt.Println("SEND DROPPING PACKET")
+		return nil
+	}
+
 	ser, err := s.encoder.Marshal(msg)
 	if err != nil {
 		return err
@@ -381,6 +391,7 @@ func (s *Socket) Send(msg any) error {
 	}
 	return nil
 }
+
 // Reads the next message (blocking) on the connection
 func (s *Socket) Recv() (any, error) {
 	if s.conn == nil {
@@ -396,6 +407,11 @@ func (s *Socket) Recv() (any, error) {
 		return nil, err
 	}
 	if n <= 0 { return nil, nil } // There was no message, and no error (likely a keepalive)
+
+	if rand.Float64() < s.Packetloss {
+		fmt.Println("RECV DROPPING PACKET")
+		return nil, nil
+	}
 
 	// Note: slice off based on how many bytes we read
 	msg, err := s.encoder.Unmarshal(s.recvBuf[:n])
