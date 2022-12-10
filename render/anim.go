@@ -13,7 +13,7 @@ import (
 type Frame struct {
 	sprite *glitch.Sprite
 	Dur time.Duration
-	mount map[string]glitch.Vec2
+	mount map[string]phy2.Pos
 	MirrorY bool
 	// MirrorX bool
 }
@@ -21,21 +21,21 @@ func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
 	return Frame{
 		sprite: sprite,
 		Dur: dur,
-		mount: make(map[string]glitch.Vec2),
+		mount: make(map[string]phy2.Pos),
 	}
 }
 
-func (f *Frame) SetMount(name string, point glitch.Vec2) {
+func (f *Frame) SetMount(name string, point phy2.Pos) {
 	f.mount[name] = point
 }
 
-func (f *Frame) Mount(name string) glitch.Vec2 {
+func (f *Frame) Mount(name string) phy2.Pos {
 	pos, ok := f.mount[name]
 	if !ok {
-		return glitch.Vec2{}
+		return phy2.Pos{}
 	}
 	if f.MirrorY {
-		pos[0] = -pos[0]
+		pos.X = -pos.X
 	}
 	return pos
 }
@@ -47,7 +47,10 @@ type Animation struct {
 	animName string
 	curAnim []Frame // This is the current animation frames that we are operating on
 	Color color.NRGBA // TODO - performance on interfaces vs structs?
+	Rotation float64
 	Scale glitch.Vec2
+	Loop bool
+	speed float64 // This is used to scale the duration of the animation evenly so that the animation can fit a certain time duration
 	// translation glitch.Vec3
 }
 
@@ -56,14 +59,34 @@ func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
 		frames: frames,
 		Color: color.NRGBA{255, 255, 255, 255},
 		Scale: glitch.Vec2{1, 1},
+		Loop: true,
+		speed: 1.0,
 	}
-	anim.SetAnimation(startingAnim)
+	if startingAnim == "" {
+		// Just set some random animation if unset
+		for name := range frames {
+			anim.SetAnimation(name)
+			break
+		}
+	} else {
+		anim.SetAnimation(startingAnim)
+	}
+
 	return anim
 }
 
 // func (a *Animation) SetTranslation(pos glitch.Vec3) {
 // 	a.translation = pos
 // }
+
+func (a *Animation) SetAnimationWithDuration(name string, dur time.Duration) {
+	a.SetAnimation(name)
+	totalAnimTime := 0 * time.Second
+	for _, frame := range a.curAnim {
+		totalAnimTime += frame.Dur
+	}
+	a.speed = totalAnimTime.Seconds() / dur.Seconds()
+}
 
 func (a *Animation) SetAnimation(name string) {
 	if name == a.animName { return } // Skip if we aren't actually changing the animation
@@ -81,9 +104,20 @@ func (a *Animation) NextFrame() {
 }
 
 func (a *Animation) SetFrame(idx int) {
-	a.frameIdx = idx % len(a.curAnim)
-	frame := a.curAnim[a.frameIdx]
-	a.remainingDur = frame.Dur
+	if a.Loop {
+		// If the idx is passed the animation, then loop it
+		a.frameIdx = idx % len(a.curAnim)
+		frame := a.curAnim[a.frameIdx]
+		a.remainingDur = frame.Dur
+	} else {
+		// If the idx is passed the animation, snap to the last frame
+		if idx >= len(a.curAnim) {
+			idx = len(a.curAnim) - 1
+		}
+		a.frameIdx = idx
+		frame := a.curAnim[a.frameIdx]
+		a.remainingDur = frame.Dur
+	}
 }
 
 func (a *Animation) GetFrame() Frame {
@@ -93,7 +127,9 @@ func (a *Animation) GetFrame() Frame {
 
 // Steps the animation forward by dt amount of time
 func (anim *Animation) Update(dt time.Duration) {
-	anim.remainingDur -= dt
+	adjustedDt := time.Duration(1_000_000_000 * anim.speed * dt.Seconds())
+
+	anim.remainingDur -= adjustedDt
 	if anim.remainingDur < 0 {
 		// Change to a new animation frame
 		anim.NextFrame()
@@ -101,7 +137,7 @@ func (anim *Animation) Update(dt time.Duration) {
 }
 
 // Draws the animation to the render pass
-func (anim *Animation) Draw(target glitch.BatchTarget, pos *phy2.Pos) {
+func (anim *Animation) Draw(target glitch.BatchTarget, pos phy2.Pos) {
 	frame := anim.curAnim[anim.frameIdx]
 
 	// frame.sprite.SetTranslation(anim.translation)
@@ -111,8 +147,9 @@ func (anim *Animation) Draw(target glitch.BatchTarget, pos *phy2.Pos) {
 	if frame.MirrorY {
 		mat.Scale(-1.0, 1.0, 1.0)
 	}
-
+	mat.Rotate(float32(anim.Rotation), glitch.Vec3{0, 0, 1})
 	mat.Translate(float32(pos.X), float32(pos.Y), 0)
+
 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 	col := glitch.RGBA{float32(anim.Color.R)/255.0, float32(anim.Color.G)/255.0, float32(anim.Color.B)/255.0, float32(anim.Color.A)/255.0}
 

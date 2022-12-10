@@ -24,6 +24,7 @@ func NewMultiSprite(sprites ...Sprite) MultiSprite {
 type Sprite struct {
 	*glitch.Sprite
 	Color color.NRGBA // TODO - performance on interfaces vs structs?
+	Rotation float64
 	Scale glitch.Vec2
 	Layer uint8
 }
@@ -38,7 +39,9 @@ func NewSprite(sprite *glitch.Sprite) Sprite {
 
 func (sprite *Sprite) Draw(pass *glitch.RenderPass, pos *phy2.Pos) {
 	mat := glitch.Mat4Ident
-	mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).Translate(float32(pos.X), float32(pos.Y), 0)
+	mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).
+		Rotate(float32(sprite.Rotation), glitch.Vec3{0, 0, 1}).
+		Translate(float32(pos.X), float32(pos.Y), 0)
 
 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 	col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}

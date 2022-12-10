@@ -1,10 +1,7 @@
 package phy2
 
 import (
-	// "time"
-	// "math"
-
-	// "github.com/unitoftime/ecs"
+	"math"
 )
 
 type Pos Vec2
@@ -31,6 +28,12 @@ func (v Pos) Scaled(s float64) Pos {
 func (v Pos) Rotated(radians float64) Pos {
 	return Pos(Vec2(v).Rotated(radians))
 }
+
+func (v Pos) Angle() float64 {
+	return math.Atan2(v.Y, v.X)
+}
+
+type Vel Vec2
 
 type Scale Vec2
 type Rotation float64
