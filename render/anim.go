@@ -137,7 +137,7 @@ func (anim *Animation) Update(dt time.Duration) {
 }
 
 // Draws the animation to the render pass
-func (anim *Animation) Draw(target glitch.BatchTarget, pos phy2.Pos) {
+func (anim *Animation) Draw(target glitch.BatchTarget, pos Pos) {
 	frame := anim.curAnim[anim.frameIdx]
 
 	// frame.sprite.SetTranslation(anim.translation)

@@ -7,6 +7,10 @@ import (
 	"github.com/unitoftime/flow/phy2"
 )
 
+type Pos struct {
+	phy2.Pos
+}
+
 // Represents multiple sprites
 type MultiSprite struct {
 	Sprites []Sprite
@@ -37,7 +41,7 @@ func NewSprite(sprite *glitch.Sprite) Sprite {
 	}
 }
 
-func (sprite *Sprite) Draw(pass *glitch.RenderPass, pos *phy2.Pos) {
+func (sprite *Sprite) Draw(pass *glitch.RenderPass, pos *Pos) {
 	mat := glitch.Mat4Ident
 	mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).
 		Rotate(float32(sprite.Rotation), glitch.Vec3{0, 0, 1}).
