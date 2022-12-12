@@ -141,12 +141,19 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn *Socket) {
 	// Set the handler for Peer connection state
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		// log.Debug().Msg("Peer Connection State has changed: ", s.String())
+		// log.Print("Listener: Peer Connection State has changed: ", s.String())
+
+		// if s == webrtc.PeerConnectionStateClosed {
+		// 	// This means the webrtc was closed by one side. Just close it on the other side
+		// 	// Note: because this is the listen side. I don't think we actually need to close this
+		// }
+
 		if s == webrtc.PeerConnectionStateFailed {
 			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
 			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
 			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
 			log.Error().Msg("Peer Connection has gone to failed")
+
 			// TODO - Do some cancellation
 		}
 	})
@@ -156,10 +163,16 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn *Socket) {
 		conn := NewRtcConn(peerConnection, wsConn)
 		conn.dataChannel = d
 
+		sock := newConnectedSocket(conn, l.serdes)
 		// Register channel opening handling
 		d.OnOpen(func() {
-			sock := newConnectedSocket(conn, l.serdes)
 			l.pendingAccepts <- sock
+		})
+
+		// Register channel opening handling
+		d.OnClose(func() {
+			log.Print("Listener: Data channel was closed!!")
+			sock.Close()
 		})
 
 		// Register text message handling
@@ -315,35 +328,23 @@ func dialWebRtc(sock *Socket) error {
 		Url: strings.Replace(sock.url, "webrtc", "wss", 1), // TODO! - Not super clean. we want just the url with the schema replaced to be a wss schema
 		Serdes: NewRtcUpgradeSerdes(),
 		TlsConfig: sock.tlsConfig,
-		ReconnectHandler: func(wSock *Socket) error {
-			// TODO! - On reconnects I kind of want to offer an Rtc Upgrade, but ONLY if I haven't already upgraded
-			for {
-				err := offerWebRtcUpgrade(wSock, sock)
-				if err != nil {
-					log.Error().Err(err).Msg("Client Reconnect Error")
-				}
-				time.Sleep(1 * time.Second)
-			}
-		},
 	}
 
-	_, err := websocketConfig.Dial()
+	wSock, err := websocketConfig.Dial()
 	if err != nil {
 		return err
 	}
 
-	// TODO! - Wait for sock.conn to get set (ie the webrtc upgrade completes)
-	for {
-		if sock.conn != nil {
-			break
-		}
-		time.Sleep(1 * time.Second)
+	err = offerWebRtcUpgrade(wSock, sock)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
+	fmt.Println("offerWebRtcUpgrade")
 	var candidatesMux sync.Mutex
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 
@@ -359,14 +360,9 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 	if err != nil {
 		return err
 	}
-	// TODO - when should I close the peerConnection?
-	// defer func() {
-	// 	if cErr := peerConnection.Close(); cErr != nil {
-	// 		fmt.Printf("cannot close peerConnection: %v\n", cErr)
-	// 	}
-	// }()
 
 	caughtError := make(chan error)
+	connFinish := make(chan bool)
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
 		if c == nil {
 			return
@@ -393,9 +389,10 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 			anyMsg, err := wSock.Recv()
 
 			if errors.Is(err, ErrNetwork) {
-				log.Warn().Err(err).Msg("dialWebRtc: NetworkErr")
-				caughtError <- err
-				return
+				// log.Warn().Err(err).Msg("dialWebRtc: NetworkErr")
+				// caughtError <- err
+				// return
+				continue
 			} else if errors.Is(err, ErrSerdes) {
 				log.Error().Err(err).Msg("dialWebRtc:  SerdesErr")
 				continue
@@ -447,6 +444,11 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 	peerConnection.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
 		log.Print("Peer Connection State has changed: ", s.String())
 
+		// if s == webrtc.PeerConnectionStateClosed {
+		// 	// This means the webrtc was closed by one side. Just close it on the other side
+		// 	sock.Close()
+		// }
+
 		if s == webrtc.PeerConnectionStateFailed {
 			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
 			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
@@ -463,6 +465,7 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 	dataChannel.OnOpen(func() {
 		conn.dataChannel = dataChannel
 		sock.conn = conn
+		connFinish <- true
 	})
 
 	// Register text message handling
@@ -493,5 +496,12 @@ func offerWebRtcUpgrade(wSock *Socket, sock *Socket) error {
 		return err
 	}
 
-	return <- caughtError
+	// Wait until the webrtc connection is finished getting setup
+	select {
+	case err := <-caughtError:
+		// TODO - should this channel hang around after setup?
+		return err // There was an error in setup
+	case <-connFinish:
+		return nil // Socket finished getting setup
+	}
 }

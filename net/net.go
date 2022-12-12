@@ -14,8 +14,6 @@ import (
 	"context"
 
 	"nhooyr.io/websocket"
-
-	// "github.com/cevatbarisyilmaz/lossy" // For simulating packet loss
 )
 
 // TODO - Ensure sent messages remain under this
@@ -25,6 +23,8 @@ const MaxRecvMsgSize = 4 * 1024 // 8 KB // TODO - this is arbitrary
 
 var ErrSerdes = errors.New("serdes errror")
 var ErrNetwork = errors.New("network error")
+var ErrDisconnected = errors.New("socket disconnected")
+var ErrClosed = errors.New("socket closed") // Indicates that the socket is closed. Currently if you get this error then it means the socket will never receive or send again!
 
 // This is the interface used to marshal and unmarshal messages over the network.
 // Hardest part is when you have interfaces in messages, you'll likely need custom serializers for that
@@ -165,7 +165,7 @@ type Config struct {
 	Url string   // Note: We only use the [scheme]://[host] portion of this
 	Serdes Serdes
 	TlsConfig *tls.Config
-	ReconnectHandler func(*Socket) error // TODO - I think for listeners, this should be when we try to re-listen (ie if listening failed). TODO this should change to be less of a goroutine and more of a (reconnect when an API is called and we are currently disconnected)
+	// ReconnectHandler func(*Socket) error // TODO - I think for listeners, this should be when we try to re-listen (ie if listening failed). TODO this should change to be less of a goroutine and more of a (reconnect when an API is called and we are currently disconnected)
 
 	HttpServer *http.Server // TODO - For Websockets only, maybe split up? - Note we have to wrap their Handler with our own handler!
 	OriginPatterns []string
@@ -212,8 +212,7 @@ func (c *Config) Dial() (*Socket, error) {
 		return nil, err
 	}
 
-	// This automatically stops trying to reconnect when Close is called
-	go ReconnectLoop(sock, c.ReconnectHandler)
+	sock.tryConnect()
 
 	return sock, nil
 }
@@ -222,39 +221,9 @@ func (c *Config) Dial() (*Socket, error) {
 // - Websockets
 // --------------------------------------------------------------------------------
 
-// Continually attempts to reconnect to the proxy if disconnected. If connected, receives data and sends over the networkChannel
-// TODO - It might be nice to not have a reconnect loop and just handle reconnects automatically
-func ReconnectLoop(sock *Socket, handler func(*Socket) error) {
-	for {
-		if sock.Closed.Load() { break } // Exit if the ClientConn has been closed
+// type Socket interface {
 
-		err := sock.Dial()
-		if err != nil {
-			// log.Warn().Err(err).Msg("ReconnectLoop Dial Failed")
-			time.Sleep(5 * time.Second) // TODO - Probably want some random value so everyone isn't reconnecting simultaneously. Probably switch this to be some sort of exponential backoff
-			continue
-		}
-
-		// Start the handler
-		err = handler(sock)
-		// log.Warn().Err(err).Msg("ReconnectLoop handler finished")
-		if err != nil {
-			// TODO - Is this a good idea?
-			// Try to close the connection one last time
-			// if sock.conn != nil {
-			sock.conn.Close()
-			// }
-
-			// Set connected to false, because we just closed it
-			sock.Connected.Store(false)
-		}
-		// log.Print("Looping!")
-	}
-
-	// Final attempt to cleanup the connection
-	sock.Connected.Store(false)
-	sock.conn.Close()
-}
+// }
 
 // This is a wrapper for the client websocket connection
 type Socket struct {
@@ -274,12 +243,18 @@ type Socket struct {
 	Closed atomic.Bool    // Used to indicate that the user has requested to close this ClientConn
 	Connected atomic.Bool // Used to indicate that the underlying connection is still active
 
-	Packetloss float64
-	// MinDelay time.Duration
-	// MinDelay time.Duration
+	listenSocket bool     // Indicates that the socket is a listen-side socket and not a dial side sock
+
+	Packetloss float64    // This is the probability that the packet will be lossed for every send/recv
+	MinDelay time.Duration // This is the min delay added to every packet sent or recved
+	MaxDelay time.Duration // This is the max delay added to every packet sent or recved
+	sendDelayErr, recvDelayErr chan error
+	recvDelayMsg chan any
+	recvThreadCount int
 }
 
 // TODO - Combine NewSocket and NewConnectedSocket
+// THIS IS FOR DIALED SOCKETS!!!!
 func newSocket(network string, encoder Serdes, tlsConfig *tls.Config) (*Socket, error) {
 	u, err := url.Parse(network)
 	if err != nil {
@@ -293,10 +268,14 @@ func newSocket(network string, encoder Serdes, tlsConfig *tls.Config) (*Socket, 
 		tlsConfig: tlsConfig,
 		encoder: encoder,
 		recvBuf: make([]byte, MaxRecvMsgSize),
+
+		recvDelayMsg: make(chan any, 10),
+		recvDelayErr: make(chan error, 10),
 	}
 	return &sock, nil
 }
 
+// THIS IS FOR LISTENED SOCKETS!!!!!
 func newConnectedSocket(conn net.Conn, encoder Serdes) *Socket {
 	sock := Socket{
 		// Create a Framed connection and set it to our connection
@@ -304,19 +283,15 @@ func newConnectedSocket(conn net.Conn, encoder Serdes) *Socket {
 		conn: conn,
 		encoder: encoder,
 		recvBuf: make([]byte, MaxRecvMsgSize),
+
+		listenSocket: true,
+
+		recvDelayMsg: make(chan any, 10),
+		recvDelayErr: make(chan error, 10),
 	}
+	sock.Connected.Store(true)
 	return &sock
 }
-
-// func (s *Socket) SimulateLoss() {
-// 	bandwidth := 0 // <- Inf // 1048 // 8 Kbit/s
-// 	minLatency := 200 * time.Millisecond
-// 	maxLatency := 280 * time.Millisecond
-// 	packetLossRate := 0.15
-// 	headerOverhead := lossy.UDPv4MinHeaderOverhead
-// 	lossyConn := lossy.NewConn(s.conn, bandwidth, minLatency, maxLatency, packetLossRate, headerOverhead)
-// 	s.conn = lossyConn
-// }
 
 func (s *Socket) Dial() error {
 	// log.Print("Dialing", s.url)
@@ -326,7 +301,6 @@ func (s *Socket) Dial() error {
 		// wsConn, _, err := websocket.Dial(ctx, s.url, nil)
 		ctx := context.Background()
 		wsConn, err := dialWs(ctx, s.url, s.tlsConfig)
-
 
 		// log.Println("Connection Response:", resp)
 		if err != nil { return err }
@@ -351,7 +325,7 @@ func (s *Socket) Dial() error {
 		return nil
 	}
 
-	return fmt.Errorf("Failed to Dial, unknown ClientConn")
+	return fmt.Errorf("Failed to Dial, unknown scheme")
 }
 
 func (s *Socket) Close() error {
@@ -367,12 +341,95 @@ func (s *Socket) Close() error {
 
 // Sends the message through the connection
 func (s *Socket) Send(msg any) error {
+	if s.Closed.Load() {
+		return ErrClosed
+	}
+
+	if !s.Connected.Load() {
+		return ErrDisconnected
+	}
+
+	if s.MaxDelay <= 0 {
+		return s.send(msg)
+	}
+
+	// Else send with delay
+	go func() {
+		r := rand.Float64()
+		delay := time.Duration(1_000_000_000 * r * ((s.MaxDelay-s.MinDelay).Seconds())) + s.MinDelay
+		// fmt.Println("SendDelay: ", delay)
+		time.Sleep(delay)
+		err := s.send(msg)
+		if err != nil {
+			s.sendDelayErr <- err
+		}
+	}()
+
+	select {
+	case err := <-s.sendDelayErr:
+		return err
+	default:
+		return nil
+	}
+}
+
+func (s *Socket) Recv() (any, error) {
+	if s.Closed.Load() {
+		return nil, ErrClosed
+	}
+
+	if !s.Connected.Load() {
+		return nil, ErrDisconnected
+	}
+
+	return s.recv()
+
+	// TODO - fix this
+	// if s.MaxDelay <= 0 {
+	// 	return s.recv()
+	// }
+
+	// for {
+	// 	if s.recvThreadCount > 100 {
+	// 		break
+	// 	}
+	// 	s.recvThreadCount++ // TODO - not thread safe
+	// 	go func() {
+	// 		msg, err := s.recv()
+
+	// 		r := rand.Float64()
+	// 		delay := time.Duration(1_000_000_000 * r * ((s.MaxDelay-s.MinDelay).Seconds())) + s.MinDelay
+	// 		fmt.Println("RecvDelay: ", delay)
+	// 		time.Sleep(delay)
+
+	// 		s.recvThreadCount--
+	// 		if err != nil {
+	// 			s.recvDelayErr <- err
+	// 		} else {
+	// 			fmt.Println("Recv: ", msg, err)
+	// 			s.recvDelayMsg <- msg
+	// 		}
+	// 	}()
+	// }
+
+	// select {
+	// case err := <-s.recvDelayErr:
+	// 	return nil, err
+	// default:
+	// 	msg := <-s.recvDelayMsg
+	// 	fmt.Println("RETURNING")
+	// 	return msg, nil
+	// }
+}
+
+func (s *Socket) send(msg any) error {
+	// TODO - I'd prefer this to never be nil!
 	if s.conn == nil {
-		return fmt.Errorf("Send Socket Closed")
+		s.tryReconnect()
+		return ErrNetwork
 	}
 
 	if rand.Float64() < s.Packetloss {
-		fmt.Println("SEND DROPPING PACKET")
 		return nil
 	}
 
@@ -386,6 +443,7 @@ func (s *Socket) Send(msg any) error {
 
 	_, err = s.conn.Write(ser)
 	if err != nil {
+		s.tryReconnect()
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
 		return err
 	}
@@ -393,9 +451,11 @@ func (s *Socket) Send(msg any) error {
 }
 
 // Reads the next message (blocking) on the connection
-func (s *Socket) Recv() (any, error) {
+func (s *Socket) recv() (any, error) {
+	// TODO - I'd prefer this to never be nil!
 	if s.conn == nil {
-		return nil, fmt.Errorf("Recv Socket Closed")
+		s.tryReconnect()
+		return nil, ErrNetwork
 	}
 
 	s.recvMut.Lock()
@@ -403,13 +463,13 @@ func (s *Socket) Recv() (any, error) {
 
 	n, err := s.conn.Read(s.recvBuf)
 	if err != nil {
+		s.tryReconnect()
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
 		return nil, err
 	}
 	if n <= 0 { return nil, nil } // There was no message, and no error (likely a keepalive)
 
 	if rand.Float64() < s.Packetloss {
-		fmt.Println("RECV DROPPING PACKET")
 		return nil, nil
 	}
 
@@ -420,4 +480,37 @@ func (s *Socket) Recv() (any, error) {
 		return nil, err
 	}
 	return msg, nil
+}
+
+func (s *Socket) tryConnect() {
+	if s.listenSocket { return } // Can't re-dial listen side sockets
+
+	attempt := 1
+	sleepDur := 100 * time.Millisecond // TODO - Tweakable?
+	maxSleep := 10 * time.Second // TODO - Tweakable?
+	for {
+		if s.Closed.Load() { return } // If socket is closed, then never reconnect
+
+		err := s.Dial()
+		if err != nil {
+			fmt.Printf("Socket Reconnect attempt %d - Waiting %s\n", attempt, sleepDur)
+			fmt.Println(err)
+			attempt++
+			time.Sleep(sleepDur)
+			sleepDur = 2 * sleepDur // TODO - Tweakable?
+			if sleepDur > maxSleep {
+				sleepDur = maxSleep
+			}
+			continue
+		}
+
+		fmt.Println("Socket Reconnected")
+		return
+	}
+}
+
+func (s *Socket) tryReconnect() {
+	s.Connected.Store(false)
+
+	go s.tryConnect()
 }
