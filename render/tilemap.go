@@ -9,23 +9,21 @@ import (
 
 type TilemapRender struct {
 	spritesheet *asset.Spritesheet
-	pass *glitch.RenderPass
+	batch *glitch.Batch
 	tileToSprite map[tile.TileType]*glitch.Sprite
 }
 
-func NewTilemapRender(spritesheet *asset.Spritesheet,
-	tileToSprite map[tile.TileType]*glitch.Sprite,
-	pass *glitch.RenderPass) *TilemapRender {
+func NewTilemapRender(spritesheet *asset.Spritesheet, tileToSprite map[tile.TileType]*glitch.Sprite) *TilemapRender {
 	// Note: Assumes that all sprites share the same spritesheet
 	return &TilemapRender{
 		spritesheet: spritesheet,
-		pass: pass,
+		batch: glitch.NewBatch(),
 		tileToSprite: tileToSprite,
 	}
 }
 
 func (r *TilemapRender) Clear() {
-	r.pass.Clear()
+	r.batch.Clear()
 }
 
 func (r *TilemapRender) Batch(tmap *tile.Tilemap) {
@@ -58,14 +56,11 @@ func (r *TilemapRender) Batch(tmap *tile.Tilemap) {
 
 			mat := glitch.Mat4Ident
 			mat.Translate(pos[0], pos[1], 0)
-			sprite.Draw(r.pass, mat)
-
-			// mat := pixel.IM.Moved(pos)
-			// sprite.Draw(r.batch, mat)
+			sprite.Draw(r.batch, mat)
 		}
 	}
 }
 
-// func (r *TilemapRender) Draw(win *glitch.Window) {
-// 	r.pass.Draw(win)
-// }
+func (r *TilemapRender) Draw(target glitch.BatchTarget) {
+	r.batch.Draw(target, glitch.Mat4Ident)
+}

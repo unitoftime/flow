@@ -14,7 +14,7 @@ type Frame struct {
 	sprite *glitch.Sprite
 	Dur time.Duration
 	mount map[string]phy2.Pos
-	MirrorY bool
+	// MirrorY bool
 	// MirrorX bool
 }
 func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
@@ -34,9 +34,9 @@ func (f *Frame) Mount(name string) phy2.Pos {
 	if !ok {
 		return phy2.Pos{}
 	}
-	if f.MirrorY {
-		pos.X = -pos.X
-	}
+	// if f.MirrorY {
+	// 	pos.X = -pos.X
+	// }
 	return pos
 }
 
@@ -52,6 +52,8 @@ type Animation struct {
 	Loop bool
 	speed float64 // This is used to scale the duration of the animation evenly so that the animation can fit a certain time duration
 	// translation glitch.Vec3
+	// MirrorX bool // TODO
+	MirrorY bool // Mirror around the Y axis
 }
 
 func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
@@ -144,7 +146,7 @@ func (anim *Animation) Draw(target glitch.BatchTarget, pos Pos) {
 
 	mat := glitch.Mat4Ident
 	mat.Scale(anim.Scale[0], anim.Scale[1], 1.0)
-	if frame.MirrorY {
+	if anim.MirrorY {
 		mat.Scale(-1.0, 1.0, 1.0)
 	}
 	mat.Rotate(float32(anim.Rotation), glitch.Vec3{0, 0, 1})

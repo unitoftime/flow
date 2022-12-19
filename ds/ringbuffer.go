@@ -11,6 +11,10 @@ func NewRingBuffer[T any](length int) *RingBuffer[T] {
 	}
 }
 
+func (b *RingBuffer[T]) Len() int {
+	return len(b.buffer)
+}
+
 func (b *RingBuffer[T]) Add(t T) {
 	b.buffer[b.idx] = t
 	b.idx = (b.idx + 1) % len(b.buffer)
