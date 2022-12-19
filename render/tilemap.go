@@ -4,29 +4,66 @@ import (
 	"github.com/unitoftime/glitch"
 
 	"github.com/unitoftime/flow/tile"
-	"github.com/unitoftime/flow/asset"
 )
 
+type Chunkmap struct {
+	chunkmap *tile.Chunkmap
+	tilemapRender *TilemapRender
+	chunks map[tile.ChunkPosition]*glitch.Batch
+}
+
+func NewChunkmap(chunkmap *tile.Chunkmap, tileToSprite map[tile.TileType]*glitch.Sprite) *Chunkmap {
+	return &Chunkmap{
+		chunkmap: chunkmap,
+		tilemapRender: NewTilemapRender(tileToSprite),
+		chunks: make(map[tile.ChunkPosition]*glitch.Batch),
+	}
+}
+
+// Returns the request chunk batch
+func (c *Chunkmap) GetChunk(chunkPos tile.ChunkPosition) *glitch.Batch {
+	batch, ok := c.chunks[chunkPos]
+	if !ok {
+		c.RebatchChunk(chunkPos)
+	}
+	batch, ok = c.chunks[chunkPos]
+	if !ok {
+		panic("Programmer bug")
+	}
+	return batch
+}
+
+// Rebatches a specific chunk (ie signal that the chunk has changed and needs to be rebatched
+func (c *Chunkmap) RebatchChunk(chunkPos tile.ChunkPosition) {
+	batch, ok := c.chunks[chunkPos]
+	if !ok {
+		batch = glitch.NewBatch()
+	}
+
+	chunk, ok := c.chunkmap.GetChunk(chunkPos)
+	if ok {
+		// Chunk exists, rebatch it
+		batch.Clear()
+		c.tilemapRender.Draw(chunk, batch)
+	} else {
+		// Chunk doesn't exist, so just store an empty batch there
+		batch.Clear()
+	}
+	c.chunks[chunkPos] = batch
+}
+
 type TilemapRender struct {
-	spritesheet *asset.Spritesheet
-	batch *glitch.Batch
 	tileToSprite map[tile.TileType]*glitch.Sprite
 }
 
-func NewTilemapRender(spritesheet *asset.Spritesheet, tileToSprite map[tile.TileType]*glitch.Sprite) *TilemapRender {
+func NewTilemapRender(tileToSprite map[tile.TileType]*glitch.Sprite) *TilemapRender {
 	// Note: Assumes that all sprites share the same spritesheet
 	return &TilemapRender{
-		spritesheet: spritesheet,
-		batch: glitch.NewBatch(),
 		tileToSprite: tileToSprite,
 	}
 }
 
-func (r *TilemapRender) Clear() {
-	r.batch.Clear()
-}
-
-func (r *TilemapRender) Batch(tmap *tile.Tilemap) {
+func (r *TilemapRender) Draw(tmap *tile.Tilemap, batch *glitch.Batch) {
 	for x := 0; x < tmap.Width(); x++ {
 		for y := tmap.Height(); y >= 0; y-- {
 			t, ok := tmap.Get(tile.TilePosition{x, y})
@@ -56,11 +93,7 @@ func (r *TilemapRender) Batch(tmap *tile.Tilemap) {
 
 			mat := glitch.Mat4Ident
 			mat.Translate(pos[0], pos[1], 0)
-			sprite.Draw(r.batch, mat)
+			sprite.Draw(batch, mat)
 		}
 	}
-}
-
-func (r *TilemapRender) Draw(target glitch.BatchTarget) {
-	r.batch.Draw(target, glitch.Mat4Ident)
 }

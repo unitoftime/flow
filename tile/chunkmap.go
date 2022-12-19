@@ -71,6 +71,14 @@ func (c *Chunkmap) GetAllChunks() []*Tilemap {
 	}
 	return ret
 }
+func (c *Chunkmap) GetAllChunkPositions() []ChunkPosition {
+	ret := make([]ChunkPosition, 0, c.NumChunks())
+	for chunkPos := range c.chunks {
+		ret = append(ret, chunkPos)
+	}
+	return ret
+}
+
 
 func (c *Chunkmap) GetChunk(chunkPos ChunkPosition) (*Tilemap, bool) {
 	chunk, ok := c.chunks[chunkPos]
@@ -263,4 +271,23 @@ func (c *Chunkmap) RecalculateEntities(world *ecs.World) {
 			}
 		}
 	})
+}
+
+// Returns a list of tiles that are overlapping the collider at a position
+func (t *Chunkmap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollider) []TilePosition {
+	minX := x - collider.Radius
+	maxX := x + collider.Radius
+	minY := y - collider.Radius
+	maxY := y + collider.Radius
+
+	min := t.PositionToTile(float32(minX), float32(minY))
+	max := t.PositionToTile(float32(maxX), float32(maxY))
+
+	ret := make([]TilePosition, 0)
+	for tx := min.X; tx <= max.X; tx++ {
+		for ty := min.Y; ty <= max.Y; ty++ {
+			ret = append(ret, TilePosition{tx, ty})
+		}
+	}
+	return ret
 }
