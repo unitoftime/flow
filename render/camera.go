@@ -13,7 +13,6 @@ type Camera struct {
 	bounds glitch.Rect
 }
 
-
 func NewCamera(bounds glitch.Rect, x, y float32) *Camera {
 	return &Camera{
 		Camera: glitch.NewCameraOrtho(),
@@ -47,6 +46,13 @@ func (c *Camera) Unproject(point glitch.Vec3) glitch.Vec3 {
 	return c.Camera.Unproject(point)
 }
 
+func (c *Camera) WorldSpaceRect() glitch.Rect {
+	box := c.bounds.ToBox()
+	min := c.Unproject(box.Min)
+	max := c.Unproject(box.Max)
+
+	return glitch.R(min[0], min[1], max[0], max[1])
+}
 
 // type Camera struct {
 // 	win *pixelgl.Window

@@ -59,6 +59,12 @@ func New(tiles [][]Tile, tileSize [2]int, math Math) *Tilemap {
 	}
 }
 
+// This returns the underlying array, not a copy
+// TODO - should I just make tiles public?
+func (t *Tilemap) Tiles() [][]Tile {
+	return t.tiles
+}
+
 func (t *Tilemap) Width() int {
 	return len(t.tiles)
 }
@@ -74,6 +80,15 @@ func (t *Tilemap) Get(pos TilePosition) (Tile, bool) {
 	}
 
 	return t.tiles[pos.X][pos.Y], true
+}
+
+func (t *Tilemap) Set(pos TilePosition, tile Tile) bool {
+	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
+		return false
+	}
+
+	t.tiles[pos.X][pos.Y] = tile
+	return true
 }
 
 func (t *Tilemap) TileToPosition(tilePos TilePosition) (float32, float32) {

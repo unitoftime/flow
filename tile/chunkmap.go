@@ -1,10 +1,17 @@
 package tile
 
 import (
+	"fmt"
+
 	"github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/phy2"
 	"github.com/zyedidia/generic/queue"
 )
+
+type ChunkLoader interface {
+	LoadChunk(chunkPos ChunkPosition) ([][]Tile, error)
+	SaveChunk(chunkmap *Chunkmap, chunkPos ChunkPosition) error
+}
 
 type ChunkPosition struct {
 	X, Y int32
@@ -15,17 +22,21 @@ type Chunkmap struct {
 	TileSize [2]int // In pixels
 	math Math
 	chunks map[ChunkPosition]*Tilemap
-	expansion func(x, y int) Tile // This is a function that deterministically calculates what each tile should be for each position
+	loader ChunkLoader
 }
 
-func NewChunkmap(chunkSize int, tileSize [2]int, math Math, expansionLambda func(x, y int) Tile) *Chunkmap {
+func NewChunkmap(chunkSize int, tileSize [2]int, math Math) *Chunkmap {
 	return &Chunkmap{
 		ChunkSize: chunkSize,
 		TileSize: tileSize,
 		math: math,
 		chunks: make(map[ChunkPosition]*Tilemap),
-		expansion: expansionLambda,
 	}
+}
+
+func(c *Chunkmap) WithLoader(loader ChunkLoader) *Chunkmap {
+	c.loader = loader
+	return c
 }
 
 // Returns the worldspace position of a chunk
@@ -38,6 +49,10 @@ func (c *Chunkmap) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
 		float64(offY) - (0.5 * float64(c.ChunkSize) * float64(c.TileSize[1])) + float64(c.TileSize[1]/2),
 	}
 	return offset
+}
+
+func (c *Chunkmap) PositionToChunk(x, y float32) ChunkPosition {
+	return c.TileToChunk(c.PositionToTile(x, y))
 }
 
 func (c *Chunkmap) TileToChunk(tilePos TilePosition) ChunkPosition {
@@ -82,14 +97,25 @@ func (c *Chunkmap) GetAllChunkPositions() []ChunkPosition {
 
 func (c *Chunkmap) GetChunk(chunkPos ChunkPosition) (*Tilemap, bool) {
 	chunk, ok := c.chunks[chunkPos]
-	if !ok {
-		return nil, false
+	if ok {
+		return chunk, true
 	}
-	return chunk, true
+
+	// If we couldn't load from map, then load from loader
+	if c.loader != nil {
+		tiles, err := c.loader.LoadChunk(chunkPos)
+		if err != nil {
+			return nil, false
+		}
+
+		return c.AddChunk(chunkPos, tiles), true
+	}
+
+	return nil, false
 }
 
-func (c *Chunkmap) CreateChunk(chunkPos ChunkPosition) *Tilemap {
-	// chunkId := ChunkPositionToChunk(chunkPos)
+// This generates a chunk based on the passed in expansionLambda
+func (c *Chunkmap) GenerateChunk(chunkPos ChunkPosition, expansionLambda func(x, y int) Tile) *Tilemap {
 	chunk, ok := c.GetChunk(chunkPos)
 	if ok {
 		return chunk // Return the chunk and don't create, if the chunk is already made
@@ -102,12 +128,39 @@ func (c *Chunkmap) CreateChunk(chunkPos ChunkPosition) *Tilemap {
 		tiles[x] = make([]Tile, c.ChunkSize, c.ChunkSize)
 		for y := range tiles[x] {
 			// fmt.Println(x, y, tileOffset.X, tileOffset.Y)
-			tiles[x][y] = c.expansion(x + tileOffset.X, y + tileOffset.Y)
+			tiles[x][y] = expansionLambda(x + tileOffset.X, y + tileOffset.Y)
 		}
 	}
-	chunk = New(tiles, c.TileSize, c.math)
 
-	// chunkPos := ChunkToPosition(chunkId)
+	return c.AddChunk(chunkPos, tiles)
+
+	// chunk = New(tiles, c.TileSize, c.math)
+
+	// // chunkPos := ChunkToPosition(chunkId)
+	// offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
+	// 	[2]int{c.TileSize[0]*c.ChunkSize, c.TileSize[1]*c.ChunkSize})
+
+	// chunk.Offset.X = float64(offX)
+	// chunk.Offset.Y = float64(offY)
+
+	// // Write back
+	// c.chunks[chunkPos] = chunk
+	// return chunk
+}
+
+func (c *Chunkmap) SaveChunk(chunkPos ChunkPosition) error {
+	if c.loader == nil {
+		return fmt.Errorf("Chunkmap loader is nil")
+	}
+
+	// TODO - I feel like I need some way to dump a chunk out of memory. like, SaveCHunk(...), then RemoveFromMemory(...) - OR - PersistChunk (...) which just does both of those
+
+	return c.loader.SaveChunk(c, chunkPos)
+}
+
+func (c *Chunkmap) AddChunk(chunkPos ChunkPosition, tiles [][]Tile) *Tilemap {
+	chunk := New(tiles, c.TileSize, c.math)
+
 	offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
 		[2]int{c.TileSize[0]*c.ChunkSize, c.TileSize[1]*c.ChunkSize})
 
@@ -118,7 +171,6 @@ func (c *Chunkmap) CreateChunk(chunkPos ChunkPosition) *Tilemap {
 	c.chunks[chunkPos] = chunk
 	return chunk
 }
-
 
 func (c *Chunkmap) NumChunks() int {
 	return len(c.chunks)
@@ -137,13 +189,23 @@ func (c *Chunkmap) GetTile(pos TilePosition) (Tile, bool) {
 	return chunk.Get(localTilePos)
 }
 
-// TODO - maybe in the future
-// func (c *Chunkmap) SetTile(pos TilePosition, tile Tile) bool {
-// 	chunkId := c.TileToChunk(pos)
-// 	chunk, ok := c.GetChunk(chunkId)
-// 	if !ok { return false }
-// 	chunk.Set(pos, tile)
-// }
+// Tries to set the tile, returns false if the chunk does not exist
+func (c *Chunkmap) SetTile(pos TilePosition, tile Tile) bool {
+	chunkPos := c.TileToChunk(pos)
+	chunk, ok := c.GetChunk(chunkPos)
+	if !ok {
+		return false
+	}
+
+	tileOffset := c.ChunkToTile(chunkPos)
+	localTilePos := TilePosition{pos.X - tileOffset.X, pos.Y - tileOffset.Y}
+	// fmt.Println("chunk.Get:", chunkPos, pos, localTilePos)
+	ok = chunk.Set(localTilePos, tile)
+	if !ok {
+		panic("Programmer error")
+	}
+	return true
+}
 
 func (c *Chunkmap) TileToPosition(tilePos TilePosition) (float32, float32) {
 	x, y := c.math.Position(tilePos.X, tilePos.Y, c.TileSize)
