@@ -118,14 +118,18 @@ func (t *Tilemap) BoundsAt(pos TilePosition) (float64, float64, float64, float64
 	return float64(x) - float64(t.TileSize[0]/2), float64(y) - float64(t.TileSize[1]/2), float64(x) + float64(t.TileSize[0]/2), float64(y) + float64(t.TileSize[1]/2)
 }
 
-// Recalculates all of the entities that are on tiles based on tile colliders
-func (t *Tilemap) RecalculateEntities(world *ecs.World) {
+func (t *Tilemap) ClearEntities() {
 	// Clear Entities
 	for x := range t.tiles {
 		for y := range t.tiles[x] {
 			t.tiles[x][y].Entity = ecs.InvalidEntity
 		}
 	}
+}
+
+// Recalculates all of the entities that are on tiles based on tile colliders
+func (t *Tilemap) RecalculateEntities(world *ecs.World) {
+	t.ClearEntities()
 
 	// Recompute all entities with TileColliders
 	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *phy2.Pos) {

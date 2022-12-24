@@ -7,12 +7,12 @@ import (
 )
 
 type Chunkmap struct {
-	chunkmap *tile.Chunkmap
+	chunkmap *tile.Chunkmap[tile.Tile]
 	tilemapRender *TilemapRender
 	chunks map[tile.ChunkPosition]*glitch.Batch
 }
 
-func NewChunkmap(chunkmap *tile.Chunkmap, tileToSprite map[tile.TileType]*glitch.Sprite) *Chunkmap {
+func NewChunkmap(chunkmap *tile.Chunkmap[tile.Tile], tileToSprite map[tile.TileType]*glitch.Sprite) *Chunkmap {
 	return &Chunkmap{
 		chunkmap: chunkmap,
 		tilemapRender: NewTilemapRender(tileToSprite),
@@ -63,7 +63,7 @@ func NewTilemapRender(tileToSprite map[tile.TileType]*glitch.Sprite) *TilemapRen
 	}
 }
 
-func (r *TilemapRender) Draw(tmap *tile.Tilemap, batch *glitch.Batch) {
+func (r *TilemapRender) Draw(tmap *tile.Chunk[tile.Tile], batch *glitch.Batch) {
 	for x := 0; x < tmap.Width(); x++ {
 		for y := tmap.Height(); y >= 0; y-- {
 			t, ok := tmap.Get(tile.TilePosition{x, y})
