@@ -2,7 +2,6 @@ package tile
 
 // Inspired By: http://www.cr31.co.uk/stagecast/wang/1sideedge.html
 
-
 // Follows the tile numbering that godot uses. Numbered in reading order, starting at 0.
 // Godot: https://docs.godotengine.org/en/stable/tutorials/2d/using_tilemaps.html
 func PackedBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
@@ -143,6 +142,17 @@ func WangBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
 	if bl { total += (1 << 5) }
 	if l	{ total	+= (1 << 6) }
 	if tl { total += (1 << 7) }
+
+	return total
+}
+
+// Same thing as blobmap but only includes the edge neighbors (and not corners)
+func PackedPipemapNumber(t, b, l, r bool) uint8 {
+	total := uint8(0)
+	if t	{ total	+= (1 << 0) }
+	if r	{ total	+= (1 << 1) }
+	if b	{ total	+= (1 << 2) }
+	if l	{ total	+= (1 << 3) }
 
 	return total
 }

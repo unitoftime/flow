@@ -151,11 +151,11 @@ func (c *Chunkmap[T]) SetTile(pos TilePosition, tile T) bool {
 	return true
 }
 
-func (c *Chunkmap[T]) GetNeighborsAtDistance(x, y int, dist int) []TilePosition {
+func (c *Chunkmap[T]) GetNeighborsAtDistance(tilePos TilePosition, dist int) []TilePosition {
 	distance := make(map[TilePosition]int)
 
 	q := queue.New[TilePosition]()
-	q.Enqueue(TilePosition{x, y})
+	q.Enqueue(tilePos)
 
 	for !q.Empty() {
 		current := q.Dequeue()
@@ -181,6 +181,39 @@ func (c *Chunkmap[T]) GetNeighborsAtDistance(x, y int, dist int) []TilePosition 
 	ret := make([]TilePosition, 0)
 	for pos, d := range distance {
 		if d != dist { continue } // Don't return if distance isn't corect
+		ret = append(ret, pos)
+	}
+	return ret
+}
+
+func (c *Chunkmap[T]) BreadthFirstSearch(tilePos TilePosition, valid func(t T) bool) []TilePosition {
+	distance := make(map[TilePosition]int)
+
+	q := queue.New[TilePosition]()
+	q.Enqueue(tilePos)
+
+	for !q.Empty() {
+		current := q.Dequeue()
+
+		neighbors := c.GetEdgeNeighbors(current.X, current.Y)
+		for _, next := range neighbors {
+			t, ok := c.GetTile(next)
+			if !ok { continue } // Skip as neighbor doesn't actually exist (ie could be OOB)
+
+			if !valid(t) { continue } // Skip if the tile isn't valid
+
+			// If we haven't already walked over this neighbor, then enqueue it and add it to our path
+			_, exists := distance[next]
+			if !exists {
+				q.Enqueue(next)
+				distance[next] = 1 + distance[current]
+			}
+		}
+	}
+
+	// Pull out all of the tiles that are at the correct distance
+	ret := make([]TilePosition, 0)
+	for pos := range distance {
 		ret = append(ret, pos)
 	}
 	return ret
@@ -221,6 +254,48 @@ func (c *Chunkmap[T]) GetPerimeter() map[ChunkPosition]bool {
 	}
 
 	return perimeter
+}
+
+func (c *Chunkmap[T]) CalculateBlobmapVariant(pos TilePosition, same func(a T, b T) bool) uint8 {
+	tile, ok := c.GetTile(pos)
+	if !ok { return 0 }
+
+	t, _ := c.GetTile(TilePosition{pos.X, pos.Y + 1})
+	b, _ := c.GetTile(TilePosition{pos.X, pos.Y - 1})
+	l, _ := c.GetTile(TilePosition{pos.X - 1, pos.Y})
+	r, _ := c.GetTile(TilePosition{pos.X + 1, pos.Y})
+	tl, _ := c.GetTile(TilePosition{pos.X - 1, pos.Y + 1})
+	tr, _ := c.GetTile(TilePosition{pos.X + 1, pos.Y + 1})
+	bl, _ := c.GetTile(TilePosition{pos.X - 1, pos.Y - 1})
+	br, _ := c.GetTile(TilePosition{pos.X + 1, pos.Y - 1})
+
+	return PackedBlobmapNumber(
+		same(tile, t),
+		same(tile, b),
+		same(tile, l),
+		same(tile, r),
+		same(tile, tl),
+		same(tile, tr),
+		same(tile, bl),
+		same(tile, br),
+	)
+}
+
+func (c *Chunkmap[T]) CalculatePipemapVariant(pos TilePosition, same func(a T, b T) bool) uint8 {
+	tile, ok := c.GetTile(pos)
+	if !ok { return 0 }
+
+	t, _ := c.GetTile(TilePosition{pos.X, pos.Y + 1})
+	b, _ := c.GetTile(TilePosition{pos.X, pos.Y - 1})
+	l, _ := c.GetTile(TilePosition{pos.X - 1, pos.Y})
+	r, _ := c.GetTile(TilePosition{pos.X + 1, pos.Y})
+
+	return PackedPipemapNumber(
+		same(tile, t),
+		same(tile, b),
+		same(tile, l),
+		same(tile, r),
+	)
 }
 
 // --------------------------------------------------------------------------------
@@ -282,6 +357,25 @@ func (c *ChunkMath) PositionToTile(x, y float32) TilePosition {
 	return TilePosition{tX, tY}
 }
 
+// TODO - this probably has an off by 1 error in it
+func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
+	// TODO! - idk this isnt' actually the center. I must have a bug somewhere
+	center := c.ChunkToTile(chunkPos)
+	// fmt.Println("CENTER ", center)
+	// return R(
+	// 	center.X - (c.ChunkSize[0] / 2),
+	// 	center.Y - (c.ChunkSize[1] / 2),
+	// 	center.X + (c.ChunkSize[0] / 2),
+	// 	center.Y + (c.ChunkSize[1] / 2),
+	// )
+	return R(
+		center.X,
+		center.Y,
+		center.X + (c.ChunkSize[0]),
+		center.Y + (c.ChunkSize[1]),
+	)
+}
+
 func (c *ChunkMath) GetEdgeNeighbors(x, y int) []TilePosition {
 	return []TilePosition{
 		TilePosition{x+1, y},
@@ -297,6 +391,24 @@ func (c *ChunkMath) GetChunkEdgeNeighbors(pos ChunkPosition) []ChunkPosition {
 		ChunkPosition{pos.X-1, pos.Y},
 		ChunkPosition{pos.X, pos.Y+1},
 		ChunkPosition{pos.X, pos.Y-1},
+	}
+}
+
+func (c *ChunkMath) GetNeighbors(pos TilePosition) []TilePosition {
+	x := pos.X
+	y := pos.Y
+	return []TilePosition{
+		// Edges
+		TilePosition{x+1, y},
+		TilePosition{x-1, y},
+		TilePosition{x, y+1},
+		TilePosition{x, y-1},
+
+		// Corners
+		TilePosition{x-1, y-1},
+		TilePosition{x-1, y+1},
+		TilePosition{x+1, y-1},
+		TilePosition{x+1, y+1},
 	}
 }
 

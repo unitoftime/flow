@@ -39,6 +39,17 @@ func (r Rect) Contains(pos TilePosition) bool {
 	return pos.X < r.Max.X && pos.X > r.Min.X && pos.Y < r.Max.Y && pos.Y > r.Min.Y
 }
 
+// TODO! - Replace with actual iterator pattern
+func (r Rect) Iter() []TilePosition {
+	ret := make([]TilePosition, 0)
+	for x := r.Min.X; x <= r.Max.X; x++ {
+		for y := r.Min.Y; y <= r.Max.Y; y++ {
+			ret = append(ret, TilePosition{x, y})
+		}
+	}
+	return ret
+}
+
 type Collider struct {
 	Width, Height int // Size of the collider in terms of tiles
 }

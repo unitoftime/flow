@@ -15,8 +15,19 @@ func (t FlatRectMath) Position(x, y int, size [2]int) (float32, float32) {
 }
 
 func (t FlatRectMath) PositionToTile(x, y float32, size [2]int) (int, int) {
-	return (int(x) + (size[0]/2)) / size[0],
-	(int(y) + (size[1]/2))/ size[1]
+	xPos := (int(x) + (size[0]/2)) / size[0]
+	yPos := (int(y) + (size[1]/2))/ size[1]
+
+	// Adjust for negatives
+	if x < float32(-size[0] / 2) {
+		xPos -= 1
+	}
+	if y < float32(-size[1] / 2) {
+		yPos -= 1
+	}
+	return xPos, yPos
+	// return (int(x) + (size[0]/2)) / size[0],
+	// (int(y) + (size[1]/2))/ size[1]
 }
 
 type PointyRectMath struct {}

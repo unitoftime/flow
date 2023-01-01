@@ -5,24 +5,28 @@ import (
 	"image/color"
 
 	"github.com/unitoftime/glitch"
-	// "github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/phy2"
 )
 
+// TODO - it might make more sense to make this like an aseprite wrapper object that has layers, frames, tags, etc
+
 // This is an animation frame
 type Frame struct {
-	sprite *glitch.Sprite
+	Sprite *glitch.Sprite
+	// Origin phy2.Pos
 	Dur time.Duration
-	mount map[string]phy2.Pos
-	// MirrorY bool
-	// MirrorX bool
+	mount map[string]phy2.Pos // TODO - this is just kind of arbitrary data for my mountpoint system
 }
 func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
 	return Frame{
-		sprite: sprite,
+		Sprite: sprite,
 		Dur: dur,
 		mount: make(map[string]phy2.Pos),
 	}
+}
+
+func (f *Frame) Bounds() glitch.Rect {
+	return f.Sprite.Bounds()
 }
 
 func (f *Frame) SetMount(name string, point phy2.Pos) {
@@ -34,9 +38,6 @@ func (f *Frame) Mount(name string) phy2.Pos {
 	if !ok {
 		return phy2.Pos{}
 	}
-	// if f.MirrorY {
-	// 	pos.X = -pos.X
-	// }
 	return pos
 }
 
@@ -52,6 +53,7 @@ type Animation struct {
 	Loop bool
 	speed float64 // This is used to scale the duration of the animation evenly so that the animation can fit a certain time duration
 	// translation glitch.Vec3
+
 	// MirrorX bool // TODO
 	MirrorY bool // Mirror around the Y axis
 }
@@ -145,6 +147,7 @@ func (anim *Animation) Draw(target glitch.BatchTarget, pos Pos) {
 	// frame.sprite.SetTranslation(anim.translation)
 
 	mat := glitch.Mat4Ident
+	// mat.Translate(float32(frame.Origin.X), float32(frame.Origin.Y), 0)
 	mat.Scale(anim.Scale[0], anim.Scale[1], 1.0)
 	if anim.MirrorY {
 		mat.Scale(-1.0, 1.0, 1.0)
@@ -155,5 +158,5 @@ func (anim *Animation) Draw(target glitch.BatchTarget, pos Pos) {
 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
 	col := glitch.RGBA{float32(anim.Color.R)/255.0, float32(anim.Color.G)/255.0, float32(anim.Color.B)/255.0, float32(anim.Color.A)/255.0}
 
-	frame.sprite.DrawColorMask(target, mat, col)
+	frame.Sprite.DrawColorMask(target, mat, col)
 }
