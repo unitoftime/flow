@@ -3,17 +3,14 @@ package net
 import (
 	"fmt"
 	"errors"
-	"math/rand"
 	"time"
+	// "math/rand"
 	"net"
 	"net/url"
 	"net/http"
 	"crypto/tls"
 	"sync"
 	"sync/atomic"
-	"context"
-
-	"nhooyr.io/websocket"
 )
 
 // TODO - Ensure sent messages remain under this
@@ -33,16 +30,9 @@ type Serdes interface {
 	Unmarshal(dat []byte) (any, error)
 }
 
-// type Socket interface {
-// 	net.Conn
-// 	// net.PacketConn???
-// 	Send(any) error
-// 	Recv() (any, error)
-// }
-
 type Listener interface {
 	// Accept waits for and returns the next connection to the listener.
-	Accept() (*Socket, error)
+	Accept() (Socket, error)
 
 	// Close closes the listener.
 	// Any blocked Accept operations will be unblocked and return errors.
@@ -52,18 +42,36 @@ type Listener interface {
 	Addr() net.Addr
 }
 
+type Transport interface {
+	Read([]byte) (int, error)
+	Write([]byte) (int, error)
+	Close() error
+}
+
+type Socket interface {
+	// TODO - SetReadDeadline and SetWriteDeadline could be nice to have!
+
+	Send(any) error
+	Recv() (any, error)
+	Close() error
+
+	Connected() bool
+	Closed() bool
+	Wait() // Wait for the connection to stabalize
+}
+
 type SocketListener struct {
 	listener net.Listener
 	serdes Serdes
 }
-func (l *SocketListener) Accept() (*Socket, error) {
+func (l *SocketListener) Accept() (Socket, error) {
 	c, err := l.listener.Accept()
 	if err != nil {
 		return nil, err
 	}
 
 	framedConn := NewFrameConn(c)
-	return newConnectedSocket(framedConn, l.serdes), nil
+	return newAcceptedSocket(framedConn, l.serdes), nil
 }
 func (l *SocketListener) Close() error {
 	return l.listener.Close()
@@ -72,106 +80,64 @@ func (l *SocketListener) Addr() net.Addr {
 	return l.listener.Addr()
 }
 
-// TODO - (When I migrate to TCP) TCP will send 0 byte messages to indicate closes, websockets sends them without closing
-type WebsocketListener struct {
-	httpServer http.Server
-	originPatterns []string
-	addr net.Addr
-	serdes Serdes
-	pendingAccepts chan *Socket // TODO - should this get buffered?
-	pendingAcceptErrors chan error // TODO - should this get buffered?
-}
-func newWebsocketListener(c *Config) (*WebsocketListener, error) {
-	u, err := url.Parse(c.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO - is TCP always correct?
-	listener, err := tls.Listen("tcp", u.Host, c.TlsConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	wsl := &WebsocketListener{
-		serdes: c.Serdes,
-		addr: listener.Addr(),
-		pendingAccepts: make(chan *Socket),
-		pendingAcceptErrors: make(chan error),
-		originPatterns: c.OriginPatterns,
-	}
-
-	httpServer := c.HttpServer
-	httpServer.Handler = wsl
-
-	go func() {
-		for {
-			err := httpServer.Serve(listener)
-			// TODO - what happens if this continually fails, how do we notify back?
-			// ErrServerClosed is returned when shutdown or close is called
-			fmt.Println("Serving Error:", err)
-
-			if errors.Is(err, http.ErrServerClosed) {
-				return // Just close if the server is shutdown or closed
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	return wsl, nil
-}
-
-func (l *WebsocketListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: l.originPatterns,
-	})
-	if err != nil {
-		// Return as an accept error
-		l.pendingAcceptErrors <- err
-		return
-	}
-
-	// Build the socket and push to channel
-	ctx := context.Background()
-	conn := websocket.NetConn(ctx, c, websocket.MessageBinary)
-	sock := newConnectedSocket(conn, l.serdes)
-	l.pendingAccepts <- sock
-}
-
-func (l *WebsocketListener) Accept() (*Socket, error) {
-	select{
-	case sock := <-l.pendingAccepts:
-		return sock, nil
-	case err := <-l.pendingAcceptErrors:
-		return nil, err
-	}
-}
-func (l *WebsocketListener) Close() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
-	defer cancel()
-	return l.httpServer.Shutdown(ctx)
-}
-func (l *WebsocketListener) Addr() net.Addr {
-	return l.addr
-}
-
 // --------------------------------------------------------------------------------
-// - TCP
+// - Config
 // --------------------------------------------------------------------------------
 
-// TODO - split up dialers and listeners?
-type Config struct {
+// For dialing a socket
+type DialConfig struct {
 	Url string   // Note: We only use the [scheme]://[host] portion of this
 	Serdes Serdes
 	TlsConfig *tls.Config
-	// ReconnectHandler func(*Socket) error // TODO - I think for listeners, this should be when we try to re-listen (ie if listening failed). TODO this should change to be less of a goroutine and more of a (reconnect when an API is called and we are currently disconnected)
+
+	// These are generated based on the upper config
+	scheme string
+	host string
+}
+
+// Returns a created socket which may not be connected, but will be actively trying to connect
+func (c *DialConfig) Dial() Socket {
+	// Parse the config
+	u, err := url.Parse(c.Url)
+	if err != nil {
+		// TODO - wrap this up in the creation of the dialconfig
+		panic(fmt.Sprintf("URL Parsing Error:", err))
+	}
+	c.scheme = u.Scheme
+	c.host = u.Host
+
+	sock := newDialSocket(c)
+
+	go sock.continuallyRedial()
+
+	return sock
+}
+
+
+func (c *DialConfig) dialTransport() (Transport, error) {
+	// Handle websockets
+	if c.scheme == "ws" || c.scheme == "wss" {
+		return dialWebsocket(c)
+	} else if c.scheme == "tcp" {
+		return dialTcpSocket(c)
+	} else if c.scheme == "webrtc" {
+		return dialWebRtc(c)
+	}
+
+	return nil, fmt.Errorf("Failed to Dial, unknown scheme")
+}
+
+// For listening for sockets
+type ListenConfig struct {
+	Url string   // Note: We only use the [scheme]://[host] portion of this
+	Serdes Serdes
+	TlsConfig *tls.Config
 
 	HttpServer *http.Server // TODO - For Websockets only, maybe split up? - Note we have to wrap their Handler with our own handler!
 	OriginPatterns []string
 }
 
-func (c *Config) Listen() (Listener, error) {
+func (c *ListenConfig) Listen() (Listener, error) {
 	u, err := url.Parse(c.Url)
 	if err != nil {
 		return nil, err
@@ -206,179 +172,157 @@ func (c *Config) Listen() (Listener, error) {
 	}
 }
 
-func (c *Config) Dial() (*Socket, error) {
-	sock, err := newSocket(c.Url, c.Serdes, c.TlsConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	sock.tryConnect()
-
-	return sock, nil
-}
-
 // --------------------------------------------------------------------------------
-// - Websockets
+// - Transport based sockets
 // --------------------------------------------------------------------------------
-
-// type Socket interface {
-
-// }
-
-// This is a wrapper for the client websocket connection
-type Socket struct {
-	url string            // The URL to connect to
-	scheme string         // The scheme of the parsed URL
-	host string           // The host of the parsed URL
-	tlsConfig *tls.Config // This is the config for tls, nil if not using tls
+type TransportSocket struct {
+	dialConfig *DialConfig
 
 	encoder Serdes        // The encoder to use for serialization
-	conn net.Conn         // The underlying network connection to send and receive on
+	conn Transport         // The underlying network connection to send and receive on
 
 	// Note: sendMut I think is needed now that I'm using goframe
 	sendMut sync.Mutex    // The mutex for multiple threads writing at the same time
 	recvMut sync.Mutex    // The mutex for multiple threads reading at the same time
 	recvBuf []byte        // The buffer that reads are buffered into
 
-	Closed atomic.Bool    // Used to indicate that the user has requested to close this ClientConn
-	Connected atomic.Bool // Used to indicate that the underlying connection is still active
+	closed atomic.Bool    // Used to indicate that the user has requested to close this ClientConn
+	connected atomic.Bool // Used to indicate that the underlying connection is still active
 
-	listenSocket bool     // Indicates that the socket is a listen-side socket and not a dial side sock
+	// Packetloss float64    // This is the probability that the packet will be lossed for every send/recv
+	// MinDelay time.Duration // This is the min delay added to every packet sent or recved
+	// MaxDelay time.Duration // This is the max delay added to every packet sent or recved
+	// sendDelayErr, recvDelayErr chan error
+	// recvDelayMsg chan any
+	// recvThreadCount int
 
-	Packetloss float64    // This is the probability that the packet will be lossed for every send/recv
-	MinDelay time.Duration // This is the min delay added to every packet sent or recved
-	MaxDelay time.Duration // This is the max delay added to every packet sent or recved
-	sendDelayErr, recvDelayErr chan error
-	recvDelayMsg chan any
-	recvThreadCount int
 }
 
-// TODO - Combine NewSocket and NewConnectedSocket
-// THIS IS FOR DIALED SOCKETS!!!!
-func newSocket(network string, encoder Serdes, tlsConfig *tls.Config) (*Socket, error) {
-	u, err := url.Parse(network)
+func dialTcpSocket(c *DialConfig) (Transport, error) {
+	conn, err := net.Dial("tcp", c.host)
 	if err != nil {
 		return nil, err
 	}
 
-	sock := Socket{
-		scheme: u.Scheme,
-		host: u.Host,
-		url: network,
-		tlsConfig: tlsConfig,
-		encoder: encoder,
-		recvBuf: make([]byte, MaxRecvMsgSize),
-
-		recvDelayMsg: make(chan any, 10),
-		recvDelayErr: make(chan error, 10),
-	}
-	return &sock, nil
+	// Create a Framed connection and set it to our connection
+	framedConn := NewFrameConn(conn)
+	return framedConn, nil
 }
 
-// THIS IS FOR LISTENED SOCKETS!!!!!
-func newConnectedSocket(conn net.Conn, encoder Serdes) *Socket {
-	sock := Socket{
-		// Create a Framed connection and set it to our connection
-		// conn: NewFrameConn(conn),
-		conn: conn,
-		encoder: encoder,
+func newGlobalSocket() *TransportSocket {
+	sock := TransportSocket{
 		recvBuf: make([]byte, MaxRecvMsgSize),
 
-		listenSocket: true,
-
-		recvDelayMsg: make(chan any, 10),
-		recvDelayErr: make(chan error, 10),
+		// recvDelayMsg: make(chan any, 10),
+		// recvDelayErr: make(chan error, 10),
 	}
-	sock.Connected.Store(true)
 	return &sock
 }
 
-func (s *Socket) Dial() error {
-	// log.Print("Dialing", s.url)
-	// Handle websockets
-	if s.scheme == "ws" || s.scheme == "wss" {
-		// ctx := context.Background()
-		// wsConn, _, err := websocket.Dial(ctx, s.url, nil)
-		ctx := context.Background()
-		wsConn, err := dialWs(ctx, s.url, s.tlsConfig)
-
-		// log.Println("Connection Response:", resp)
-		if err != nil { return err }
-
-		// Note: This connection is automagically framed by websockets
-		s.conn = websocket.NetConn(ctx, wsConn, websocket.MessageBinary)
-		s.Connected.Store(true)
-		return nil
-	} else if s.scheme == "tcp" {
-		conn, err := net.Dial("tcp", s.host)
-		if err != nil { return err }
-
-		// Create a Framed connection and set it to our connection
-		s.conn = NewFrameConn(conn)
-		s.Connected.Store(true)
-		return nil
-	} else if s.scheme == "webrtc" {
-		err := dialWebRtc(s)
-		if err != nil { return err }
-
-		s.Connected.Store(true)
-		return nil
-	}
-
-	return fmt.Errorf("Failed to Dial, unknown scheme")
+func newDialSocket(c *DialConfig) *TransportSocket {
+	sock := newGlobalSocket()
+	sock.dialConfig = c
+	sock.encoder = c.Serdes
+	return sock
 }
 
-func (s *Socket) Close() error {
-	s.Connected.Store(false)
-	s.Closed.Store(true)
-	if s.conn != nil {
-		err := s.conn.Close()
-		return err
+func newAcceptedSocket(conn Transport, encoder Serdes) *TransportSocket {
+	sock := newGlobalSocket()
+	sock.encoder = encoder
+
+	sock.connectTransport(conn)
+
+	return sock
+}
+
+func (s *TransportSocket) connectTransport(transport Transport) {
+	if s.connected.Load() {
+		panic("Error: This shouldn't happen")
+		// return // Skip as we are already connected
 	}
+
+	// TODO - close old transport?
+	// TODO - ensure that we aren't already connected?
+	s.conn = transport
+	s.connected.Store(true)
+}
+
+func (s *TransportSocket) disconnectTransport() error {
+	// We have already disconnected the transport
+	if !s.connected.Load() {
+		return nil
+	}
+
+	var err error
+	if s.conn != nil {
+		err = s.conn.Close()
+	}
+
+	s.conn = nil
+	s.connected.Store(false)
+
+	return err
+}
+
+func (s *TransportSocket) Connected() bool {
+	return s.connected.Load()
+}
+
+func (s *TransportSocket) Closed() bool {
+	return s.closed.Load()
+}
+
+func (s *TransportSocket) Close() error {
+	s.disconnectTransport()
+
+	s.closed.Store(true)
 
 	return nil
 }
 
 // Sends the message through the connection
-func (s *Socket) Send(msg any) error {
-	if s.Closed.Load() {
+func (s *TransportSocket) Send(msg any) error {
+	if s.Closed() {
 		return ErrClosed
 	}
 
-	if !s.Connected.Load() {
+	if !s.Connected() {
 		return ErrDisconnected
 	}
 
-	if s.MaxDelay <= 0 {
-		return s.send(msg)
-	}
+	return s.send(msg)
 
-	// Else send with delay
-	go func() {
-		r := rand.Float64()
-		delay := time.Duration(1_000_000_000 * r * ((s.MaxDelay-s.MinDelay).Seconds())) + s.MinDelay
-		// fmt.Println("SendDelay: ", delay)
-		time.Sleep(delay)
-		err := s.send(msg)
-		if err != nil {
-			s.sendDelayErr <- err
-		}
-	}()
+	// TODO - add back in some wrapper class I think
+	// if s.MaxDelay <= 0 {
+	// 	return s.send(msg)
+	// }
 
-	select {
-	case err := <-s.sendDelayErr:
-		return err
-	default:
-		return nil
-	}
+	// // Else send with delay
+	// go func() {
+	// 	r := rand.Float64()
+	// 	delay := time.Duration(1_000_000_000 * r * ((s.MaxDelay-s.MinDelay).Seconds())) + s.MinDelay
+	// 	// fmt.Println("SendDelay: ", delay)
+	// 	time.Sleep(delay)
+	// 	err := s.send(msg)
+	// 	if err != nil {
+	// 		s.sendDelayErr <- err
+	// 	}
+	// }()
+
+	// select {
+	// case err := <-s.sendDelayErr:
+	// 	return err
+	// default:
+	// 	return nil
+	// }
 }
 
-func (s *Socket) Recv() (any, error) {
-	if s.Closed.Load() {
+func (s *TransportSocket) Recv() (any, error) {
+	if s.Closed() {
 		return nil, ErrClosed
 	}
 
-	if !s.Connected.Load() {
+	if !s.Connected() {
 		return nil, ErrDisconnected
 	}
 
@@ -422,16 +366,15 @@ func (s *Socket) Recv() (any, error) {
 	// }
 }
 
-func (s *Socket) send(msg any) error {
+func (s *TransportSocket) send(msg any) error {
 	// TODO - I'd prefer this to never be nil!
 	if s.conn == nil {
-		s.tryReconnect()
 		return ErrNetwork
 	}
 
-	if rand.Float64() < s.Packetloss {
-		return nil
-	}
+	// if rand.Float64() < s.Packetloss {
+	// 	return nil
+	// }
 
 	ser, err := s.encoder.Marshal(msg)
 	if err != nil {
@@ -441,9 +384,10 @@ func (s *Socket) send(msg any) error {
 	s.sendMut.Lock()
 	defer s.sendMut.Unlock()
 
+	fmt.Println("AttemptedSend")
 	_, err = s.conn.Write(ser)
 	if err != nil {
-		s.tryReconnect()
+		s.disconnectTransport()
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
 		return err
 	}
@@ -451,10 +395,9 @@ func (s *Socket) send(msg any) error {
 }
 
 // Reads the next message (blocking) on the connection
-func (s *Socket) recv() (any, error) {
+func (s *TransportSocket) recv() (any, error) {
 	// TODO - I'd prefer this to never be nil!
 	if s.conn == nil {
-		s.tryReconnect()
 		return nil, ErrNetwork
 	}
 
@@ -463,15 +406,15 @@ func (s *Socket) recv() (any, error) {
 
 	n, err := s.conn.Read(s.recvBuf)
 	if err != nil {
-		s.tryReconnect()
+		s.disconnectTransport()
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
 		return nil, err
 	}
 	if n <= 0 { return nil, nil } // There was no message, and no error (likely a keepalive)
 
-	if rand.Float64() < s.Packetloss {
-		return nil, nil
-	}
+	// if rand.Float64() < s.Packetloss {
+	// 	return nil, nil
+	// }
 
 	// Note: slice off based on how many bytes we read
 	msg, err := s.encoder.Unmarshal(s.recvBuf[:n])
@@ -482,16 +425,32 @@ func (s *Socket) recv() (any, error) {
 	return msg, nil
 }
 
-func (s *Socket) tryConnect() {
-	if s.listenSocket { return } // Can't re-dial listen side sockets
+func (s *TransportSocket) Wait() {
+	for {
+		if s.connected.Load() {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
 
+func (s *TransportSocket) continuallyRedial() {
 	attempt := 1
 	sleepDur := 100 * time.Millisecond // TODO - Tweakable?
 	maxSleep := 10 * time.Second // TODO - Tweakable?
 	for {
-		if s.Closed.Load() { return } // If socket is closed, then never reconnect
+		if s.closed.Load() { return } // If socket is closed, then never reconnect
 
-		err := s.Dial()
+		fmt.Println("Redial Loop")
+		if s.connected.Load() {
+			fmt.Println("Already Connected")
+			// If socket is already connected, then just sleep
+			time.Sleep(sleepDur) // TODO - I feel like I'd prefer this to be some better sync mechanism, but I'm not sure what to use
+			continue
+		}
+
+		fmt.Println("Attempting Redial")
+		trans, err := s.dialConfig.dialTransport()
 		if err != nil {
 			fmt.Printf("Socket Reconnect attempt %d - Waiting %s\n", attempt, sleepDur)
 			fmt.Println(err)
@@ -505,12 +464,6 @@ func (s *Socket) tryConnect() {
 		}
 
 		fmt.Println("Socket Reconnected")
-		return
+		s.connectTransport(trans)
 	}
-}
-
-func (s *Socket) tryReconnect() {
-	s.Connected.Store(false)
-
-	go s.tryConnect()
 }
