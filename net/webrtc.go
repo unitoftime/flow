@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"errors"
+	"sync/atomic"
 	"strings"
-	// "context"
+	"context"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -42,6 +43,7 @@ type WebRtcListener struct {
 	serdes Serdes
 	pendingAccepts chan Socket // TODO - should this get buffered?
 	pendingAcceptErrors chan error // TODO - should this get buffered?
+	closed atomic.Bool
 }
 
 func newWebRtcListener(c *ListenConfig) (*WebRtcListener, error) {
@@ -64,13 +66,16 @@ func newWebRtcListener(c *ListenConfig) (*WebRtcListener, error) {
 		pendingAcceptErrors: make(chan error),
 	}
 
-	// TODO - some way to cancel?
 	go func() {
 		for {
 			wsConn, err := rtcListener.listener.Accept()
 			if err != nil {
 				rtcListener.pendingAcceptErrors <- err
 				continue
+			}
+
+			if rtcListener.closed.Load() {
+				return // If closed then just exit
 			}
 
 			// Try and negotiate a webrtc connection for the websocket connection
@@ -90,13 +95,17 @@ func (l *WebRtcListener) Accept() (Socket, error) {
 	}
 }
 func (l *WebRtcListener) Close() error {
+	l.closed.Store(true)
+	close(l.pendingAccepts)
+	close(l.pendingAcceptErrors)
+
 	return l.listener.Close()
 }
 func (l *WebRtcListener) Addr() net.Addr {
 	return l.listener.Addr()
 }
 
-func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
+func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 	var candidatesMux sync.Mutex
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 	config := webrtc.Configuration{
@@ -128,7 +137,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
 			pendingCandidates = append(pendingCandidates, c)
 		} else {
 			candidateMsg := RtcCandidateMsg{c.ToJSON()}
-			err := wsConn.Send(candidateMsg)
+			err := wSock.Send(candidateMsg)
 			if err != nil {
 				l.pendingAcceptErrors <- fmt.Errorf("OnIceCandidate Send - Possible websocket disconnect: %w", err)
 				return
@@ -158,7 +167,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
 
 	// Register data channel creation handling
 	peerConnection.OnDataChannel(func(d *webrtc.DataChannel) {
-		conn := NewRtcConn(peerConnection)
+		conn := NewRtcConn(peerConnection, wSock)
 		conn.dataChannel = d
 
 		sock := newAcceptedSocket(conn, l.serdes)
@@ -170,7 +179,6 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
 		// Register channel opening handling
 		d.OnClose(func() {
 			log.Print("Listener: Data channel was closed!!")
-			sock.Close()
 		})
 
 		// Register text message handling
@@ -185,15 +193,15 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
 	})
 
 	for {
-		anyMsg, err := wsConn.Recv()
+		anyMsg, err := wSock.Recv()
 
-		if errors.Is(err, ErrNetwork) {
-			// Handle errors where we should stop (ie connection closed or something)
-			log.Warn().Err(err).Msg("attemptWebRtcNegotiation: NetworkErr")
-			return
-		} else if errors.Is(err, ErrSerdes) {
-			// Handle errors where we should continue (ie serialization)
-			log.Error().Err(err).Msg("attemptWebRtcNegotiation:  SerdesErr")
+		// Exit if the socket is closed
+		if wSock.Closed() {
+			break
+		}
+
+		if err != nil {
+			// log.Warn().Err(err).Msg("attemptWebRtcNegotiation")
 			continue
 		}
 		if anyMsg == nil { continue }
@@ -225,7 +233,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
 			}
 
 			answerMessage := RtcSdpMsg{ answer.Type, answer.SDP }
-			err = wsConn.Send(answerMessage)
+			err = wSock.Send(answerMessage)
 			if err != nil {
 				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to send SDP answer: %w", err)
 				return
@@ -241,7 +249,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
 			candidatesMux.Lock()
 			for _, c := range pendingCandidates {
 				candidateMsg := RtcCandidateMsg{c.ToJSON()}
-				err := wsConn.Send(candidateMsg)
+				err := wSock.Send(candidateMsg)
 				if err != nil {
 					l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to send RtcCandidate: %w", err)
 					return
@@ -255,14 +263,14 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wsConn Socket) {
 type RtcConn struct {
 	peerConn *webrtc.PeerConnection
 	dataChannel *webrtc.DataChannel
-	// websocket Socket
+	websocket Socket
 	readChan chan []byte
 	errorChan chan error
 }
-func NewRtcConn(peer *webrtc.PeerConnection) *RtcConn {
+func NewRtcConn(peer *webrtc.PeerConnection, websocket Socket) *RtcConn {
 	return &RtcConn{
 		peerConn: peer,
-		// websocket: websocket,
+		websocket: websocket,
 		readChan: make(chan []byte, 100), //TODO! - Sizing
 		errorChan: make(chan error), //TODO! - Sizing
 	}
@@ -280,13 +288,6 @@ func (c *RtcConn) Read(b []byte) (int, error) {
 		copy(b, dat)
 		return len(dat), nil
 	}
-
-	// dat := <- c.readChan
-	// if len(dat) > len(b) {
-	// 	panic("Read Buffer is too small") // TODO - Fix
-	// }
-	// copy(b, dat)
-	// return len(dat), nil
 }
 
 func (c *RtcConn)	Write(b []byte) (int, error) {
@@ -298,33 +299,23 @@ func (c *RtcConn)	Write(b []byte) (int, error) {
 }
 
 func (c *RtcConn) Close() error {
-	err := c.dataChannel.Close()
-	if err != nil {
-		log.Error().Err(err).Msg("RtcConn: Error Closing WebRtc DataChannel")
-	}
-	log.Print("err := c.dataChannel.Close()", err)
-
+	err1 := c.dataChannel.Close()
 	err2 := c.peerConn.Close()
-	if err2 != nil {
-		log.Error().Err(err2).Msg("RtcConn: Error Closing WebRtc Peer Connection")
+	err3 := c.websocket.Close()
+	// var err3 error
+
+	close(c.readChan)
+	close(c.errorChan)
+
+	if err1 != nil || err2 != nil || err3 != nil {
+		return fmt.Errorf("RtcConn Close Error: datachannel: %s peerconn: %s websocket: %s", err1, err2, err3)
 	}
-	log.Print("err2 := c.peerConn.Close()", err2)
-
-	// err3 := c.websocket.Close()
-	// if err3 != nil {
-	// 	log.Error().Err(err3).Msg("RtcConn: Error Closing Websocket Connection")
-	// }
-	// log.Print("err3 := c.websocket.Close() ", err3)
-
-	// TODO! - I'm not sure the best way to do this. Maybe wrap these if not nil?
-	if err != nil { return err }
-	if err2 != nil { return err2 }
-	// if err3 != nil { return err3 }
-
 	return nil
 }
 
-func dialWebRtc(c *DialConfig) (Transport, error) {
+func dialWebRtc(c *DialConfig) (Pipe, error) {
+	ctx, _ := context.WithTimeout(context.Background(), 15 * time.Second)
+
 	websocketConfig := &DialConfig{
 		Url: strings.Replace(c.Url, "webrtc", "wss", 1), // TODO! - Not super clean. we want just the url with the schema replaced to be a wss schema
 		Serdes: NewRtcUpgradeSerdes(),
@@ -332,7 +323,20 @@ func dialWebRtc(c *DialConfig) (Transport, error) {
 	}
 
 	wSock := websocketConfig.Dial()
-	defer wSock.Close()
+	for {
+		select {
+		case <- ctx.Done():
+			// The context is over. Exit because we couldn't connect
+			wSock.Close()
+			return nil, fmt.Errorf("Websocket dial failed")
+		default:
+		}
+
+		// Check if we've connected and if we have then break
+		if wSock.Connected() { break }
+		time.Sleep(100 * time.Millisecond)
+	}
+
 	wSock.Wait()
 
 	// Offer WebRtc Upgrade
@@ -353,7 +357,7 @@ func dialWebRtc(c *DialConfig) (Transport, error) {
 		return nil, err
 	}
 
-	conn := NewRtcConn(peerConnection)
+	conn := NewRtcConn(peerConnection, wSock)
 	connFinish := make(chan bool)
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
 		if c == nil {
@@ -368,7 +372,7 @@ func dialWebRtc(c *DialConfig) (Transport, error) {
 			pendingCandidates = append(pendingCandidates, c)
 		} else {
 			candidateMsg := RtcCandidateMsg{c.ToJSON()}
-			err := wSock.Send(candidateMsg)
+			err := conn.websocket.Send(candidateMsg)
 			if err != nil {
 				conn.errorChan <- err
 				return
@@ -378,16 +382,16 @@ func dialWebRtc(c *DialConfig) (Transport, error) {
 
 	go func() {
 		for {
-			anyMsg, err := wSock.Recv()
+			anyMsg, err := conn.websocket.Recv()
 
-			if errors.Is(err, ErrNetwork) {
-				// log.Warn().Err(err).Msg("dialWebRtc: NetworkErr")
-				// caughtError <- err
-				// return
-				continue
-			} else if errors.Is(err, ErrSerdes) {
-				log.Error().Err(err).Msg("dialWebRtc:  SerdesErr")
-				continue
+			// Exit if the socket was closed
+			if conn.websocket.Closed() {
+				return
+			}
+			if err != nil {
+				log.Warn().Err(err).Msg("dialWebRtc")
+				// Because this is an inner goroutine. If there are any issues at all we just want to give up and restart the entire connection process
+				return
 			}
 			if anyMsg == nil { continue }
 
@@ -415,7 +419,7 @@ func dialWebRtc(c *DialConfig) (Transport, error) {
 
 				for _, c := range pendingCandidates {
 					candidateMsg := RtcCandidateMsg{c.ToJSON()}
-					err := wSock.Send(candidateMsg)
+					err := conn.websocket.Send(candidateMsg)
 					if err != nil {
 						conn.errorChan <- err
 						return
@@ -484,7 +488,7 @@ func dialWebRtc(c *DialConfig) (Transport, error) {
 	}
 
 	offerMessage := RtcSdpMsg{ offer.Type, offer.SDP }
-	err = wSock.Send(offerMessage)
+	err = conn.websocket.Send(offerMessage)
 	if err != nil {
 		return nil, err
 	}
