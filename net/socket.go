@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"time"
+	"math/rand"
 
 	"sync"
 	"sync/atomic"
@@ -204,19 +205,70 @@ func (s *PipeSocket) continuallyRedial() {
 
 
 // --------------------------------------------------------------------------------
-// - TODO - Packetloss code
+// - Packetloss code
 // --------------------------------------------------------------------------------
-		// recvDelayMsg: make(chan any, 10),
-		// recvDelayErr: make(chan error, 10),
+type SimSocket struct {
+	Socket
 
-	// Packetloss float64    // This is the probability that the packet will be lossed for every send/recv
-	// MinDelay time.Duration // This is the min delay added to every packet sent or recved
-	// MaxDelay time.Duration // This is the max delay added to every packet sent or recved
-	// sendDelayErr, recvDelayErr chan error
-	// recvDelayMsg chan any
+	Packetloss float64    // This is the probability that the packet will be lossed for every send/recv
+	MinDelay time.Duration // This is the min delay added to every packet sent or recved
+	MaxDelay time.Duration // This is the max delay added to every packet sent or recved
+	sendDelayErr, recvDelayErr chan error
+	recvDelayMsg chan any
 	// recvThreadCount int
+}
 
-// Code to add packet loss to recv
+func NewSimSocket(s Socket) *SimSocket {
+	return &SimSocket{
+		Socket: s,
+
+		sendDelayErr: make(chan error, 10),
+		recvDelayMsg: make(chan any, 10),
+		recvDelayErr: make(chan error, 10),
+	}
+}
+
+
+func (s *SimSocket) Send(msg any) error {
+	if rand.Float64() < s.Packetloss {
+		fmt.Println("SEND DROPPING PACKET")
+		return nil
+	}
+
+	if s.MaxDelay <= 0 {
+		return s.Socket.Send(msg)
+	}
+
+	// Else send with delay
+	go func() {
+		r := rand.Float64()
+		delay := time.Duration(1_000_000_000 * r * ((s.MaxDelay-s.MinDelay).Seconds())) + s.MinDelay
+		// fmt.Println("SendDelay: ", delay)
+		time.Sleep(delay)
+		err := s.Socket.Send(msg)
+		if err != nil {
+			s.sendDelayErr <- err
+		}
+	}()
+
+	select {
+	case err := <-s.sendDelayErr:
+		return err
+	default:
+		return nil
+	}
+}
+
+func (s *SimSocket) Recv() (any, error) {
+	if rand.Float64() < s.Packetloss {
+		fmt.Println("Recv DROPPING PACKET")
+		return nil, nil
+	}
+
+	return s.Socket.Recv()
+}
+
+// Code to add delayto recv
 	// TODO - fix this
 	// if s.MaxDelay <= 0 {
 	// 	return s.recv()
@@ -253,29 +305,3 @@ func (s *PipeSocket) continuallyRedial() {
 	// 	fmt.Println("RETURNING")
 	// 	return msg, nil
 	// }
-
-//--send
-	// TODO - add back in some wrapper class I think
-	// if s.MaxDelay <= 0 {
-	// 	return s.send(msg)
-	// }
-
-	// // Else send with delay
-	// go func() {
-	// 	r := rand.Float64()
-	// 	delay := time.Duration(1_000_000_000 * r * ((s.MaxDelay-s.MinDelay).Seconds())) + s.MinDelay
-	// 	// fmt.Println("SendDelay: ", delay)
-	// 	time.Sleep(delay)
-	// 	err := s.send(msg)
-	// 	if err != nil {
-	// 		s.sendDelayErr <- err
-	// 	}
-	// }()
-
-	// select {
-	// case err := <-s.sendDelayErr:
-	// 	return err
-	// default:
-	// 	return nil
-	// }
-
