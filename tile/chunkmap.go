@@ -320,7 +320,7 @@ func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
 	return offset
 }
 
-func (c *ChunkMath) PositionToChunk(x, y float32) ChunkPosition {
+func (c *ChunkMath) PositionToChunk(x, y float64) ChunkPosition {
 	return c.TileToChunk(c.PositionToTile(x, y))
 }
 
@@ -347,12 +347,12 @@ func (c *ChunkMath) ChunkToTile(chunkPos ChunkPosition) TilePosition {
 	return tilePos
 }
 
-func (c *ChunkMath) TileToPosition(tilePos TilePosition) (float32, float32) {
+func (c *ChunkMath) TileToPosition(tilePos TilePosition) (float64, float64) {
 	x, y := c.Math.Position(tilePos.X, tilePos.Y, c.TileSize)
 	return x, y
 }
 
-func (c *ChunkMath) PositionToTile(x, y float32) TilePosition {
+func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
 	tX, tY := c.Math.PositionToTile(x, y, c.TileSize)
 	return TilePosition{tX, tY}
 }
@@ -419,8 +419,8 @@ func (t *ChunkMath) GetOverlappingTiles(x, y float64, collider *phy2.CircleColli
 	minY := y - collider.Radius
 	maxY := y + collider.Radius
 
-	min := t.PositionToTile(float32(minX), float32(minY))
-	max := t.PositionToTile(float32(maxX), float32(maxY))
+	min := t.PositionToTile(minX, minY)
+	max := t.PositionToTile(maxX, maxY)
 
 	ret := make([]TilePosition, 0)
 	for tx := min.X; tx <= max.X; tx++ {

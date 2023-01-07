@@ -102,14 +102,14 @@ func (t *Tilemap) Set(pos TilePosition, tile Tile) bool {
 	return true
 }
 
-func (t *Tilemap) TileToPosition(tilePos TilePosition) (float32, float32) {
+func (t *Tilemap) TileToPosition(tilePos TilePosition) (float64, float64) {
 	x, y := t.math.Position(tilePos.X, tilePos.Y, t.TileSize)
-	return (x + float32(t.Offset.X)), (y + float32(t.Offset.Y))
+	return (x + float64(t.Offset.X)), (y + float64(t.Offset.Y))
 }
 
-func (t *Tilemap) PositionToTile(x, y float32) TilePosition {
-	x -= float32(t.Offset.X)
-	y -= float32(t.Offset.Y)
+func (t *Tilemap) PositionToTile(x, y float64) TilePosition {
+	x -= t.Offset.X
+	y -= t.Offset.Y
 	tX, tY := t.math.PositionToTile(x, y, t.TileSize)
 	return TilePosition{tX, tY}
 }
@@ -144,7 +144,7 @@ func (t *Tilemap) RecalculateEntities(world *ecs.World) {
 
 	// Recompute all entities with TileColliders
 	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
-		tilePos := t.PositionToTile(float32(pos.X), float32(pos.Y))
+		tilePos := t.PositionToTile(pos.X, pos.Y)
 
 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
 			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
@@ -161,8 +161,8 @@ func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollide
 	minY := y - collider.Radius
 	maxY := y + collider.Radius
 
-	min := t.PositionToTile(float32(minX), float32(minY))
-	max := t.PositionToTile(float32(maxX), float32(maxY))
+	min := t.PositionToTile(minX, minY)
+	max := t.PositionToTile(maxX, maxY)
 
 	ret := make([]TilePosition, 0)
 	for tx := min.X; tx <= max.X; tx++ {

@@ -2,7 +2,7 @@ package render
 
 import (
 	"time"
-	"image/color"
+	// "image/color"
 
 	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/flow/phy2"
@@ -47,9 +47,9 @@ type Animation struct {
 	frames map[string][]Frame // This is the map of all animations and their associated frames
 	animName string
 	curAnim []Frame // This is the current animation frames that we are operating on
-	Color color.NRGBA // TODO - performance on interfaces vs structs?
-	Rotation float64
-	Scale glitch.Vec2
+	// Color color.NRGBA // TODO - performance on interfaces vs structs?
+	// Rotation float64
+	// Scale glitch.Vec2
 	Loop bool
 	speed float64 // This is used to scale the duration of the animation evenly so that the animation can fit a certain time duration
 	// translation glitch.Vec3
@@ -61,8 +61,8 @@ type Animation struct {
 func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
 	anim := Animation{
 		frames: frames,
-		Color: color.NRGBA{255, 255, 255, 255},
-		Scale: glitch.Vec2{1, 1},
+		// Color: color.NRGBA{255, 255, 255, 255},
+		// Scale: glitch.Vec2{1, 1},
 		Loop: true,
 		speed: 1.0,
 	}
@@ -140,23 +140,23 @@ func (anim *Animation) Update(dt time.Duration) {
 	}
 }
 
-// Draws the animation to the render pass
-func (anim *Animation) Draw(target glitch.BatchTarget, pos Pos) {
-	frame := anim.curAnim[anim.frameIdx]
+// // Draws the animation to the render pass
+// func (anim *Animation) Draw(target glitch.BatchTarget, pos Pos) {
+// 	frame := anim.curAnim[anim.frameIdx]
 
-	// frame.sprite.SetTranslation(anim.translation)
+// 	// frame.sprite.SetTranslation(anim.translation)
 
-	mat := glitch.Mat4Ident
-	// mat.Translate(float32(frame.Origin.X), float32(frame.Origin.Y), 0)
-	mat.Scale(anim.Scale[0], anim.Scale[1], 1.0)
-	if anim.MirrorY {
-		mat.Scale(-1.0, 1.0, 1.0)
-	}
-	mat.Rotate(float32(anim.Rotation), glitch.Vec3{0, 0, 1})
-	mat.Translate(float32(pos.X), float32(pos.Y), 0)
+// 	mat := glitch.Mat4Ident
+// 	// mat.Translate(float32(frame.Origin.X), float32(frame.Origin.Y), 0)
+// 	mat.Scale(anim.Scale[0], anim.Scale[1], 1.0)
+// 	if anim.MirrorY {
+// 		mat.Scale(-1.0, 1.0, 1.0)
+// 	}
+// 	mat.Rotate(anim.Rotation, glitch.Vec3{0, 0, 1})
+// 	mat.Translate(pos.X, pos.Y, 0)
 
-	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
-	col := glitch.RGBA{float32(anim.Color.R)/255.0, float32(anim.Color.G)/255.0, float32(anim.Color.B)/255.0, float32(anim.Color.A)/255.0}
+// 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
+// 	col := glitch.RGBA{anim.Color.R/255.0, (anim.Color.G)/255.0, (anim.Color.B)/255.0, (anim.Color.A)/255.0}
 
-	frame.Sprite.DrawColorMask(target, mat, col)
-}
+// 	frame.Sprite.DrawColorMask(target, mat, col)
+// }

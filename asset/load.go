@@ -200,10 +200,10 @@ func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error
 	lookup := make(map[string]*glitch.Sprite)
 	for k, v := range serializedSpritesheet.Frames {
 		rect := glitch.R(
-			float32(v.Frame.X),
-			float32(v.Frame.Y),
-			float32(v.Frame.X + v.Frame.W),
-			float32(v.Frame.Y + v.Frame.H)).Norm()
+			v.Frame.X,
+			v.Frame.Y,
+			v.Frame.X + v.Frame.W,
+			v.Frame.Y + v.Frame.H).Norm()
 
 		// rect := glitch.R(
 		// 	float32(v.Frame.X),

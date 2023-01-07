@@ -13,7 +13,7 @@ type Camera struct {
 	bounds glitch.Rect
 }
 
-func NewCamera(bounds glitch.Rect, x, y float32) *Camera {
+func NewCamera(bounds glitch.Rect, x, y float64) *Camera {
 	return &Camera{
 		Camera: glitch.NewCameraOrtho(),
 		Position: glitch.Vec2{x, y},
@@ -35,7 +35,7 @@ func (c *Camera) Update(bounds glitch.Rect) {
 	c.Camera.SetOrtho2D(bounds)
 	movePos := glitch.Vec2{c.Position[0], c.Position[1]}.Sub(screenCenter)
 
-	c.Camera.SetView2D(movePos[0], movePos[1], float32(c.Zoom), float32(c.Zoom))
+	c.Camera.SetView2D(movePos[0], movePos[1], c.Zoom, c.Zoom)
 }
 
 func (c *Camera) Project(point glitch.Vec3) glitch.Vec3 {

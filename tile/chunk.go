@@ -60,14 +60,14 @@ func (t *Chunk[T]) Set(pos TilePosition, tile T) bool {
 	return true
 }
 
-func (t *Chunk[T]) TileToPosition(tilePos TilePosition) (float32, float32) {
+func (t *Chunk[T]) TileToPosition(tilePos TilePosition) (float64, float64) {
 	x, y := t.math.Position(tilePos.X, tilePos.Y, t.TileSize)
-	return (x + float32(t.Offset.X)), (y + float32(t.Offset.Y))
+	return (x + t.Offset.X), (y + t.Offset.Y)
 }
 
-func (t *Chunk[T]) PositionToTile(x, y float32) TilePosition {
-	x -= float32(t.Offset.X)
-	y -= float32(t.Offset.Y)
+func (t *Chunk[T]) PositionToTile(x, y float64) TilePosition {
+	x -= t.Offset.X
+	y -= t.Offset.Y
 	tX, tY := t.math.PositionToTile(x, y, t.TileSize)
 	return TilePosition{tX, tY}
 }
@@ -134,8 +134,8 @@ func (t *Chunk[T]) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollid
 	minY := y - collider.Radius
 	maxY := y + collider.Radius
 
-	min := t.PositionToTile(float32(minX), float32(minY))
-	max := t.PositionToTile(float32(maxX), float32(maxY))
+	min := t.PositionToTile(minX, minY)
+	max := t.PositionToTile(maxX, maxY)
 
 	ret := make([]TilePosition, 0)
 	for tx := min.X; tx <= max.X; tx++ {

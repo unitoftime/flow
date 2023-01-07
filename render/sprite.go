@@ -1,8 +1,6 @@
 package render
 
 import (
-	"image/color"
-
 	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/flow/phy2"
 )
@@ -27,28 +25,30 @@ func NewMultiSprite(sprites ...Sprite) MultiSprite {
 
 type Sprite struct {
 	*glitch.Sprite
-	Color color.NRGBA // TODO - performance on interfaces vs structs?
+	// Color color.NRGBA // TODO - performance on interfaces vs structs?
+	Color glitch.RGBA
 	Rotation float64
 	Scale glitch.Vec2
-	Layer uint8
+	Layer int8
 }
 func NewSprite(sprite *glitch.Sprite) Sprite {
 	return Sprite{
 		Sprite: sprite,
-		Color: color.NRGBA{255, 255, 255, 255},
+		// Color: color.NRGBA{255, 255, 255, 255},
+		Color: glitch.White,
 		Scale: glitch.Vec2{1, 1},
-		Layer: glitch.DefaultLayer,
+		// Layer: glitch.DefaultLayer,
 	}
 }
 
 func (sprite *Sprite) Draw(pass *glitch.RenderPass, pos *Pos) {
 	mat := glitch.Mat4Ident
 	mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).
-		Rotate(float32(sprite.Rotation), glitch.Vec3{0, 0, 1}).
-		Translate(float32(pos.X), float32(pos.Y), 0)
+		Rotate(sprite.Rotation, glitch.Vec3{0, 0, 1}).
+		Translate(pos.X, pos.Y, 0)
 
 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
-	col := glitch.RGBA{float32(sprite.Color.R)/255.0, float32(sprite.Color.G)/255.0, float32(sprite.Color.B)/255.0, float32(sprite.Color.A)/255.0}
+	col := glitch.RGBA{sprite.Color.R/255.0, sprite.Color.G/255.0, sprite.Color.B/255.0, sprite.Color.A/255.0}
 	pass.SetLayer(sprite.Layer)
 	sprite.DrawColorMask(pass, mat, col)
 }
