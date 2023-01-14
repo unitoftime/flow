@@ -182,7 +182,7 @@ func (s *PipeSocket) continuallyRedial() {
 
 		trans, err := s.dialConfig.dialPipe()
 		if err != nil {
-			fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
+			// fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
 			time.Sleep(sleepDur)
 
 			// TODO - Tweakable Math?
@@ -195,7 +195,7 @@ func (s *PipeSocket) continuallyRedial() {
 			continue
 		}
 
-		fmt.Println("Socket Reconnected")
+		// fmt.Println("Socket Reconnected")
 		s.connectTransport(trans)
 
 		attempt = 1
@@ -261,7 +261,7 @@ func (s *SimSocket) Send(msg any) error {
 
 func (s *SimSocket) Recv() (any, error) {
 	if rand.Float64() < s.Packetloss {
-		fmt.Println("Recv DROPPING PACKET")
+		fmt.Println("RECV DROPPING PACKET")
 		return nil, nil
 	}
 
