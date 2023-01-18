@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	// "github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/log"
 
 	"github.com/pion/webrtc/v3"
 )
@@ -110,9 +110,9 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
-			// {
-			// 	URLs: []string{"stun:stun.l.google.com:19302"},
-			// },
+			{
+				URLs: []string{"stun:stun.l.google.com:19302"},
+			},
 		},
 	}
 
@@ -148,7 +148,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 	// Set the handler for Peer connection state
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		// log.Print("Listener: Peer Connection State has changed: ", s.String())
+		log.Print("Listener: Peer Connection State has changed: ", s.String())
 
 		// if s == webrtc.PeerConnectionStateClosed {
 		// 	// This means the webrtc was closed by one side. Just close it on the other side
@@ -159,7 +159,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
 			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
 			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-			// log.Error().Msg("Peer Connection has gone to failed")
+			log.Error().Msg("Peer Connection has gone to failed")
 
 			// TODO - Do some cancellation
 		}
@@ -178,14 +178,14 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 
 		// Register channel opening handling
 		d.OnClose(func() {
-			// log.Print("Listener: Data channel was closed!!")
+			log.Print("Listener: Data channel was closed!!")
 		})
 
 		// Register text message handling
 		d.OnMessage(func(msg webrtc.DataChannelMessage) {
-			// log.Print("Server: Received Msg from DataChannel", len(msg.Data))
+			log.Print("Server: Received Msg from DataChannel", len(msg.Data))
 			if msg.IsString {
-				// log.Warn().Msg("DataChannel OnMessage: Received string message, skipping")
+				log.Warn().Msg("DataChannel OnMessage: Received string message, skipping")
 				return
 			}
 			conn.readChan <- msg.Data
@@ -346,9 +346,9 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
-			// {
-			// 	URLs: []string{"stun:stun.l.google.com:19302"},
-			// },
+			{
+				URLs: []string{"stun:stun.l.google.com:19302"},
+			},
 		},
 	}
 
@@ -356,6 +356,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("newpeerconn")
 
 	conn := NewRtcConn(peerConnection, wSock)
 	connFinish := make(chan bool)
@@ -380,6 +381,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		}
 	})
 
+	fmt.Println("startlisten")
 	go func() {
 		for {
 			anyMsg, err := conn.websocket.Recv()
@@ -389,7 +391,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 				return
 			}
 			if err != nil {
-				// log.Warn().Err(err).Msg("dialWebRtc")
+				log.Warn().Err(err).Msg("dialWebRtc")
 				// Because this is an inner goroutine. If there are any issues at all we just want to give up and restart the entire connection process
 				return
 			}
@@ -438,7 +440,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	// Set the handler for Peer connection state
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		// log.Print("Peer Connection State has changed: ", s.String())
+		log.Print("Peer Connection State has changed: ", s.String())
 
 		// if s == webrtc.PeerConnectionStateClosed {
 		// 	// This means the webrtc was closed by one side. Just close it on the other side
@@ -449,7 +451,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
 			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
 			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-			// log.Error().Msg("Peer Connection has gone to failed")
+			log.Error().Msg("Peer Connection has gone to failed")
 
 			conn.errorChan <- fmt.Errorf("Peer Connection has gone to failed")
 		} else if s == webrtc.PeerConnectionStateDisconnected {
@@ -466,9 +468,9 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 
 	// Register text message handling
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-			// log.Print("Client: Received Msg from DataChannel", len(msg.Data))
+			log.Print("Client: Received Msg from DataChannel", len(msg.Data))
 			if msg.IsString {
-				// log.Print("DataChannel OnMessage: Received string message, skipping")
+				log.Print("DataChannel OnMessage: Received string message, skipping")
 				return
 			}
 			conn.readChan <- msg.Data
@@ -479,6 +481,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("CreateOffer")
 
 	// Sets the LocalDescription, and starts our UDP listeners
 	// Note: this will start the gathering of ICE candidates
@@ -486,12 +489,14 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("SetLocalDesc")
 
 	offerMessage := RtcSdpMsg{ offer.Type, offer.SDP }
 	err = conn.websocket.Send(offerMessage)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("websocket send")
 
 	// Wait until the webrtc connection is finished getting setup
 	select {
