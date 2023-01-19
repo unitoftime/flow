@@ -33,7 +33,7 @@ func Markdown(basedir, contents string) string {
 	os.WriteFile(marpFile, []byte(header + contents), 0755)
 
 	// Note: 1.5 is 1080
-	cmd := exec.Command("marp", marpFile, "--image", "--image-scale", "1.5", "-o", name)
+	cmd := exec.Command("marp", marpFile, "--image", "--allow-local-files", "--image-scale", "1.5", "-o", name)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		panic(err)

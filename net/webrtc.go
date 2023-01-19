@@ -110,9 +110,9 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
-			{
-				URLs: []string{"stun:stun.l.google.com:19302"},
-			},
+			// {
+			// 	URLs: []string{"stun:stun.l.google.com:19302"},
+			// },
 		},
 	}
 
@@ -183,7 +183,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 
 		// Register text message handling
 		d.OnMessage(func(msg webrtc.DataChannelMessage) {
-			log.Print("Server: Received Msg from DataChannel", len(msg.Data))
+			// log.Print("Server: Received Msg from DataChannel", len(msg.Data))
 			if msg.IsString {
 				log.Warn().Msg("DataChannel OnMessage: Received string message, skipping")
 				return
@@ -346,9 +346,9 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
-			{
-				URLs: []string{"stun:stun.l.google.com:19302"},
-			},
+			// {
+			// 	URLs: []string{"stun:stun.l.google.com:19302"},
+			// },
 		},
 	}
 
@@ -468,7 +468,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 
 	// Register text message handling
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-			log.Print("Client: Received Msg from DataChannel", len(msg.Data))
+			// log.Print("Client: Received Msg from DataChannel", len(msg.Data))
 			if msg.IsString {
 				log.Print("DataChannel OnMessage: Received string message, skipping")
 				return
