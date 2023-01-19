@@ -14,8 +14,15 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
+// Notes: https://webrtcforthecurious.com/docs/01-what-why-and-how/
 // TODO - Investigate Detaching the datachannel: https://github.com/pion/webrtc/tree/master/examples/data-channels-detach
+// TODO - Let stun server list be injectable
 
+
+// TODO - Interesting note: if you run this in a docker container with the networking set to something other than "host" (ie the default is bridge), then what happens is the docker container gets NAT'ed behind the original host which causes you to need an ICE server. So You must run this code with HOST networking!!!
+// - Read more here: https://stackoverflow.com/questions/32301119/is-ice-necessary-for-client-server-webrtc-applications
+// - and here: https://forums.docker.com/t/connect-container-without-nat/54783
+// - TODO - There might be some way to avoid this with: https://pkg.go.dev/github.com/pion/webrtc/v3#SettingEngine.SetNAT1To1IPs
 type RtcSdpMsg struct {
 	Type webrtc.SDPType
 	SDP string
@@ -340,7 +347,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	wSock.Wait()
 
 	// Offer WebRtc Upgrade
-	fmt.Println("offerWebRtcUpgrade")
+	// fmt.Println("offerWebRtcUpgrade")
 	var candidatesMux sync.Mutex
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 
@@ -356,7 +363,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("newpeerconn")
+	// fmt.Println("newpeerconn")
 
 	conn := NewRtcConn(peerConnection, wSock)
 	connFinish := make(chan bool)
@@ -381,7 +388,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		}
 	})
 
-	fmt.Println("startlisten")
+	// fmt.Println("startlisten")
 	go func() {
 		for {
 			anyMsg, err := conn.websocket.Recv()
@@ -481,7 +488,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("CreateOffer")
+	// fmt.Println("CreateOffer")
 
 	// Sets the LocalDescription, and starts our UDP listeners
 	// Note: this will start the gathering of ICE candidates
@@ -489,14 +496,14 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("SetLocalDesc")
+	// fmt.Println("SetLocalDesc")
 
 	offerMessage := RtcSdpMsg{ offer.Type, offer.SDP }
 	err = conn.websocket.Send(offerMessage)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("websocket send")
+	// fmt.Println("websocket send")
 
 	// Wait until the webrtc connection is finished getting setup
 	select {
