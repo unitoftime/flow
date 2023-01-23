@@ -23,6 +23,7 @@ import (
 // - Read more here: https://stackoverflow.com/questions/32301119/is-ice-necessary-for-client-server-webrtc-applications
 // - and here: https://forums.docker.com/t/connect-container-without-nat/54783
 // - TODO - There might be some way to avoid this with: https://pkg.go.dev/github.com/pion/webrtc/v3#SettingEngine.SetNAT1To1IPs
+// - TODO - also this: https://pkg.go.dev/github.com/pion/webrtc/v3#SettingEngine.SetICEUDPMux
 type RtcSdpMsg struct {
 	Type webrtc.SDPType
 	SDP string

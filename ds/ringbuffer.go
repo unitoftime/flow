@@ -2,6 +2,7 @@ package ds
 
 type RingBuffer[T any] struct {
 	idx int
+	readIdx int
 	buffer []T
 }
 func NewRingBuffer[T any](length int) *RingBuffer[T] {
@@ -18,6 +19,24 @@ func (b *RingBuffer[T]) Len() int {
 func (b *RingBuffer[T]) Add(t T) {
 	b.buffer[b.idx] = t
 	b.idx = (b.idx + 1) % len(b.buffer)
+
+	if b.idx == b.readIdx {
+		// If we just added one and the read index matches the write index, then we know that we are overwriting unread elements. So just shift the read index by one (as if we just read the one that was written)
+		b.readIdx = (b.readIdx + 1) % len(b.buffer)
+	}
+}
+
+func (b *RingBuffer[T]) Remove() T {
+	ret := b.buffer[b.readIdx]
+	newReadIdx := (b.readIdx + 1) % len(b.buffer)
+
+	if newReadIdx == b.idx {
+		// If the next index to read from is the current write index, then we know we've read the whole buffer. In this case don't increment the read index, this will cause the next Remove function to read the same value.
+	} else {
+		// Else we do want to progress the index
+		b.readIdx = newReadIdx
+	}
+	return ret
 }
 
 // TODO - Maybe convert this to an iterator
