@@ -5,6 +5,8 @@ import (
 )
 // TODO - Maybe make a new package to hold all vector math?
 
+type Vec = Vec2
+
 type Vec2 struct {
 	X, Y float64
 }
@@ -44,6 +46,50 @@ func (v Vec2) Rotated(radians float64) Vec2 {
 		v.X * cos - v.Y * sin,
 		v.X * sin + v.Y * cos,
 	)
+}
+
+// --------------------------------------------------------------------------------
+// - Rect
+// --------------------------------------------------------------------------------
+type Rect struct {
+	Min, Max Vec
+}
+
+// Returns a zero'd rect
+// func ZR(width, height float64) Rect {
+// 	return Rect{minX, minY, maxX, maxY}
+// }
+
+// Returns a rect with specified dimensions
+func R(minX, minY, maxX, maxY float64) Rect {
+	return Rect{
+		Vec{minX, minY},
+		Vec{maxX, maxY},
+	}
+}
+
+func (r Rect) WithPosition(v Vec2) Rect {
+	zRect := r.Moved(r.Center().Scaled(-1))
+	return zRect.Moved(v)
+}
+
+func (r Rect) W() float64 {
+	return r.Max.X - r.Min.X
+}
+
+func (r Rect) H() float64 {
+	return r.Max.Y - r.Min.Y
+}
+
+func (r Rect) Center() Vec2 {
+	return Vec2{r.Min.X + (r.W()/2), r.Min.Y + (r.H()/2)}
+}
+
+func (r Rect) Moved(v Vec2) Rect {
+	return Rect{
+		Min: r.Min.Add(v),
+		Max: r.Max.Add(v),
+	}
 }
 
 // // --------------------------------------------------------------------------------

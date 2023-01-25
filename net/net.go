@@ -13,7 +13,7 @@ import (
 // TODO - Ensure sent messages remain under this
 // Calculation: 1460 Byte = 1500 Byte - 20 Byte IP Header - 20 Byte TCP Header
 // const MaxMsgSize = 1460 // bytes
-const MaxRecvMsgSize = 4 * 1024 // 8 KB // TODO - this is arbitrary
+const MaxRecvMsgSize = 8 * 1024 // 8 KB // TODO - this is arbitrary
 
 var ErrSerdes = errors.New("serdes errror")
 var ErrNetwork = errors.New("network error")

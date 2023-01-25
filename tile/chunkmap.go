@@ -347,9 +347,9 @@ func (c *ChunkMath) ChunkToTile(chunkPos ChunkPosition) TilePosition {
 	return tilePos
 }
 
-func (c *ChunkMath) TileToPosition(tilePos TilePosition) (float64, float64) {
+func (c *ChunkMath) TileToPosition(tilePos TilePosition) phy2.Pos {
 	x, y := c.Math.Position(tilePos.X, tilePos.Y, c.TileSize)
-	return x, y
+	return phy2.Pos{x, y}
 }
 
 func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
@@ -374,6 +374,14 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 		center.X + (c.ChunkSize[0]),
 		center.Y + (c.ChunkSize[1]),
 	)
+}
+
+// Returns a rect including all of the tiles.
+// Centered on edge tiles
+func (c *ChunkMath) RectToWorldRect(r Rect) phy2.Rect {
+	min := c.TileToPosition(r.Min)
+	max := c.TileToPosition(r.Max)
+	return phy2.Rect{phy2.Vec(min), phy2.Vec(max)}
 }
 
 func (c *ChunkMath) GetEdgeNeighbors(x, y int) []TilePosition {
