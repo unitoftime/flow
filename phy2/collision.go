@@ -7,6 +7,11 @@ import (
 
 type CollisionLayer uint8
 
+func (c CollisionLayer) Mask(layer CollisionLayer) bool {
+	return (c & layer) > 0 // One layer must overlap for the layermask to work
+}
+
+
 // This tracks the list of current collisions
 type ColliderCache struct {
 	Current []ecs.Id
