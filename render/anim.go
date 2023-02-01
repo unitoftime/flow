@@ -56,6 +56,7 @@ type Animation struct {
 
 	// MirrorX bool // TODO
 	MirrorY bool // Mirror around the Y axis
+	hasUpdatedOnce bool
 }
 
 func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
@@ -140,6 +141,12 @@ func (anim *Animation) Update(dt time.Duration) bool {
 		anim.NextFrame()
 		return true
 	}
+
+	if !anim.hasUpdatedOnce {
+		anim.hasUpdatedOnce = true
+		return true
+	}
+
 	return false
 }
 
