@@ -96,6 +96,14 @@ func (r Rect) Contains(pos Pos) bool {
 	return pos.X > r.Min.X && pos.X < r.Max.X && pos.Y > r.Min.Y && pos.Y < r.Max.Y
 }
 
+func (r Rect) Intersects(r2 Rect) bool {
+	return (
+		r.Min.X <= r2.Max.X &&
+			r.Max.X >= r2.Min.X &&
+			r.Min.Y <= r2.Max.Y &&
+			r.Max.Y >= r2.Min.Y)
+}
+
 // // --------------------------------------------------------------------------------
 // // - Vec3
 // // --------------------------------------------------------------------------------

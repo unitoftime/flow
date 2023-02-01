@@ -65,6 +65,13 @@ func (c *CircleCollider) LayerMask(layer CollisionLayer) bool {
 	return (c.HitLayer & layer) > 0 // One layer must overlap for the layermask to work
 }
 
+func (c *CircleCollider) Bounds() Rect {
+	return Rect{
+		Min: Vec{c.CenterX - c.Radius, c.CenterY - c.Radius},
+		Max: Vec{c.CenterX + c.Radius, c.CenterY + c.Radius},
+	}
+}
+
 func (c *CircleCollider) Contains(yProjection float64, pos Pos) bool {
 	// dx := transform.X - c.CenterX
 	// dy := transform.Y - c.CenterY
