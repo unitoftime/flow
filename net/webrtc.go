@@ -291,7 +291,7 @@ func (c *RtcConn) Read(b []byte) (int, error) {
 
 		case dat := <- c.readChan:
 		if len(dat) > len(b) {
-			panic("Read Buffer is too small") // TODO - Fix
+			return 0, fmt.Errorf("message too big") // TODO - Instead of failing, should we just return partial?
 		}
 		copy(b, dat)
 		return len(dat), nil
@@ -310,7 +310,6 @@ func (c *RtcConn) Close() error {
 	err1 := c.dataChannel.Close()
 	err2 := c.peerConn.Close()
 	err3 := c.websocket.Close()
-	// var err3 error
 
 	close(c.readChan)
 	close(c.errorChan)

@@ -130,14 +130,17 @@ func (a *Animation) GetFrame() Frame {
 }
 
 // Steps the animation forward by dt amount of time
-func (anim *Animation) Update(dt time.Duration) {
+// Returns true if the animation frame has changed, else returns false
+func (anim *Animation) Update(dt time.Duration) bool {
 	adjustedDt := time.Duration(1_000_000_000 * anim.speed * dt.Seconds())
 
 	anim.remainingDur -= adjustedDt
 	if anim.remainingDur < 0 {
 		// Change to a new animation frame
 		anim.NextFrame()
+		return true
 	}
+	return false
 }
 
 // // Draws the animation to the render pass

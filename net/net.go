@@ -13,7 +13,7 @@ import (
 // TODO - Ensure sent messages remain under this
 // Calculation: 1460 Byte = 1500 Byte - 20 Byte IP Header - 20 Byte TCP Header
 // const MaxMsgSize = 1460 // bytes
-const MaxRecvMsgSize = 8 * 1024 // 8 KB // TODO - this is arbitrary
+const MaxRecvMsgSize = 16 * 1024 // 8 KB // TODO! - this is arbitrary. Need a better way to manage message sizes. I'm just setting this to be big enough for my mmo
 
 var ErrSerdes = errors.New("serdes errror")
 var ErrNetwork = errors.New("network error")
