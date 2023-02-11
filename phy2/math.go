@@ -68,7 +68,7 @@ func R(minX, minY, maxX, maxY float64) Rect {
 	}
 }
 
-func (r Rect) WithPosition(v Vec2) Rect {
+func (r Rect) WithCenter(v Vec2) Rect {
 	zRect := r.Moved(r.Center().Scaled(-1))
 	return zRect.Moved(v)
 }

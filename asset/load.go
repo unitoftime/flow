@@ -10,8 +10,10 @@ import (
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path"
-
 	"time"
+
+	"golang.org/x/image/font"
+	"github.com/golang/freetype/truetype"
 
 	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/packer"
@@ -27,6 +29,27 @@ func NewLoad(filesystem fs.FS) *Load {
 
 func (load *Load) Open(filepath string) (fs.File, error) {
 	return load.filesystem.Open(filepath)
+}
+
+func (load *Load) Font(filepath string, size float64) (font.Face, error) {
+	file, err := load.filesystem.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	fontData, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+	font, err := truetype.Parse(fontData)
+	if err != nil {
+		return nil, err
+	}
+	fontFace := truetype.NewFace(font, &truetype.Options{
+		Size: size,
+	})
+	return fontFace, nil
 }
 
 func (load *Load) Image(filepath string) (image.Image, error) {
