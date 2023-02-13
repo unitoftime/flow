@@ -354,7 +354,7 @@ func (e *Emitter) Spawn(entPos phy2.Vec2, world *ecs.World) bool {
 	// sizes := e.SizePositioner.Vec2(vec2.Zero)
 
 	id := world.NewId()
-	ecs.WriteEntity(world, id, e.Prefab)
+	e.Prefab.Write(world, id)
 
 	return true
 }

@@ -142,8 +142,9 @@ func (t *Tilemap) ClearEntities() {
 func (t *Tilemap) RecalculateEntities(world *ecs.World) {
 	t.ClearEntities()
 
+	query := ecs.Query2[Collider, phy2.Pos](world)
 	// Recompute all entities with TileColliders
-	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
+	query.MapId(func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
 		tilePos := t.PositionToTile(pos.X, pos.Y)
 
 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {

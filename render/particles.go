@@ -13,7 +13,8 @@ import (
 func InterpolateParticles(world *ecs.World, dt time.Duration) {
 	// Lifetime
 	{
-		ecs.Map(world, func(id ecs.Id, life *particle.Lifetime) {
+		query := ecs.Query1[particle.Lifetime](world)
+		query.MapId(func(id ecs.Id, life *particle.Lifetime) {
 			life.Remaining -= dt
 
 			if life.Remaining <= 0 {
@@ -24,14 +25,16 @@ func InterpolateParticles(world *ecs.World, dt time.Duration) {
 
 	// Color
 	{
-		ecs.Map3(world, func(id ecs.Id, life *particle.Lifetime, color *particle.Color, sprite *Sprite) {
+		query := ecs.Query3[particle.Lifetime, particle.Color, Sprite](world)
+		query.MapId(func(id ecs.Id, life *particle.Lifetime, color *particle.Color, sprite *Sprite) {
 			sprite.Color = glitch.FromNRGBA(color.Get(life.Ratio()))
 		})
 	}
 
 	// Size
 	{
-		ecs.Map3(world, func(id ecs.Id, life *particle.Lifetime, size *particle.Size, sprite *Sprite) {
+		query := ecs.Query3[particle.Lifetime, particle.Size, Sprite](world)
+		query.MapId(func(id ecs.Id, life *particle.Lifetime, size *particle.Size, sprite *Sprite) {
 			newSize := size.Get(life.Ratio())
 			spriteBounds := sprite.Bounds()
 			sprite.Scale = glitch.Vec2{newSize.X / spriteBounds.W(), newSize.Y / spriteBounds.H()}
