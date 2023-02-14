@@ -161,7 +161,8 @@ func (s *PipeSocket) Wait() {
 		if s.connected.Load() {
 			return
 		}
-		time.Sleep(100 * time.Millisecond)
+		// fmt.Println("PipeSocket.Wait()")
+		time.Sleep(1 * time.Nanosecond)
 	}
 }
 
@@ -176,13 +177,13 @@ func (s *PipeSocket) continuallyRedial() {
 
 		if s.connected.Load() {
 			// If socket is already connected, then just sleep
-			time.Sleep(sleepDur) // TODO - I feel like I'd prefer this to be some better sync mechanism, but I'm not sure what to use
+			time.Sleep(1 * time.Nanosecond) // TODO - I feel like I'd prefer this to be some better sync mechanism, but I'm not sure what to use
 			continue
 		}
 
 		trans, err := s.dialConfig.dialPipe()
 		if err != nil {
-			// fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
+			fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
 			time.Sleep(sleepDur)
 
 			// TODO - Tweakable Math?

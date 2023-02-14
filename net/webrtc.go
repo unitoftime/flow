@@ -209,26 +209,30 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 		}
 
 		if err != nil {
-			// log.Warn().Err(err).Msg("attemptWebRtcNegotiation")
+			log.Warn().Err(err).Msg("Websocket closed")
 			continue
 		}
 		if anyMsg == nil { continue }
 
 		switch msg := anyMsg.(type) {
 		case RtcCandidateMsg:
+			log.Debug().Msg("RtcCandidateMsg")
 			err := peerConnection.AddICECandidate(msg.CandidateInit)
 			if err != nil {
+				log.Warn().Err(err).Msg("AddICECandidate")
 				l.pendingAcceptErrors <- fmt.Errorf("RtcCandidateMsg Recv - Failed to add candidate: %w", err)
 				return
 			}
 
 		case RtcSdpMsg:
+			log.Debug().Msg("RtcSdpMsg")
 			sdp := webrtc.SessionDescription{}
 			sdp.Type = msg.Type
 			sdp.SDP = msg.SDP
 
 			err := peerConnection.SetRemoteDescription(sdp)
 			if err != nil {
+				log.Warn().Err(err).Msg("SetRemoteDescription")
 				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to set remote description: %w", err)
 				return
 			}
@@ -236,6 +240,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 			// Create an answer to send to the other process
 			answer, err := peerConnection.CreateAnswer(nil)
 			if err != nil {
+				log.Warn().Err(err).Msg("CreateAnswer")
 				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to create answer: %w", err)
 				return
 			}
@@ -243,6 +248,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 			answerMessage := RtcSdpMsg{ answer.Type, answer.SDP }
 			err = wSock.Send(answerMessage)
 			if err != nil {
+				log.Warn().Err(err).Msg("Websocket Send Answer")
 				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to send SDP answer: %w", err)
 				return
 			}
@@ -250,6 +256,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 			// Sets the LocalDescription, and starts our UDP listeners
 			err = peerConnection.SetLocalDescription(answer)
 			if err != nil {
+				log.Warn().Err(err).Msg("SetLocalDescription")
 				l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to set local SDP: %w", err)
 				return
 			}
@@ -259,6 +266,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 				candidateMsg := RtcCandidateMsg{c.ToJSON()}
 				err := wSock.Send(candidateMsg)
 				if err != nil {
+					log.Warn().Err(err).Msg("Websocket Send Pending Candidate Message")
 					l.pendingAcceptErrors <- fmt.Errorf("RtcSdpMsg Recv - Failed to send RtcCandidate: %w", err)
 					return
 				}
@@ -274,13 +282,14 @@ type RtcConn struct {
 	websocket Socket
 	readChan chan []byte
 	errorChan chan error
+	closed bool // TODO - atomic?x
 }
 func NewRtcConn(peer *webrtc.PeerConnection, websocket Socket) *RtcConn {
 	return &RtcConn{
 		peerConn: peer,
 		websocket: websocket,
-		readChan: make(chan []byte, 100), //TODO! - Sizing
-		errorChan: make(chan error), //TODO! - Sizing
+		readChan: make(chan []byte, 1024), //TODO! - Sizing
+		errorChan: make(chan error, 1024), //TODO! - Sizing
 	}
 }
 
@@ -298,7 +307,7 @@ func (c *RtcConn) Read(b []byte) (int, error) {
 	}
 }
 
-func (c *RtcConn)	Write(b []byte) (int, error) {
+func (c *RtcConn) Write(b []byte) (int, error) {
 	err := c.dataChannel.Send(b)
 	if err != nil {
 		return 0, err
@@ -307,6 +316,7 @@ func (c *RtcConn)	Write(b []byte) (int, error) {
 }
 
 func (c *RtcConn) Close() error {
+	c.closed = true
 	err1 := c.dataChannel.Close()
 	err2 := c.peerConn.Close()
 	err3 := c.websocket.Close()
@@ -341,7 +351,8 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 
 		// Check if we've connected and if we have then break
 		if wSock.Connected() { break }
-		time.Sleep(100 * time.Millisecond)
+		log.Debug().Msg("webrtc websocket wait")
+		time.Sleep(1 * time.Nanosecond)
 	}
 
 	wSock.Wait()
@@ -359,8 +370,11 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		},
 	}
 
+	log.Debug().Msg("Starting WebRTC negotiation")
+
 	peerConnection, err := webrtc.NewPeerConnection(config)
 	if err != nil {
+		log.Warn().Err(err).Msg("NewPeerConnection")
 		return nil, err
 	}
 	// fmt.Println("newpeerconn")
@@ -382,7 +396,10 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 			candidateMsg := RtcCandidateMsg{c.ToJSON()}
 			err := conn.websocket.Send(candidateMsg)
 			if err != nil {
-				conn.errorChan <- err
+				log.Warn().Err(err).Msg("Receive Peer OnIceCandidate")
+				if !conn.closed {
+					conn.errorChan <- err
+				}
 				return
 			}
 		}
@@ -398,28 +415,39 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 				return
 			}
 			if err != nil {
-				log.Warn().Err(err).Msg("dialWebRtc")
+				log.Warn().Err(err).Msg("Websocket Receive Error")
 				// Because this is an inner goroutine. If there are any issues at all we just want to give up and restart the entire connection process
+				if !conn.closed {
+					conn.errorChan <- err
+				}
 				return
 			}
 			if anyMsg == nil { continue }
 
 			switch msg := anyMsg.(type) {
 			case RtcCandidateMsg:
+				log.Debug().Msg("RtcCandidateMsg")
 				err := peerConnection.AddICECandidate(msg.CandidateInit)
 				if err != nil {
-					conn.errorChan <- err
+					log.Warn().Err(err).Msg("AddIceCandidate")
+					if !conn.closed {
+						conn.errorChan <- err
+					}
 					return
 				}
 
 			case RtcSdpMsg:
+				log.Debug().Msg("RtcSdpMsg")
 				sdp := webrtc.SessionDescription{}
 				sdp.Type = msg.Type
 				sdp.SDP = msg.SDP
 
 				err := peerConnection.SetRemoteDescription(sdp)
 				if err != nil {
-					conn.errorChan <- err
+					log.Warn().Err(err).Msg("SetRemoteDescription")
+					if !conn.closed {
+						conn.errorChan <- err
+					}
 					return
 				}
 
@@ -430,7 +458,10 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 					candidateMsg := RtcCandidateMsg{c.ToJSON()}
 					err := conn.websocket.Send(candidateMsg)
 					if err != nil {
-						conn.errorChan <- err
+						log.Warn().Err(err).Msg("Failed Websocket Send: Pending Candidate Msg")
+						if !conn.closed {
+							conn.errorChan <- err
+						}
 						return
 					}
 				}
@@ -441,6 +472,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	// Create a datachannel with label 'data'
 	dataChannel, err := peerConnection.CreateDataChannel("data", nil)
 	if err != nil {
+		log.Warn().Err(err).Msg("CreateDataChannel")
 		return nil, err
 	}
 
@@ -455,37 +487,40 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		// }
 
 		if s == webrtc.PeerConnectionStateFailed {
+			log.Error().Msg("PeerConnectionStateFailed")
+
 			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
 			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
 			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-			log.Error().Msg("Peer Connection has gone to failed")
 
 			conn.errorChan <- fmt.Errorf("Peer Connection has gone to failed")
 		} else if s == webrtc.PeerConnectionStateDisconnected {
-			conn.errorChan <- fmt.Errorf("Peer Connection has gone to disconnected")
+			log.Warn().Msg("PeerConnectionStateDisconnected")
+			// conn.errorChan <- fmt.Errorf("Peer Connection has gone to disconnected")
 		}
 	})
 
 	// Register channel opening handling
 	dataChannel.OnOpen(func() {
+		log.Debug().Msg("Data Channel OnOpen")
 		conn.dataChannel = dataChannel
-		// sock.conn = conn
 		connFinish <- true
 	})
 
 	// Register text message handling
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-			// log.Print("Client: Received Msg from DataChannel", len(msg.Data))
-			if msg.IsString {
-				log.Print("DataChannel OnMessage: Received string message, skipping")
-				return
-			}
-			conn.readChan <- msg.Data
+		// log.Print("Client: Received Msg from DataChannel", len(msg.Data))
+		if msg.IsString {
+			log.Print("DataChannel OnMessage: Received string message, skipping")
+			return
+		}
+		conn.readChan <- msg.Data
 	})
 
 	// Create an offer to send to the other process
 	offer, err := peerConnection.CreateOffer(nil)
 	if err != nil {
+		log.Warn().Err(err).Msg("CreateOffer")
 		return nil, err
 	}
 	// fmt.Println("CreateOffer")
@@ -494,6 +529,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	// Note: this will start the gathering of ICE candidates
 	err = peerConnection.SetLocalDescription(offer)
 	if err != nil {
+		log.Warn().Err(err).Msg("SetLocalDescription")
 		return nil, err
 	}
 	// fmt.Println("SetLocalDesc")
@@ -501,6 +537,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	offerMessage := RtcSdpMsg{ offer.Type, offer.SDP }
 	err = conn.websocket.Send(offerMessage)
 	if err != nil {
+		log.Warn().Err(err).Msg("websocket.Send RtcSdp Offer")
 		return nil, err
 	}
 	// fmt.Println("websocket send")
@@ -508,9 +545,12 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	// Wait until the webrtc connection is finished getting setup
 	select {
 	case err := <-conn.errorChan:
+		log.Warn().Err(err).Msg("dialWebRtc error exit")
 		return nil, err // There was an error in setup
 	case <-connFinish:
+		log.Debug().Msg("dialWebRtc normal exit")
 		// Socket finished getting setup
 		return conn, nil
 	}
+
 }
