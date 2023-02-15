@@ -354,7 +354,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		// Check if we've connected and if we have then break
 		if wSock.Connected() { break }
 		log.Debug().Msg("webrtc websocket wait")
-		time.Sleep(1 * time.Nanosecond)
+		time.Sleep(1 * time.Millisecond)
 	}
 
 	// wSock.Wait()
@@ -384,6 +384,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	conn := NewRtcConn(peerConnection, wSock)
 	connFinish := make(chan bool)
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
+		log.Debug().Msg("OnICECandidate")
 		if c == nil {
 			return
 		}
@@ -556,5 +557,4 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		// Socket finished getting setup
 		return conn, nil
 	}
-
 }

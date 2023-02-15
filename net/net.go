@@ -90,7 +90,7 @@ func (c *DialConfig) Dial() Socket {
 	sock := newDialSocket(c)
 
 	// TODO - would prefer to just immediately dial, but we cant block
-	sock.redialTimer = time.AfterFunc(0 * time.Millisecond, sock.redial)
+	sock.redialTimer = time.AfterFunc(100 * time.Millisecond, sock.redial)
 
 	return sock
 }

@@ -180,26 +180,26 @@ func (s *PipeSocket) redial() {
 	if s.dialConfig == nil { return } // If socket cant dial, then skip
 	if s.Closed() { return } // If socket is closed, then never reconnect
 
-	// TODO - I'd like this to be more on-demand
-	// Trigger the next redial attempt
-	defer func() {
-		s.redialTimer = time.AfterFunc(1 * time.Second, s.redial)
+	go func() {
+		// TODO - I'd like this to be more on-demand
+		// Trigger the next redial attempt
+		defer func() {
+			s.redialTimer = time.AfterFunc(100 * time.Second, s.redial)
+		}()
+
+		if s.connected.Load() {
+			return
+		}
+
+		trans, err := s.dialConfig.dialPipe()
+		if err != nil {
+			return
+		}
+
+		// fmt.Println("Socket Reconnected")
+		s.connectTransport(trans)
 	}()
-
-	if s.connected.Load() {
-		return
-	}
-
-	trans, err := s.dialConfig.dialPipe()
-	if err != nil {
-		return
-	}
-
-	// fmt.Println("Socket Reconnected")
-	s.connectTransport(trans)
 }
-
-
 
 // --------------------------------------------------------------------------------
 // - Packetloss code
