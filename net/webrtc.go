@@ -56,7 +56,7 @@ type WebRtcListener struct {
 
 func newWebRtcListener(c *ListenConfig) (*WebRtcListener, error) {
 	websocketConfig := &ListenConfig{
-		Url: strings.Replace(c.Url, "webrtc", "wss", 1), // TODO! - Not super clean. we want just the url with the schema replaced to be a wss schema
+		Url: strings.Replace(c.Url, "webrtc", "wss", 1),
 		Serdes: NewRtcUpgradeSerdes(),
 		TlsConfig: c.TlsConfig,
 		HttpServer: c.HttpServer,
@@ -316,16 +316,18 @@ func (c *RtcConn) Write(b []byte) (int, error) {
 }
 
 func (c *RtcConn) Close() error {
-	c.closed = true
-	err1 := c.dataChannel.Close()
-	err2 := c.peerConn.Close()
-	err3 := c.websocket.Close()
+	if !c.closed {
+		c.closed = true
+		err1 := c.dataChannel.Close()
+		err2 := c.peerConn.Close()
+		err3 := c.websocket.Close()
 
-	close(c.readChan)
-	close(c.errorChan)
+		close(c.readChan)
+		close(c.errorChan)
 
-	if err1 != nil || err2 != nil || err3 != nil {
-		return fmt.Errorf("RtcConn Close Error: datachannel: %s peerconn: %s websocket: %s", err1, err2, err3)
+		if err1 != nil || err2 != nil || err3 != nil {
+			return fmt.Errorf("RtcConn Close Error: datachannel: %s peerconn: %s websocket: %s", err1, err2, err3)
+		}
 	}
 	return nil
 }
@@ -334,7 +336,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 15 * time.Second)
 
 	websocketConfig := &DialConfig{
-		Url: strings.Replace(c.Url, "webrtc", "wss", 1), // TODO! - Not super clean. we want just the url with the schema replaced to be a wss schema
+		Url: strings.Replace(c.Url, "webrtc", "wss", 1),
 		Serdes: NewRtcUpgradeSerdes(),
 		TlsConfig: c.TlsConfig,
 	}
@@ -355,7 +357,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		time.Sleep(1 * time.Nanosecond)
 	}
 
-	wSock.Wait()
+	// wSock.Wait()
 
 	// Offer WebRtc Upgrade
 	// fmt.Println("offerWebRtcUpgrade")

@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"errors"
+	// "time"
 
 	"net"
 	"net/url"
@@ -57,7 +58,7 @@ type Socket interface {
 
 	Connected() bool
 	Closed() bool
-	Wait() // Wait for the connection to stabalize
+	// Wait() // Wait for the connection to stabalize
 }
 
 // --------------------------------------------------------------------------------
@@ -88,7 +89,15 @@ func (c *DialConfig) Dial() Socket {
 
 	sock := newDialSocket(c)
 
-	go sock.continuallyRedial()
+	// trans, err := c.dialPipe()
+	// if err != nil {
+	// 	sock.disconnectTransport()
+	// } else {
+	// 	sock.connectTransport(trans)
+	// }
+	// time.AfterFunc(100 * time.Millisecond, sock.redial)
+
+	sock.redial()
 
 	return sock
 }
@@ -98,7 +107,7 @@ func (c *DialConfig) dialPipe() (Pipe, error) {
 	if c.scheme == "ws" || c.scheme == "wss" {
 		return dialWebsocket(c)
 	} else if c.scheme == "tcp" {
-		return dialTcpSocket(c)
+		return dialTcp(c)
 	} else if c.scheme == "webrtc" {
 		return dialWebRtc(c)
 	}

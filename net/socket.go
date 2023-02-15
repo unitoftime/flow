@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 	"math/rand"
+	"errors"
+	"io"
 
 	"sync"
 	"sync/atomic"
@@ -25,6 +27,7 @@ type PipeSocket struct {
 
 	closed atomic.Bool    // Used to indicate that the user has requested to close this ClientConn
 	connected atomic.Bool // Used to indicate that the underlying connection is still active
+	redialTimer *time.Timer // Tracks the redial timer
 }
 
 func newGlobalSocket() *PipeSocket {
@@ -93,6 +96,9 @@ func (s *PipeSocket) Closed() bool {
 
 func (s *PipeSocket) Close() error {
 	s.closed.Store(true)
+	if s.redialTimer != nil {
+		s.redialTimer.Stop()
+	}
 
 	s.disconnectTransport()
 
@@ -142,6 +148,10 @@ func (s *PipeSocket) Recv() (any, error) {
 	n, err := s.pipe.Read(s.recvBuf)
 	if err != nil {
 		s.disconnectTransport()
+		// TODO - use new go 1.20 errors.Join() function
+		if errors.Is(err, io.EOF) {
+			return nil, err
+		}
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
 		return nil, err
 	}
@@ -156,53 +166,39 @@ func (s *PipeSocket) Recv() (any, error) {
 	return msg, nil
 }
 
-func (s *PipeSocket) Wait() {
-	for {
-		if s.connected.Load() {
-			return
-		}
-		// fmt.Println("PipeSocket.Wait()")
-		time.Sleep(1 * time.Nanosecond)
+// func (s *PipeSocket) Wait() {
+// 	for {
+// 		if s.connected.Load() {
+// 			return
+// 		}
+// 		// fmt.Println("PipeSocket.Wait()")
+// 		time.Sleep(1 * time.Nanosecond)
+// 	}
+// }
+
+func (s *PipeSocket) redial() {
+	if s.dialConfig == nil { return } // If socket cant dial, then skip
+	if s.Closed() { return } // If socket is closed, then never reconnect
+
+	// TODO - I'd like this to be more on-demand
+	// Trigger the next redial attempt
+	defer func() {
+		s.redialTimer = time.AfterFunc(1 * time.Second, s.redial)
+	}()
+
+	if s.connected.Load() {
+		return
 	}
+
+	trans, err := s.dialConfig.dialPipe()
+	if err != nil {
+		return
+	}
+
+	// fmt.Println("Socket Reconnected")
+	s.connectTransport(trans)
 }
 
-func (s *PipeSocket) continuallyRedial() {
-	attempt := 1
-	const sleepBase = 100 * time.Millisecond // TODO - Tweakable?
-	const maxSleep = 10 * time.Second // TODO - Tweakable?
-
-	sleepDur := sleepBase
-	for {
-		if s.Closed() { return } // If socket is closed, then never reconnect
-
-		if s.connected.Load() {
-			// If socket is already connected, then just sleep
-			time.Sleep(1 * time.Nanosecond) // TODO - I feel like I'd prefer this to be some better sync mechanism, but I'm not sure what to use
-			continue
-		}
-
-		trans, err := s.dialConfig.dialPipe()
-		if err != nil {
-			fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
-			time.Sleep(sleepDur)
-
-			// TODO - Tweakable Math?
-			sleepDur = 2 * sleepDur
-			if sleepDur > maxSleep {
-				sleepDur = maxSleep
-			}
-
-			attempt++
-			continue
-		}
-
-		// fmt.Println("Socket Reconnected")
-		s.connectTransport(trans)
-
-		attempt = 1
-		sleepDur = sleepBase
-	}
-}
 
 
 // --------------------------------------------------------------------------------

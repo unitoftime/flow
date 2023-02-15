@@ -16,6 +16,17 @@ type wsPipe struct {
 	conn net.Conn
 	cancel context.CancelFunc
 }
+func newWsPipe(wsConn *websocket.Conn) *wsPipe {
+	ctx, cancel := context.WithCancel(context.Background())
+	conn := websocket.NetConn(ctx, wsConn, websocket.MessageBinary)
+
+	pipe := &wsPipe{
+		conn: conn,
+		cancel: cancel,
+	}
+	return pipe
+}
+
 func (t *wsPipe) Read(b []byte) (int, error) {
 	return t.conn.Read(b)
 }
@@ -29,19 +40,8 @@ func (t *wsPipe) Close() error {
 	return t.conn.Close()
 }
 
-func newWsPipe(wsConn *websocket.Conn) *wsPipe {
-	ctx, cancel := context.WithCancel(context.Background())
-	conn := websocket.NetConn(ctx, wsConn, websocket.MessageBinary)
-
-	pipe := &wsPipe{
-		conn: conn,
-		cancel: cancel,
-	}
-	return pipe
-}
-
 // Returns a connected socket or fails with an error
-func dialWebsocket(c *DialConfig) (Pipe, error) {
+func dialWebsocket(c *DialConfig) (*wsPipe, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 5 * time.Second)
 	conn, err := dialWs(ctx, c.Url, c.TlsConfig)
 	if err != nil {

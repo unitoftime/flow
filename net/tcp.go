@@ -7,6 +7,17 @@ import (
 type tcpPipe struct {
 	conn net.Conn
 }
+func dialTcp(c *DialConfig) (*tcpPipe, error) {
+	conn, err := net.Dial("tcp", c.host)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a Framed connection and set it to our connection
+	framedConn := NewFrameConn(conn)
+	return &tcpPipe{framedConn}, nil
+}
+
 func (t *tcpPipe) Read(b []byte) (int, error) {
 	return t.conn.Read(b)
 }
@@ -17,17 +28,6 @@ func (t *tcpPipe) Write(b []byte) (int, error) {
 
 func (t *tcpPipe) Close() error {
 	return t.conn.Close()
-}
-
-func dialTcpSocket(c *DialConfig) (Pipe, error) {
-	conn, err := net.Dial("tcp", c.host)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a Framed connection and set it to our connection
-	framedConn := NewFrameConn(conn)
-	return &tcpPipe{framedConn}, nil
 }
 
 type TcpListener struct {
