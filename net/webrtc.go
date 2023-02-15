@@ -467,6 +467,8 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 						return
 					}
 				}
+			default:
+				log.Debug().Msg("Websocket received unknown message")
 			}
 		}
 	}()
