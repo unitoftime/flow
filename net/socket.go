@@ -176,29 +176,63 @@ func (s *PipeSocket) Recv() (any, error) {
 // 	}
 // }
 
-func (s *PipeSocket) redial() {
-	if s.dialConfig == nil { return } // If socket cant dial, then skip
-	if s.Closed() { return } // If socket is closed, then never reconnect
+// Note: This is so much cleaner, but causes frame stutter on FireFox. I guess because JS has to try and schedule the timer? The goroutine approach is much more stable.
+// func (s *PipeSocket) redial() {
+// 	if s.dialConfig == nil { return } // If socket cant dial, then skip
+// 	if s.Closed() { return } // If socket is closed, then never reconnect
 
-	go func() {
-		// TODO - I'd like this to be more on-demand
-		// Trigger the next redial attempt
-		defer func() {
-			s.redialTimer = time.AfterFunc(100 * time.Second, s.redial)
-		}()
+// 	go func() {
+// 		// TODO - I'd like this to be more on-demand
+// 		// Trigger the next redial attempt
+// 		defer func() {
+// 			s.redialTimer = time.AfterFunc(100 * time.Second, s.redial)
+// 		}()
+
+// 		if s.connected.Load() {
+// 			return
+// 		}
+
+// 		trans, err := s.dialConfig.dialPipe()
+// 		if err != nil {
+// 			return
+// 		}
+
+// 		// fmt.Println("Socket Reconnected")
+// 		s.connectTransport(trans)
+// 	}()
+// }
+
+func (s *PipeSocket) continuallyRedial() {
+	attempt := 1
+	const sleepBase = 100 * time.Millisecond // TODO - Tweakable?
+	const maxSleep = 10 * time.Second // TODO - Tweakable?
+
+	sleepDur := sleepBase
+	for {
+		if s.Closed() { return } // If socket is closed, then never reconnect
 
 		if s.connected.Load() {
-			return
+			// If socket is already connected, then just sleep
+			time.Sleep(1 * time.Nanosecond) // TODO - I feel like I'd prefer this to be some better sync mechanism, but I'm not sure what to use
+			continue
 		}
 
 		trans, err := s.dialConfig.dialPipe()
 		if err != nil {
-			return
-		}
+			fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
+			time.Sleep(sleepDur)
 
-		// fmt.Println("Socket Reconnected")
+			// TODO - Tweakable Math?
+			sleepDur = 2 * sleepDur
+			if sleepDur > maxSleep {
+				sleepDur = maxSleep
+			}
+
+			attempt++
+			continue
+		}
 		s.connectTransport(trans)
-	}()
+	}
 }
 
 // --------------------------------------------------------------------------------

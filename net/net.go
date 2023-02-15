@@ -3,7 +3,7 @@ package net
 import (
 	"fmt"
 	"errors"
-	"time"
+	// "time"
 
 	"net"
 	"net/url"
@@ -89,8 +89,9 @@ func (c *DialConfig) Dial() Socket {
 
 	sock := newDialSocket(c)
 
+	go sock.continuallyRedial()
 	// TODO - would prefer to just immediately dial, but we cant block
-	sock.redialTimer = time.AfterFunc(100 * time.Millisecond, sock.redial)
+	// sock.redialTimer = time.AfterFunc(100 * time.Millisecond, sock.redial)
 
 	return sock
 }
