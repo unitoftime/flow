@@ -22,4 +22,4 @@ func dialWs(ctx context.Context, url string, tlsConfig *tls.Config) (*websocket.
 	return wsConn, err
 }
 
-const redialHackDur = 1 * time.Nanosecond
+const redialHackDur = 1 * time.Second
