@@ -89,15 +89,19 @@ func (c *DialConfig) Dial() Socket {
 
 	sock := newDialSocket(c)
 
-	go sock.continuallyRedial()
+	// TODO - eventually fix the redialHack and swithc to redialTimer
 	// TODO - would prefer to just immediately dial, but we cant block
 	// sock.redialTimer = time.AfterFunc(100 * time.Millisecond, sock.redial)
+	// sock.redialTimer = time.AfterFunc(1, sock.redial)
+
+	go sock.continuallyRedial()
 
 	return sock
 }
 
 
 func (c *DialConfig) dialPipe() (Pipe, error) {
+	fmt.Println("Redialing: ", c)
 	if c.scheme == "ws" || c.scheme == "wss" {
 		return dialWebsocket(c)
 	} else if c.scheme == "tcp" {

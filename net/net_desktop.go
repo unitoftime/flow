@@ -3,6 +3,7 @@
 package net
 
 import (
+	"time"
 	"context"
 	"net/http"
 	"crypto/tls"
@@ -20,3 +21,5 @@ func dialWs(ctx context.Context, url string, tlsConfig *tls.Config) (*websocket.
 	})
 	return wsConn, err
 }
+
+const redialHackDur = 1 * time.Nanosecond
