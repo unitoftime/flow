@@ -289,7 +289,7 @@ func NewRtcConn(peer *webrtc.PeerConnection, websocket Socket) *RtcConn {
 		peerConn: peer,
 		websocket: websocket,
 		readChan: make(chan []byte, 1024), //TODO! - Sizing
-		errorChan: make(chan error, 1024), //TODO! - Sizing
+		errorChan: make(chan error, 16), //TODO! - Sizing
 	}
 }
 

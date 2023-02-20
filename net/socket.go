@@ -178,68 +178,68 @@ func (s *PipeSocket) Recv() (any, error) {
 
 // // TODO - move to this
 // // Note: This is so much cleaner, but causes frame stutter on FireFox. I guess because JS has to try and schedule the timer? The goroutine approach is much more stable.
-// func (s *PipeSocket) redial() {
-// 	if s.dialConfig == nil { return } // If socket cant dial, then skip
-// 	if s.Closed() { return } // If socket is closed, then never reconnect
+func (s *PipeSocket) redial() {
+	if s.dialConfig == nil { return } // If socket cant dial, then skip
+	if s.Closed() { return } // If socket is closed, then never reconnect
 
-// 	go func() {
-// 		// TODO - I'd like this to be more on-demand
-// 		// Trigger the next redial attempt
-// 		defer func() {
-// 			s.redialTimer = time.AfterFunc(1 * time.Second, s.redial)
-// 		}()
+	go func() {
+		// TODO - I'd like this to be more on-demand
+		// Trigger the next redial attempt
+		defer func() {
+			s.redialTimer = time.AfterFunc(1 * time.Second, s.redial)
+		}()
 
-// 		if s.connected.Load() {
-// 			return
-// 		}
-
-// 		trans, err := s.dialConfig.dialPipe()
-// 		if err != nil {
-// 			return
-// 		}
-
-// 		// fmt.Println("Socket Reconnected")
-// 		s.connectTransport(trans)
-// 	}()
-// }
-
-func (s *PipeSocket) continuallyRedial() {
-	attempt := 1
-	const sleepBase = 100 * time.Millisecond // TODO - Tweakable?
-	const maxSleep = 10 * time.Second // TODO - Tweakable?
-
-	sleepDur := sleepBase
-	for {
-		if s.Closed() { return } // If socket is closed, then never reconnect
-
-		if s.Connected() {
-			// If socket is already connected, then just sleep
-			// TODO - for some weird reason, if I dont have a sleep here my game has frame stutters on firefox. I think there's something in here which is making go "give control back" to JS. which makes frames not complete. I haven't been able to pin down exactly where the issue is:
-			// Relevant: https://github.com/golang/go/issues/27894
-			// Note: Maybe wasm threads fixes this?
-			// time.Sleep(redialHack())
-			// time.Sleep(1 * time.Nanosecond)
-			time.Sleep(redialHackDur)
-			continue
+		if s.connected.Load() {
+			return
 		}
 
 		trans, err := s.dialConfig.dialPipe()
 		if err != nil {
-			fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
-			time.Sleep(sleepDur)
-
-			// TODO - Tweakable Math?
-			sleepDur = 2 * sleepDur
-			if sleepDur > maxSleep {
-				sleepDur = maxSleep
-			}
-
-			attempt++
-			continue
+			return
 		}
+
+		// fmt.Println("Socket Reconnected")
 		s.connectTransport(trans)
-	}
+	}()
 }
+
+// func (s *PipeSocket) continuallyRedial() {
+// 	attempt := 1
+// 	const sleepBase = 100 * time.Millisecond // TODO - Tweakable?
+// 	const maxSleep = 10 * time.Second // TODO - Tweakable?
+
+// 	sleepDur := sleepBase
+// 	for {
+// 		if s.Closed() { return } // If socket is closed, then never reconnect
+
+// 		if s.Connected() {
+// 			// If socket is already connected, then just sleep
+// 			// TODO - for some weird reason, if I dont have a sleep here my game has frame stutters on firefox. I think there's something in here which is making go "give control back" to JS. which makes frames not complete. I haven't been able to pin down exactly where the issue is:
+// 			// Relevant: https://github.com/golang/go/issues/27894
+// 			// Note: Maybe wasm threads fixes this?
+// 			// time.Sleep(redialHack())
+// 			// time.Sleep(1 * time.Nanosecond)
+// 			time.Sleep(redialHackDur)
+// 			continue
+// 		}
+
+// 		trans, err := s.dialConfig.dialPipe()
+// 		if err != nil {
+// 			fmt.Printf("Socket Reconnect attempt %d - Waiting %s. Error: %s\n", attempt, sleepDur, err)
+// 			time.Sleep(sleepDur)
+
+// 			// TODO - Tweakable Math?
+// 			sleepDur = 2 * sleepDur
+// 			if sleepDur > maxSleep {
+// 				sleepDur = maxSleep
+// 			}
+
+// 			attempt++
+// 			continue
+// 		}
+// 		s.connectTransport(trans)
+// 	}
+// }
 
 // --------------------------------------------------------------------------------
 // - Packetloss code
