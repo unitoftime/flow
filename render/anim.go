@@ -69,10 +69,7 @@ func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
 	}
 	if startingAnim == "" {
 		// Just set some random animation if unset
-		for name := range frames {
-			anim.SetAnimation(name)
-			break
-		}
+		anim.randomAnimation()
 	} else {
 		anim.SetAnimation(startingAnim)
 	}
@@ -83,6 +80,13 @@ func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
 // func (a *Animation) SetTranslation(pos glitch.Vec3) {
 // 	a.translation = pos
 // }
+
+func (a *Animation) randomAnimation() {
+	for name := range a.frames {
+		a.SetAnimation(name)
+		break
+	}
+}
 
 func (a *Animation) SetAnimationWithDuration(name string, dur time.Duration) {
 	a.SetAnimation(name)
@@ -97,11 +101,17 @@ func (a *Animation) SetAnimation(name string) {
 	if name == a.animName { return } // Skip if we aren't actually changing the animation
 
 	newAnim, ok := a.frames[name]
-	if !ok { return }
+	if !ok {
+		if a.animName == "" {
+			a.randomAnimation()
+		}
+		return
+	}
 
 	a.animName = name
 	a.curAnim = newAnim
 	a.SetFrame(0)
+	a.speed = 1.0
 }
 
 func (a *Animation) NextFrame() {
