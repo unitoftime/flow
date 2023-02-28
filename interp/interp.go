@@ -50,7 +50,6 @@ type Interp interface {
 	Float32(float32, float32, float64) float32
 	Float64(float64, float64, float64) float64
 	Vec2(vec2.T, vec2.T, float64) vec2.T
-
 }
 
 type Lerp struct {

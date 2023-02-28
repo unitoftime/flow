@@ -119,5 +119,6 @@ func (h *Hashmap[T]) Check(bounds phy2.Rect) []T {
 	for k := range set {
 		ret = append(ret, k)
 	}
+
 	return ret
 }

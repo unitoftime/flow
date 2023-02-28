@@ -47,12 +47,9 @@ type Animation struct {
 	frames map[string][]Frame // This is the map of all animations and their associated frames
 	animName string
 	curAnim []Frame // This is the current animation frames that we are operating on
-	// Color color.NRGBA // TODO - performance on interfaces vs structs?
-	// Rotation float64
-	// Scale glitch.Vec2
+
 	Loop bool
 	speed float64 // This is used to scale the duration of the animation evenly so that the animation can fit a certain time duration
-	// translation glitch.Vec3
 
 	// MirrorX bool // TODO
 	MirrorY bool // Mirror around the Y axis
