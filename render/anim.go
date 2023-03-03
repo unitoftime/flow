@@ -109,6 +109,7 @@ func (a *Animation) SetAnimation(name string) {
 	a.curAnim = newAnim
 	a.SetFrame(0)
 	a.speed = 1.0
+	a.hasUpdatedOnce = false
 }
 
 func (a *Animation) NextFrame() {
