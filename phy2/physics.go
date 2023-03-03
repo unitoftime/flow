@@ -17,6 +17,10 @@ func (v Pos) Norm() Pos {
 	return Pos(Vec2(v).Norm())
 }
 
+func (v Pos) Dot(u Pos) float64 {
+	return Vec2(v).Dot(Vec2(u))
+}
+
 func (v Pos) Len() float64 {
 	return Vec2(v).Len()
 }

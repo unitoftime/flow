@@ -31,6 +31,10 @@ func (v Vec2) Norm() Vec2 {
 	return V2(v.X/len, v.Y/len)
 }
 
+func (v Vec2) Dot(u Vec2) float64 {
+	return (v.X * u.X) + (v.Y * u.Y)
+}
+
 func (v Vec2) Len() float64 {
 	return math.Sqrt((v.X * v.X) + (v.Y * v.Y))
 }
