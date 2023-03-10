@@ -1,4 +1,4 @@
-package tile
+package autotile
 
 // Inspired By: http://www.cr31.co.uk/stagecast/wang/1sideedge.html
 
@@ -145,28 +145,3 @@ func WangBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
 
 	return total
 }
-
-// Same thing as blobmap but only includes the edge neighbors (and not corners)
-func PackedPipemapNumber(t, b, l, r bool) uint8 {
-	total := uint8(0)
-	if t	{ total	+= (1 << 0) }
-	if r	{ total	+= (1 << 1) }
-	if b	{ total	+= (1 << 2) }
-	if l	{ total	+= (1 << 3) }
-
-	return total
-}
-
-func PackedRawEightNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
-	total := uint8(0)
-	if t	{ total	+= (1 << 0) }
-	if r	{ total	+= (1 << 1) }
-	if b	{ total	+= (1 << 2) }
-	if l	{ total	+= (1 << 3) }
-	if tr { total += (1 << 4) }
-	if tl { total += (1 << 5) }
-	if br { total += (1 << 6) }
-	if bl { total += (1 << 7) }
-	return total
-}
-

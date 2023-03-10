@@ -8,6 +8,8 @@ import (
 	"github.com/ungerik/go3d/float64/vec2"
 )
 
+// TODO: use https://easings.net/
+
 func init() {
 	gob.Register(Lerp{})
 	gob.Register(Bezier{})

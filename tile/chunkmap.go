@@ -84,7 +84,9 @@ func (c *Chunkmap[T]) GenerateChunk(chunkPos ChunkPosition, expansionLambda func
 		tiles[x] = make([]T, c.ChunkMath.ChunkSize[0], c.ChunkMath.ChunkSize[1])
 		for y := range tiles[x] {
 			// fmt.Println(x, y, tileOffset.X, tileOffset.Y)
-			tiles[x][y] = expansionLambda(x + tileOffset.X, y + tileOffset.Y)
+			if expansionLambda != nil {
+				tiles[x][y] = expansionLambda(x + tileOffset.X, y + tileOffset.Y)
+			}
 		}
 	}
 
@@ -295,6 +297,31 @@ func (c *Chunkmap[T]) CalculatePipemapVariant(pos TilePosition, same func(a T, b
 		same(tile, b),
 		same(tile, l),
 		same(tile, r),
+	)
+}
+
+func (c *Chunkmap[T]) CalculateRawEightVariant(pos TilePosition, same func(a T, b T) bool) uint8 {
+	tile, ok := c.GetTile(pos)
+	if !ok { return 0 }
+
+	t, _ := c.GetTile(TilePosition{pos.X, pos.Y + 1})
+	b, _ := c.GetTile(TilePosition{pos.X, pos.Y - 1})
+	l, _ := c.GetTile(TilePosition{pos.X - 1, pos.Y})
+	r, _ := c.GetTile(TilePosition{pos.X + 1, pos.Y})
+	tl, _ := c.GetTile(TilePosition{pos.X - 1, pos.Y + 1})
+	tr, _ := c.GetTile(TilePosition{pos.X + 1, pos.Y + 1})
+	bl, _ := c.GetTile(TilePosition{pos.X - 1, pos.Y - 1})
+	br, _ := c.GetTile(TilePosition{pos.X + 1, pos.Y - 1})
+
+	return PackedRawEightNumber(
+		same(tile, t),
+		same(tile, b),
+		same(tile, l),
+		same(tile, r),
+		same(tile, tl),
+		same(tile, tr),
+		same(tile, bl),
+		same(tile, br),
 	)
 }
 

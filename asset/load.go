@@ -66,15 +66,22 @@ func (load *Load) Image(filepath string) (image.Image, error) {
 	return img, nil
 }
 
-// Loads a single sprite from a filepath of an image
-func (load *Load) Sprite(filepath string, smooth bool) (*glitch.Sprite, error) {
+func (load *Load) Texture(filepath string, smooth bool) (*glitch.Texture, error) {
 	img, err := load.Image(filepath)
 	if err != nil {
 		return nil, err
 	}
-	// pic := pixel.PictureDataFromImage(img)
-	// return pixel.NewSprite(pic, pic.Bounds()), nil
+
 	texture := glitch.NewTexture(img, smooth)
+	return texture, nil
+}
+
+// Loads a single sprite from a filepath of an image
+func (load *Load) Sprite(filepath string, smooth bool) (*glitch.Sprite, error) {
+	texture, err := load.Texture(filepath, smooth)
+	if err != nil {
+		return nil, err
+	}
 	return glitch.NewSprite(texture, texture.Bounds()), nil
 }
 
