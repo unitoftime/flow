@@ -69,9 +69,9 @@ func (l *Lifetime) Ratio() float64 {
 
 type Color struct {
 	Interp interp.Interp
-	Start, End color.NRGBA
+	Start, End color.RGBA
 }
-func NewColor(interpolation interp.Interp, start, end color.NRGBA) Color {
+func NewColor(interpolation interp.Interp, start, end color.RGBA) Color {
 	return Color{
 		Interp: interpolation,
 		Start: start,
@@ -79,9 +79,9 @@ func NewColor(interpolation interp.Interp, start, end color.NRGBA) Color {
 	}
 }
 
-func (c *Color) Get(ratio float64) color.NRGBA {
+func (c *Color) Get(ratio float64) color.RGBA {
 	ratio = Clamp(0, 1.0, ratio)
-	color := color.NRGBA{
+	color := color.RGBA{
 		uint8(c.Interp.Uint8(c.Start.R, c.End.R, ratio)),
 		uint8(c.Interp.Uint8(c.Start.G, c.End.G, ratio)),
 		uint8(c.Interp.Uint8(c.Start.B, c.End.B, ratio)),
