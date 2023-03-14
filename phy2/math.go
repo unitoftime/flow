@@ -108,6 +108,10 @@ func (r Rect) Intersects(r2 Rect) bool {
 			r.Max.Y >= r2.Min.Y)
 }
 
+func (r Rect) Pad(pad Rect) Rect {
+	return R(r.Min.X - pad.Min.X, r.Min.Y - pad.Min.Y, r.Max.X + pad.Max.X, r.Max.Y + pad.Max.Y)
+}
+
 // // --------------------------------------------------------------------------------
 // // - Vec3
 // // --------------------------------------------------------------------------------

@@ -176,8 +176,6 @@ func (s *PipeSocket) Recv() (any, error) {
 // 	}
 // }
 
-// // TODO - move to this
-// // Note: This is so much cleaner, but causes frame stutter on FireFox. I guess because JS has to try and schedule the timer? The goroutine approach is much more stable.
 func (s *PipeSocket) redial() {
 	if s.dialConfig == nil { return } // If socket cant dial, then skip
 	if s.Closed() { return } // If socket is closed, then never reconnect
