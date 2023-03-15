@@ -82,7 +82,7 @@ func (c *DialConfig) Dial() Socket {
 	u, err := url.Parse(c.Url)
 	if err != nil {
 		// TODO - wrap this up in the creation of the dialconfig
-		panic(fmt.Sprintf("URL Parsing Error:", err))
+		panic(fmt.Sprintf("URL Parsing Error: %v", err))
 	}
 	c.scheme = u.Scheme
 	c.host = u.Host
@@ -134,7 +134,7 @@ func (c *ListenConfig) Listen() (Listener, error) {
 	u, err := url.Parse(c.Url)
 	if err != nil {
 		// TODO - wrap this up in the creation of the dialconfig
-		panic(fmt.Sprintf("URL Parsing Error:", err))
+		panic(fmt.Sprintf("URL Parsing Error: %v", err))
 	}
 	c.scheme = u.Scheme
 	c.host = u.Host
