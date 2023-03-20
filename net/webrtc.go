@@ -15,6 +15,7 @@ import (
 )
 
 // Notes: https://webrtcforthecurious.com/docs/01-what-why-and-how/
+// Notes: about reliability: https://stackoverflow.com/questions/54292824/webrtc-channel-reliability
 // TODO - Investigate Detaching the datachannel: https://github.com/pion/webrtc/tree/master/examples/data-channels-detach
 // TODO - Let stun server list be injectable
 
@@ -181,6 +182,8 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 		sock := newAcceptedSocket(conn, l.serdes)
 		// Register channel opening handling
 		d.OnOpen(func() {
+			printDataChannel(d)
+
 			l.pendingAccepts <- sock
 		})
 
@@ -263,6 +266,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 
 			candidatesMux.Lock()
 			for _, c := range pendingCandidates {
+				log.Debug().Msg(fmt.Sprintf("%v", *c))
 				candidateMsg := RtcCandidateMsg{c.ToJSON()}
 				err := wSock.Send(candidateMsg)
 				if err != nil {
@@ -458,6 +462,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 				defer candidatesMux.Unlock()
 
 				for _, c := range pendingCandidates {
+					log.Debug().Msg(fmt.Sprintf("%v", *c))
 					candidateMsg := RtcCandidateMsg{c.ToJSON()}
 					err := conn.websocket.Send(candidateMsg)
 					if err != nil {
@@ -475,11 +480,18 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 	}()
 
 	// Create a datachannel with label 'data'
-	dataChannel, err := peerConnection.CreateDataChannel("data", nil)
+	ordered := false
+	// maxRetransmits := uint16(0)
+	dataChannelOptions := webrtc.DataChannelInit{
+		Ordered: &ordered,
+    // MaxRetransmits: &maxRetransmits,
+	}
+	dataChannel, err := peerConnection.CreateDataChannel("data", &dataChannelOptions)
 	if err != nil {
 		log.Warn().Err(err).Msg("CreateDataChannel")
 		return nil, err
 	}
+
 
 	// Set the handler for Peer connection state
 	// This will notify you when the peer has connected/disconnected
@@ -507,6 +519,7 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 
 	// Register channel opening handling
 	dataChannel.OnOpen(func() {
+		printDataChannel(dataChannel)
 		log.Debug().Msg("Data Channel OnOpen")
 		conn.dataChannel = dataChannel
 		connFinish <- true
@@ -557,4 +570,12 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 		// Socket finished getting setup
 		return conn, nil
 	}
+}
+
+func printDataChannel(d *webrtc.DataChannel) {
+	log.Print(fmt.Sprintf(" Label : %v \n ID: %v \n MaxPacketLifeTime: %v \n MaxRetransmits: %v \n Negotiated: %v \n Ordered: %v \n Protocol: %s \n ReadyState: %v",
+		d.Label(), d.ID(), d.MaxPacketLifeTime(), d.MaxRetransmits(), d.Negotiated(), d.Ordered(), d.Protocol(), d.ReadyState()),
+	)
+	// t := d.Transport()
+	// log.Print(fmt.Sprintf(" Transport: 
 }

@@ -12,14 +12,10 @@ type Union struct {
 	Payload []byte
 }
 
-// TODO - long term do something like this
-// type UnionDefinition struct {
-// 	WorldUpdateMsg *WorldUpdate `type:1`
-// 	ClientLoginMsg *ClientLogin `type:0`
-// 	ClientLoginResp *ClientLoginResp `type:2`
-// 	ClientLogoutMsg *ClientLogout `type:3`
-// 	ClientLogoutResp *ClientLogoutResp `type:4`
-// }
+type UnionBuilder struct {
+	types map[reflect.Type]uint8
+	impl []any
+}
 
 func NewUnion(structs ...any) *UnionBuilder {
 	if len(structs) > 256 {
@@ -36,11 +32,6 @@ func NewUnion(structs ...any) *UnionBuilder {
 		types: types,
 		impl: structs,
 	}
-}
-
-type UnionBuilder struct {
-	types map[reflect.Type]uint8
-	impl []any
 }
 
 // Converts the underlying value inside the to a pointer and returns an interface for that

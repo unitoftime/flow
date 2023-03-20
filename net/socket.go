@@ -266,7 +266,7 @@ func NewSimSocket(s Socket) *SimSocket {
 
 func (s *SimSocket) Send(msg any) error {
 	if rand.Float64() < s.Packetloss {
-		fmt.Println("SEND DROPPING PACKET")
+		// fmt.Println("SEND DROPPING PACKET")
 		return nil
 	}
 
@@ -296,7 +296,7 @@ func (s *SimSocket) Send(msg any) error {
 
 func (s *SimSocket) Recv() (any, error) {
 	if rand.Float64() < s.Packetloss {
-		fmt.Println("RECV DROPPING PACKET")
+		// fmt.Println("RECV DROPPING PACKET")
 		return nil, nil
 	}
 
