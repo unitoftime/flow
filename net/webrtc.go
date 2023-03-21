@@ -49,7 +49,8 @@ func (s *RtcUpgradeSerdes) Unmarshal(dat []byte) (any, error) {
 
 type WebRtcListener struct {
 	listener Listener
-	serdes Serdes
+	encoder Serdes
+	decoder Serdes
 	pendingAccepts chan Socket // TODO - should this get buffered?
 	pendingAcceptErrors chan error // TODO - should this get buffered?
 	closed atomic.Bool
@@ -58,7 +59,8 @@ type WebRtcListener struct {
 func newWebRtcListener(c *ListenConfig) (*WebRtcListener, error) {
 	websocketConfig := &ListenConfig{
 		Url: strings.Replace(c.Url, "webrtc", "wss", 1),
-		Serdes: NewRtcUpgradeSerdes(),
+		Encoder: NewRtcUpgradeSerdes(),
+		Decoder: NewRtcUpgradeSerdes(),
 		TlsConfig: c.TlsConfig,
 		HttpServer: c.HttpServer,
 		OriginPatterns: c.OriginPatterns,
@@ -70,7 +72,8 @@ func newWebRtcListener(c *ListenConfig) (*WebRtcListener, error) {
 
 	rtcListener := &WebRtcListener{
 		listener: wsl,
-		serdes: c.Serdes,
+		encoder: c.Encoder,
+		decoder: c.Decoder,
 		pendingAccepts: make(chan Socket),
 		pendingAcceptErrors: make(chan error),
 	}
@@ -179,7 +182,7 @@ func (l *WebRtcListener) attemptWebRtcNegotiation(wSock Socket) {
 		conn := NewRtcConn(peerConnection, wSock)
 		conn.dataChannel = d
 
-		sock := newAcceptedSocket(conn, l.serdes)
+		sock := newAcceptedSocket(conn, l.encoder, l.decoder)
 		// Register channel opening handling
 		d.OnOpen(func() {
 			printDataChannel(d)
@@ -341,7 +344,8 @@ func dialWebRtc(c *DialConfig) (Pipe, error) {
 
 	websocketConfig := &DialConfig{
 		Url: strings.Replace(c.Url, "webrtc", "wss", 1),
-		Serdes: NewRtcUpgradeSerdes(),
+		Encoder: NewRtcUpgradeSerdes(),
+		Decoder: NewRtcUpgradeSerdes(),
 		TlsConfig: c.TlsConfig,
 	}
 

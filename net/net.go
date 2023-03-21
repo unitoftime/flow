@@ -68,7 +68,9 @@ type Socket interface {
 // For dialing a socket
 type DialConfig struct {
 	Url string   // Note: We only use the [scheme]://[host] portion of this
-	Serdes Serdes
+	// Serdes Serdes
+	Encoder Serdes
+	Decoder Serdes
 	TlsConfig *tls.Config
 
 	// These are generated based on the upper config
@@ -89,12 +91,8 @@ func (c *DialConfig) Dial() Socket {
 
 	sock := newDialSocket(c)
 
-	// TODO - eventually fix the redialHack and swithc to redialTimer
 	// TODO - would prefer to just immediately dial, but we cant block
-	// sock.redialTimer = time.AfterFunc(100 * time.Millisecond, sock.redial)
 	sock.redialTimer = time.AfterFunc(1, sock.redial)
-
-	// go sock.continuallyRedial()
 
 	return sock
 }
@@ -119,7 +117,8 @@ func (c *DialConfig) dialPipe() (Pipe, error) {
 // For listening for sockets
 type ListenConfig struct {
 	Url string   // Note: We only use the [scheme]://[host] portion of this
-	Serdes Serdes
+	Encoder Serdes
+	Decoder Serdes
 	TlsConfig *tls.Config
 
 	HttpServer *http.Server // TODO - For Websockets only, maybe split up? - Note we have to wrap their Handler with our own handler!

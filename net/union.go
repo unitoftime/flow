@@ -51,7 +51,7 @@ func (u *UnionBuilder) Make(val any) (Union, error) {
 	typeStr := reflect.TypeOf(val)
 	typeId, ok := u.types[typeStr]
 	if !ok {
-		return Union{}, fmt.Errorf("Unknown Type: %T %T", val, val)
+		return Union{}, fmt.Errorf("Unknown Type: %T", val)
 	}
 
 	// TODO - can optimize the double serialize
@@ -67,7 +67,11 @@ func (u *UnionBuilder) Make(val any) (Union, error) {
 }
 
 func (u *UnionBuilder) Unmake(union Union) (any, error) {
-	val := u.impl[int(union.Type)]
+	idx := int(union.Type)
+	if idx >= len(u.impl) {
+		return nil, fmt.Errorf("Unknown message opcode %d max: %d", idx, len(u.impl)-1)
+	}
+	val := u.impl[idx]
 	valPtr := valToPtr(val)
 
 	err := binary.Unmarshal(union.Payload, valPtr)

@@ -18,6 +18,7 @@ type PipeSocket struct {
 	dialConfig *DialConfig // The config used for redialing, if nil, then the socket cant reconnect
 
 	encoder Serdes        // The encoder to use for serialization
+	decoder Serdes        // The decoder to use for serialization
 	pipe Pipe         // The underlying network connection to send and receive on
 
 	// Note: sendMut I think is needed now that I'm using goframe
@@ -27,6 +28,7 @@ type PipeSocket struct {
 
 	closed atomic.Bool    // Used to indicate that the user has requested to close this ClientConn
 	connected atomic.Bool // Used to indicate that the underlying connection is still active
+
 	redialTimer *time.Timer // Tracks the redial timer
 }
 
@@ -41,14 +43,16 @@ func newGlobalSocket() *PipeSocket {
 func newDialSocket(c *DialConfig) *PipeSocket {
 	sock := newGlobalSocket()
 	sock.dialConfig = c
-	sock.encoder = c.Serdes
+	sock.encoder = c.Encoder
+	sock.decoder = c.Decoder
 	return sock
 }
 
 // Creates a socket spawned by a listener (as opposed to a dialer). These sockets can't reconnect, the dialer-side socket must reconnect by redialing the listener and getting re-accepted.
-func newAcceptedSocket(pipe Pipe, encoder Serdes) *PipeSocket {
+func newAcceptedSocket(pipe Pipe, encoder Serdes, decoder Serdes) *PipeSocket {
 	sock := newGlobalSocket()
 	sock.encoder = encoder
+	sock.decoder = decoder
 
 	sock.connectTransport(pipe)
 
@@ -158,7 +162,7 @@ func (s *PipeSocket) Recv() (any, error) {
 	if n <= 0 { return nil, nil } // There was no message, and no error (likely a keepalive)
 
 	// Note: slice off based on how many bytes we read
-	msg, err := s.encoder.Unmarshal(s.recvBuf[:n])
+	msg, err := s.decoder.Unmarshal(s.recvBuf[:n])
 	if err != nil {
 		err = fmt.Errorf("%w: %s", ErrSerdes, err)
 		return nil, err

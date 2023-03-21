@@ -58,7 +58,8 @@ type WebsocketListener struct {
 	httpServer http.Server
 	originPatterns []string
 	addr net.Addr
-	serdes Serdes
+	encoder Serdes
+	decoder Serdes
 	closed atomic.Bool
 	pendingAccepts chan Socket // TODO - should this get buffered?
 	pendingAcceptErrors chan error // TODO - should this get buffered?
@@ -71,7 +72,8 @@ func newWebsocketListener(c *ListenConfig) (*WebsocketListener, error) {
 	}
 
 	wsl := &WebsocketListener{
-		serdes: c.Serdes,
+		encoder: c.Encoder,
+		decoder: c.Decoder,
 		addr: listener.Addr(),
 		pendingAccepts: make(chan Socket),
 		pendingAcceptErrors: make(chan error),
@@ -113,7 +115,7 @@ func (l *WebsocketListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Build the socket and push to channel
 	pipe := newWsPipe(conn)
-	sock := newAcceptedSocket(pipe, l.serdes)
+	sock := newAcceptedSocket(pipe, l.encoder, l.decoder)
 	l.pendingAccepts <- sock
 }
 

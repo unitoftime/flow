@@ -32,7 +32,8 @@ func (t *tcpPipe) Close() error {
 
 type TcpListener struct {
 	listener net.Listener
-	serdes Serdes
+	encoder Serdes
+	decoder Serdes
 }
 func newTcpListener(c *ListenConfig) (*TcpListener, error) {
 	listener, err := net.Listen(c.scheme, c.host)
@@ -41,7 +42,8 @@ func newTcpListener(c *ListenConfig) (*TcpListener, error) {
 	}
 	sockListener := &TcpListener{
 		listener: listener,
-		serdes: c.Serdes,
+		encoder: c.Encoder,
+		decoder: c.Decoder,
 	}
 	return sockListener, nil
 }
@@ -53,7 +55,7 @@ func (l *TcpListener) Accept() (Socket, error) {
 	}
 
 	pipe := &tcpPipe{NewFrameConn(c)}
-	return newAcceptedSocket(pipe, l.serdes), nil
+	return newAcceptedSocket(pipe, l.encoder, l.decoder), nil
 }
 func (l *TcpListener) Close() error {
 	return l.listener.Close()
