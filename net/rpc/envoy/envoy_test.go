@@ -9,12 +9,12 @@ import (
 	// "github.com/unitoftime/flow/net/rpc"
 )
 
-type ServerService interface {
+type TestServiceApi interface {
 	DoThing(ServerReq) (ServerResp, error)
 	HandleMsg(ServerMsg) error
 }
 
-type ClientService interface {
+type TestServiceClientApi interface {
 	ClientDoThing(ClientReq) (ClientResp, error)
 }
 
@@ -27,12 +27,15 @@ type ServerReq struct {
 type ServerResp struct {
 	Val uint16
 }
-func HandleMsg(r ServerMsg) error {
+
+type TestService struct {
+}
+func (s *TestService) HandleMsg(r ServerMsg) error {
 	fmt.Println("HandleMsg: ", r)
 	return nil
 }
 
-func DoThing(r ServerReq) (ServerResp, error) {
+func (s *TestService) DoThing(r ServerReq) (ServerResp, error) {
 	fmt.Println("DoThing: ", r)
 	return ServerResp{
 		r.Val + 1,
@@ -45,7 +48,10 @@ type ClientReq struct {
 type ClientResp struct {
 	Val uint16
 }
-func ClientDoThing(r ClientReq) (ClientResp, error) {
+
+type TestServiceClient struct {
+}
+func (s *TestServiceClient) ClientDoThing(r ClientReq) (ClientResp, error) {
 	fmt.Println("ClientDoThing: ", r)
 	return ClientResp{
 		r.Val + 100,
@@ -54,8 +60,8 @@ func ClientDoThing(r ClientReq) (ClientResp, error) {
 
 func TestMain(t *testing.T) {
 	// definitions:
-	serverDef := NewServiceDef(new(ServerService))
-	clientDef := NewServiceDef(new(ClientService))
+	// interfaceDef := NewInterfaceDef(new(TestServiceApi), new(TestServiceClientApi))
+	interfaceDef := NewInterfaceDef[TestServiceApi, TestServiceClientApi]()
 
 	// Server
 	go func() {
@@ -69,10 +75,11 @@ func TestMain(t *testing.T) {
 			sock, err := listener.Accept()
 			if err != nil { panic(err) }
 
-			client := NewClient(sock, serverDef, clientDef)
+			client := interfaceDef.NewServer(sock)
 
-			Register(client, DoThing)
-			RegisterMessage(client, HandleMsg)
+			ts := &TestService{}
+			Register(client, ts.DoThing)
+			RegisterMessage(client, ts.HandleMsg)
 			call := NewCall[ClientReq, ClientResp](client)
 			fmt.Println(client)
 
@@ -87,8 +94,10 @@ func TestMain(t *testing.T) {
 	}
 	sock := dialConfig.Dial()
 
-	client := NewClient(sock, clientDef, serverDef)
-	Register(client, ClientDoThing)
+
+	client := interfaceDef.NewClient(sock)
+	ts := &TestServiceClient{}
+	Register(client, ts.ClientDoThing)
 	call := NewCall[ServerReq, ServerResp](client)
 	msgCall := NewMessage[ServerMsg](client)
 	fmt.Println(client)

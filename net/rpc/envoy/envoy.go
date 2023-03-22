@@ -10,12 +10,61 @@ import (
 	// "github.com/unitoftime/flow/net/rpc"
 )
 
+// TODO - maybe define everything based on the Call definitions and the Msg definitions?
+
 // Needs
 // 1. Bidirectional RPCs
 // 2. Fire-and-forget style RPCs (ie just send it and don't block, like a msg)
 // 3. Easy setup and management
 // 4. Different reliability levels
 
+// type InterfaceDef struct {
+// 	service ServiceDefinition
+// 	client ServiceDefinition
+// }
+
+// func NewInterfaceDef(service, client any) InterfaceDef {
+// 	return InterfaceDef{
+// 		service: NewServiceDef(service),
+// 		client: NewServiceDef(client),
+// 	}
+// }
+
+// func (d InterfaceDef) NewClient(sock net.Socket) *Client {
+// 	return NewClient(sock, d.client, d.service)
+// }
+
+// func (d InterfaceDef) NewServer(sock net.Socket, api any) *Client {
+// 	client := NewClient(sock, d.service, d.client)
+
+// 	return client
+// }
+type InterfaceDef[S, C any] struct {
+	serviceApi ServiceDefinition
+	clientApi ServiceDefinition
+}
+
+func NewInterfaceDef[S, C any]() InterfaceDef[S, C] {
+	serviceApi := new(S)
+	clientApi := new(C)
+	return InterfaceDef[S, C]{
+		serviceApi: NewServiceDef(serviceApi),
+		clientApi: NewServiceDef(clientApi),
+	}
+}
+
+func (d InterfaceDef[S, C]) NewClient(sock net.Socket) *Client {
+	return NewClient(sock, d.clientApi, d.serviceApi)
+}
+
+func (d InterfaceDef[S, C]) NewServer(sock net.Socket) *Client {
+	client := NewClient(sock, d.serviceApi, d.clientApi)
+
+	return client
+}
+
+
+// TODO - I should make an interface to better capture the fact that this is just for serialization
 type ServiceDefinition struct {
 	Requests, Responses *net.UnionBuilder
 }
@@ -107,7 +156,6 @@ type Message struct {
 	Data []byte
 }
 
-// TODO - requests and responses from interface definition
 func NewClient(sock net.Socket, serviceDef, clientDef ServiceDefinition) *Client {
 	rngSrc := rand.NewSource(time.Now().UnixNano())
 	rng := rand.New(rngSrc) // TODO - push this up to the client?
@@ -118,6 +166,7 @@ func NewClient(sock net.Socket, serviceDef, clientDef ServiceDefinition) *Client
 		serviceDef: serviceDef,
 		clientDef: clientDef,
 
+		// TODO - can I make this so that I make client generic on the interface, then I just pass the interface in here and have it get called. Then I'd just call the like interface function 2 or interface function 3 or something?
 		handlers: make(map[reflect.Type]HandlerFunc),
 		messageHandlers: make(map[reflect.Type]MessageHandlerFunc),
 		activeCalls: make(map[uint32]chan Response),
@@ -144,6 +193,12 @@ type Client struct {
 func (c *Client) Close() {
 	// TODO - what to do about active calls and handlers?
 	c.sock.Close()
+}
+
+
+// TODO - get rid of this
+func (c *Client) Closed() bool {
+	return c.sock.Closed()
 }
 
 func (c *Client) start() {
@@ -211,7 +266,7 @@ type HandlerFunc func(req any) ([]byte, error)
 func (c *Client) HandleResponse(rpcResp Response) error {
 	callChan, ok := c.activeCalls[rpcResp.Id]
 	if !ok {
-		return fmt.Errorf("Disassociated RpcResponse")
+		return fmt.Errorf("Disassociated Response")
 	}
 
 	// Send the response to the appropriate call
@@ -332,10 +387,12 @@ func Register[Req any, Resp any](client *Client, handler func(Req) (Resp, error)
 func NewCall[Req, Resp any](client *Client) *Call[Req, Resp] {
 	return &Call[Req, Resp]{
 		client: client,
+		timeout: 5 * time.Second,
 	}
 }
 type Call[Req, Resp any] struct {
 	client *Client
+	timeout time.Duration
 }
 
 func (c *Call[Req, Resp]) Do(req Req) (Resp, error) {
@@ -353,12 +410,17 @@ func (c *Call[Req, Resp]) Do(req Req) (Resp, error) {
 	reqDat, err := rpcSerdes.Marshal(rpcReq)
 	if err != nil { return resp, err }
 
+	// TODO - retry sending? Or push to a queue to be batch sent?
 	err = c.client.sock.Write(reqDat)
 	if err != nil { return resp, err }
 
-	// TODO!!! - set some timeout too
-	rpcResp := <-respChan
-	return c.Unmake(rpcResp)
+	select {
+	case rpcResp := <-respChan:
+		return c.Unmake(rpcResp)
+	case <-time.After(c.timeout):
+		// TODO - I need to cleanup the channel here
+		return resp, fmt.Errorf("rpc timeout reached, giving up waiting")
+	}
 }
 
 func (c *Call[Req, Resp]) Make(req Req) (Request, error) {
