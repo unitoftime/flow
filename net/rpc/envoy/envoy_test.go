@@ -68,7 +68,9 @@ func TestMain(t *testing.T) {
 		for {
 			sock, err := listener.Accept()
 			if err != nil { panic(err) }
+
 			client := NewClient(sock, serverDef, clientDef)
+
 			Register(client, DoThing)
 			RegisterMessage(client, HandleMsg)
 			call := NewCall[ClientReq, ClientResp](client)

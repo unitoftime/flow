@@ -12,12 +12,15 @@ import (
 
 // Needs
 // 1. Bidirectional RPCs
-// 2. Gotta have fire-and-forget style RPCs (ie just send it and don't block, like a msg)
+// 2. Fire-and-forget style RPCs (ie just send it and don't block, like a msg)
 // 3. Easy setup and management
+// 4. Different reliability levels
 
 type ServiceDefinition struct {
 	Requests, Responses *net.UnionBuilder
 }
+
+// TODO - could I make servicedef generic on the interface type. Then when I register handlers I just pass in a struct which implements the interface?
 
 // TODO - I think I'd prefer this to be based on method name and not based on input argument type
 // TODO - reordering the definition, or switching between a message and an RPC will break api compatibility
@@ -106,6 +109,9 @@ type Message struct {
 
 // TODO - requests and responses from interface definition
 func NewClient(sock net.Socket, serviceDef, clientDef ServiceDefinition) *Client {
+	rngSrc := rand.NewSource(time.Now().UnixNano())
+	rng := rand.New(rngSrc) // TODO - push this up to the client?
+
 	client := &Client{
 		sock: sock,
 
@@ -115,6 +121,8 @@ func NewClient(sock net.Socket, serviceDef, clientDef ServiceDefinition) *Client
 		handlers: make(map[reflect.Type]HandlerFunc),
 		messageHandlers: make(map[reflect.Type]MessageHandlerFunc),
 		activeCalls: make(map[uint32]chan Response),
+
+		rng: rng,
 	}
 
 	client.start() // This doesn't block
@@ -129,6 +137,8 @@ type Client struct {
 	handlers map[reflect.Type]HandlerFunc
 	messageHandlers map[reflect.Type]MessageHandlerFunc
 	activeCalls map[uint32]chan Response
+
+	rng *rand.Rand
 }
 
 func (c *Client) Close() {
@@ -148,7 +158,7 @@ func (c *Client) start() {
 			if err != nil {
 				fmt.Println("ERROR: ", err)
 				// TODO!!!!! - this might cause the for loop to spin if we are trying to reconnect, for example
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 
@@ -320,17 +330,12 @@ func Register[Req any, Resp any](client *Client, handler func(Req) (Resp, error)
 // }
 
 func NewCall[Req, Resp any](client *Client) *Call[Req, Resp] {
-	rngSrc := rand.NewSource(time.Now().UnixNano())
-	rng := rand.New(rngSrc) // TODO - push this up to the client?
-
 	return &Call[Req, Resp]{
 		client: client,
-		rng: rng,
 	}
 }
 type Call[Req, Resp any] struct {
 	client *Client
-	rng *rand.Rand
 }
 
 func (c *Call[Req, Resp]) Do(req Req) (Resp, error) {
@@ -360,7 +365,7 @@ func (c *Call[Req, Resp]) Make(req Req) (Request, error) {
 	dat, err := c.client.clientDef.Requests.Serialize(req)
 
 	return Request{
-		Id: c.rng.Uint32(),
+		Id: c.client.rng.Uint32(),
 		Data: dat,
 	}, err
 }
