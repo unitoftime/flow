@@ -9,9 +9,36 @@ import (
 	"github.com/unitoftime/flow/net"
 )
 
+// type ServiceDef struct {
+	
+// }
+func NewServiceDef(def any) {
+	ty := reflect.TypeOf(def).Elem()
+	fmt.Println(ty)
+	numMethod := ty.NumMethod()
+	fmt.Println(numMethod)
+	for i := 0; i < numMethod; i++ {
+		method := ty.Method(i)
+		fmt.Println(method)
+
+		numInputs := method.Type.NumIn()
+		for j := 0; j < numInputs; j++ {
+			in := method.Type.In(j)
+			fmt.Println(in)
+		}
+
+		numOutputs := method.Type.NumOut()
+		for j := 0; j < numOutputs; j++ {
+			out := method.Type.Out(j)
+			fmt.Println(out)
+		}
+	}
+}
+
 // Needs
 // 1. Bidirectional RPCs
 // 2. Gotta have fire-and-forget style RPCs (ie just send it and don't block, like a msg)
+// 3. Easy setup and management
 
 type RpcRequest struct {
 	Id uint32 // Tracks the request Id
@@ -113,11 +140,11 @@ func Register[Req any, Resp any](service *Service, handler func(Req) (Resp, erro
 	service.handlers[reqValType] = generalHandlerFunc
 }
 
-func NewCall[Req, Resp any](service *Service) Call[Req, Resp] {
+func NewCall[Req, Resp any](service *Service) *Call[Req, Resp] {
 	rngSrc := rand.NewSource(time.Now().UnixNano())
 	rng := rand.New(rngSrc)
 
-	return Call[Req, Resp]{
+	return &Call[Req, Resp]{
 		service: service,
 		rng: rng,
 	}
@@ -155,6 +182,26 @@ func (c *Call[Req, Resp]) Response() any {
 // 	rpcResp := <-respChan
 // 	return Unmake(rpcResp)
 // }
+
+func (c *Call[Req, Resp]) Do(sock net.Socket, req Req) (Resp, error) {
+	var resp Resp
+	rpcReq, err := c.Make(req)
+	if err != nil { return resp, err }
+
+	// TODO!!! - check if this ID is already being used, if it is, then use a different one
+
+	// Make a channel to wait for a response on this Id
+	respChan := make(chan RpcResponse)
+	c.service.activeCalls[rpcReq.Id] = respChan
+
+	// Send over socket
+	err = sock.Send(rpcReq)
+	if err != nil { return resp, err }
+
+	// TODO - set some timeout too
+	rpcResp := <-respChan
+	return c.Unmake(rpcResp)
+}
 
 func (c *Call[Req, Resp]) Make(req Req) (RpcRequest, error) {
 	dat, err := c.service.reqSerdes.Serialize(req)

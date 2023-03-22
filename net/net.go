@@ -52,6 +52,9 @@ type Pipe interface {
 type Socket interface {
 	// TODO - SetReadDeadline and SetWriteDeadline could be nice to have!
 
+	Read([]byte) error
+	Write([]byte) error
+
 	Send(any) error
 	Recv() (any, error)
 	Close() error

@@ -170,6 +170,55 @@ func (s *PipeSocket) Recv() (any, error) {
 	return msg, nil
 }
 
+func (s *PipeSocket) Write(dat []byte) error {
+	if s.Closed() {
+		return ErrClosed
+	}
+
+	if !s.Connected() {
+		return ErrDisconnected
+	}
+	s.sendMut.Lock()
+	defer s.sendMut.Unlock()
+
+	// TODO - error if n not big enough
+	_, err := s.pipe.Write(dat)
+	if err != nil {
+		s.disconnectTransport()
+		err = fmt.Errorf("%w: %s", ErrNetwork, err)
+		return err
+	}
+	return nil
+}
+
+func (s *PipeSocket) Read(buf []byte) error {
+	if s.Closed() {
+		return ErrClosed
+	}
+
+	if !s.Connected() {
+		return ErrDisconnected
+	}
+
+	s.recvMut.Lock()
+	defer s.recvMut.Unlock()
+
+	// TODO - error if buffer wasn't big enough
+	n, err := s.pipe.Read(buf)
+	if err != nil {
+		s.disconnectTransport()
+		// TODO - use new go 1.20 errors.Join() function
+		if errors.Is(err, io.EOF) {
+			return err
+		}
+		err = fmt.Errorf("%w: %s", ErrNetwork, err)
+		return err
+	}
+	if n <= 0 { return nil } // There was no message, and no error (likely a keepalive)
+
+	return nil
+}
+
 // func (s *PipeSocket) Wait() {
 // 	for {
 // 		if s.connected.Load() {

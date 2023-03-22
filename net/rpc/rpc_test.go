@@ -15,13 +15,54 @@ type Res struct {
 	Val int32
 }
 
-func handler(req Req) (Res, error) {
+type BasicService interface {
+	HandleThing(Req) (Res, error)
+	SendThing(Req) (error)
+}
+
+type testService struct {
+	// put data here
+}
+
+func (t *testService) HandleThing(req Req) (Res, error) {
 	return Res{
-		req.Val,
+		req.Val+2,
 	}, nil
 }
 
+func (t *testService) SendThing(req Req) (error) {
+	return Res{
+		req.Val+2,
+	}, nil
+}
+
+// type testServiceClient struct {
+// 	// put data here
+// }
+
+// func (t *testServiceClient) CallHandleThing(req Req) (Res, error) {
+// 	call := NewCall[Req, Res](t.service)
+// 	req, err := call.Make(Req{9999})
+// 	if err != nil { panic(err) }
+// 	fmt.Println(req)
+// 	return 
+// }
+
+// func (t *testServiceClient) CallSendThing(req Req) (error) {
+// 	return nil
+// }
+
 func TestRpc(t *testing.T) {
+	serviceDef := NewServiceDef(new(BasicService))
+
+	serviceHandler := &testService{}
+	server := serviceDef.NewServer(sock, serviceHandler)
+
+	client := serviceDef.NewClient(sock,
+
+
+	NewServiceDef(new(BasicService))
+
 	reqSerdes := net.NewUnion(Req{})
 	resSerdes := net.NewUnion(Res{})
 	service := NewService(reqSerdes, resSerdes)
@@ -38,7 +79,8 @@ func TestRpc(t *testing.T) {
 	fmt.Println(req)
 
 	// Server side
-	Register(service, handler)
+	svc := testService{}
+	Register(service, svc.HandleThing)
 	rpcResp, err := service.HandleRequest(req)
 	if err != nil { panic(err) }
 
