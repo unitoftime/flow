@@ -101,13 +101,14 @@ func TestMain(t *testing.T) {
 	client.Connect(sock)
 
 	// call := NewCall(client, client.Call.DoThing)
-	msgCall := NewMessage(client, client.Call.HandleMsg)
+	// msgCall := NewMessage(client, client.Call.HandleMsg)
 
 	fmt.Println(client)
 
 	time.Sleep(1 * time.Second)
 
-	err := msgCall.Send(ServerMsg{9})
+	err := client.Call.HandleMsg.Send(ServerMsg{9})
+	// err := msgCall.Send(ServerMsg{9})
 	if err != nil { panic(err) }
 
 	resp, err := client.Call.DoThing.Call(ServerReq{5})
