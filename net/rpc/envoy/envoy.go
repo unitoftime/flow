@@ -291,12 +291,14 @@ func (c *Client[S, C]) start() {
 				return // sockets can never redial
 			}
 
-			err := c.sock.Read(dat)
+			n, err := c.sock.Read(dat)
 			if err != nil {
 				// TODO - I need a better way to wait if the socket is disconnected. If I remove the sleep then we will spin when disconnected
 				time.Sleep(100 * time.Millisecond)
 				continue
 			}
+			if n == 0 { continue } // Empty message
+
 
 			msg, err := rpcSerdes.Unmarshal(dat)
 			if err != nil {
@@ -379,7 +381,8 @@ func (c *Client[S, C]) handleRequest(rpcReq Request) error {
 		return err
 	}
 
-	err = c.sock.Write(respDat)
+	// TODO - check that n is correct?
+	_, err = c.sock.Write(respDat)
 	if err != nil {
 		return err
 	}
@@ -503,7 +506,8 @@ func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
 	if err != nil { return nil, err }
 
 	// TODO - retry sending? Or push to a queue to be batch sent?
-	err = c.sock.Write(reqDat)
+	// TODO - check that n is correct?
+	_, err = c.sock.Write(reqDat)
 	if err != nil {
 		// TODO - snuffing underlying error because if we coudln't send it means we are trying to reconnect.
 		return nil, ErrDisconnected
@@ -529,7 +533,8 @@ func (c *Client[S, C]) doMsg(msg any) error {
 	msgDat, err := rpcSerdes.Marshal(rpcMsg)
 	if err != nil { return err }
 
-	err = c.sock.Write(msgDat)
+	// TODO - check that n is correct?
+	_, err = c.sock.Write(msgDat)
 	if err != nil {
 		// TODO - snuffing underlying error because if we coudln't send it means we are trying to reconnect.
 		return ErrDisconnected

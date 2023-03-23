@@ -170,34 +170,34 @@ func (s *PipeSocket) Recv() (any, error) {
 	return msg, nil
 }
 
-func (s *PipeSocket) Write(dat []byte) error {
+func (s *PipeSocket) Write(dat []byte) (int, error) {
 	if s.Closed() {
-		return ErrClosed
+		return 0, ErrClosed
 	}
 
 	if !s.Connected() {
-		return ErrDisconnected
+		return 0, ErrDisconnected
 	}
 	s.sendMut.Lock()
 	defer s.sendMut.Unlock()
 
 	// TODO - error if n not big enough
-	_, err := s.pipe.Write(dat)
+	n, err := s.pipe.Write(dat)
 	if err != nil {
 		s.disconnectTransport()
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
-		return err
+		return 0, err
 	}
-	return nil
+	return n, nil
 }
 
-func (s *PipeSocket) Read(buf []byte) error {
+func (s *PipeSocket) Read(buf []byte) (int, error) {
 	if s.Closed() {
-		return ErrClosed
+		return 0, ErrClosed
 	}
 
 	if !s.Connected() {
-		return ErrDisconnected
+		return 0, ErrDisconnected
 	}
 
 	s.recvMut.Lock()
@@ -209,14 +209,14 @@ func (s *PipeSocket) Read(buf []byte) error {
 		s.disconnectTransport()
 		// TODO - use new go 1.20 errors.Join() function
 		if errors.Is(err, io.EOF) {
-			return err
+			return 0, err
 		}
 		err = fmt.Errorf("%w: %s", ErrNetwork, err)
-		return err
+		return 0, err
 	}
-	if n <= 0 { return nil } // There was no message, and no error (likely a keepalive)
-
-	return nil
+	return n, nil
+	// if n <= 0 { return nil } // There was no message, and no error (likely a keepalive)
+	// return nil
 }
 
 // func (s *PipeSocket) Wait() {
@@ -314,6 +314,46 @@ func NewSimSocket(s Socket) *SimSocket {
 		recvDelayMsg: make(chan any, 10),
 		recvDelayErr: make(chan error, 10),
 	}
+}
+
+
+func (s *SimSocket) Write(buf []byte) (int, error) {
+	if rand.Float64() < s.Packetloss {
+		// fmt.Println("SEND DROPPING PACKET")
+		return 0, nil
+	}
+
+	if s.MaxDelay <= 0 {
+		return s.Socket.Write(buf)
+	}
+
+	// Else send with delay
+	go func() {
+		r := rand.Float64()
+		delay := time.Duration(1_000_000_000 * r * ((s.MaxDelay-s.MinDelay).Seconds())) + s.MinDelay
+		// fmt.Println("SendDelay: ", delay)
+		time.Sleep(delay)
+		_, err := s.Socket.Write(buf)
+		if err != nil {
+			s.sendDelayErr <- err
+		}
+	}()
+
+	select {
+	case err := <-s.sendDelayErr:
+		return 0, err
+	default:
+		return len(buf), nil // TODO - meh, how to get n out?
+	}
+}
+
+func (s *SimSocket) Read(buf []byte) (int, error) {
+	if rand.Float64() < s.Packetloss {
+		// fmt.Println("RECV DROPPING PACKET")
+		return 0, nil
+	}
+
+	return s.Socket.Read(buf)
 }
 
 
