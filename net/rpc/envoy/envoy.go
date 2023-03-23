@@ -309,20 +309,27 @@ func (c *Client[S, C]) start() {
 
 			switch typedMsg := msg.(type) {
 			case Request:
-				err := c.handleRequest(typedMsg)
-				if err != nil {
-					fmt.Println("Envoy.Request error:", err)
-				}
+				go func() {
+					err := c.handleRequest(typedMsg)
+					if err != nil {
+						fmt.Println("Envoy.Request error:", err)
+					}
+				}()
 			case Response:
-				err := c.handleResponse(typedMsg)
-				if err != nil {
-					fmt.Println("Envoy.Response error:", err)
-				}
+				// TODO - this one may not need to be run in a goroutine. b/c it will exit quickly enough?
+				go func() {
+					err := c.handleResponse(typedMsg)
+					if err != nil {
+						fmt.Println("Envoy.Response error:", err)
+					}
+				}()
 			case Message:
-				err := c.handleMessage(typedMsg)
-				if err != nil {
-					fmt.Println("Envoy.Message error:", err)
-				}
+				go func() {
+					err := c.handleMessage(typedMsg)
+					if err != nil {
+						fmt.Println("Envoy.Message error:", err)
+					}
+				}()
 			default:
 				fmt.Printf("Envoy: unknown type error: %T\n", typedMsg)
 			}
