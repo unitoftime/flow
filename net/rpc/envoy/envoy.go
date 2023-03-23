@@ -118,27 +118,6 @@ func DefineService(def any) ServiceDefinition {
 // 3. Easy setup and management
 // 4. Different reliability levels
 
-// type InterfaceDef struct {
-// 	service ServiceDefinition
-// 	client ServiceDefinition
-// }
-
-// func NewInterfaceDef(service, client any) InterfaceDef {
-// 	return InterfaceDef{
-// 		service: NewServiceDef(service),
-// 		client: NewServiceDef(client),
-// 	}
-// }
-
-// func (d InterfaceDef) NewClient(sock net.Socket) *Client {
-// 	return NewClient(sock, d.client, d.service)
-// }
-
-// func (d InterfaceDef) NewServer(sock net.Socket, api any) *Client {
-// 	client := NewClient(sock, d.service, d.client)
-
-// 	return client
-// }
 type InterfaceDef[S, C any] struct {
 	Service S
 	Client C
@@ -167,14 +146,12 @@ func NewInterfaceDef[S, C any]() InterfaceDef[S, C] {
 func (d InterfaceDef[S, C]) NewClient() *Client[C, S] {
 	// Note: The C and S are reversed because we call the service and serve the client
 	client := newClient[C, S](d.clientApi, d.serviceApi)
-	client.registerHandlers(d.Client)
 
 	return client
 }
 
 func (d InterfaceDef[S, C]) NewServer() *Client[S, C] {
 	client := newClient[S, C](d.serviceApi, d.clientApi)
-	client.registerHandlers(d.Service)
 
 	return client
 }
@@ -292,6 +269,8 @@ func newClient[S, C any](serviceDef, clientDef ServiceDefinition) *Client[S, C] 
 }
 
 func (c *Client[S, C]) Connect(sock net.Socket) {
+	c.registerHandlers(c.Handler)
+
 	c.sock = sock
 	c.start() // This doesn't block
 }
@@ -299,9 +278,8 @@ func (c *Client[S, C]) Connect(sock net.Socket) {
 type Client[S, C any] struct {
 	sock net.Socket
 
+	Handler S
 	Call C
-
-	interfaceDef InterfaceDef[S, C]
 
 	serviceDef, clientDef ServiceDefinition
 
@@ -471,9 +449,11 @@ func (client *Client[S, C]) registerHandlers(service any) {
 		switch rpcHandler := fieldAny.(type) {
 		case RpcHandler:
 			reqType, handler := rpcHandler.Handler()
+			if handler == nil { panic("All Handlers must be defined!") }
 			client.registerRpc(reqType, handler)
 		case MsgHandler:
 			msgType, handler := rpcHandler.Handler()
+			if handler == nil { panic("All Handlers must be defined!") }
 			client.registerMsg(msgType, handler)
 		default:
 			panic("ERROR") // TODO - must be an RpcDef or a message Def
@@ -567,19 +547,19 @@ func makeMsgHandler[M any](handler func(M) error) MessageHandlerFunc {
 // 	return NewCall[Req, Resp](client)
 // }
 
-func NewCall2[S, C, Req, Resp any](client *Client[S, C], rpc RpcDef[Req, Resp]) *Call[S, C, Req, Resp] {
+func NewCall[S, C, Req, Resp any](client *Client[S, C], rpc RpcDef[Req, Resp]) *Call[S, C, Req, Resp] {
 	return &Call[S, C, Req, Resp]{
 		client: client,
 		timeout: 5 * time.Second,
 	}
 }
 
-func NewCall[S, C, Req, Resp any](client *Client[S, C]) *Call[S, C, Req, Resp] {
-	return &Call[S, C, Req, Resp]{
-		client: client,
-		timeout: 5 * time.Second,
-	}
-}
+// func NewCall[S, C, Req, Resp any](client *Client[S, C]) *Call[S, C, Req, Resp] {
+// 	return &Call[S, C, Req, Resp]{
+// 		client: client,
+// 		timeout: 5 * time.Second,
+// 	}
+// }
 type Call[S, C, Req, Resp any] struct {
 	client *Client[S, C]
 	timeout time.Duration
@@ -631,17 +611,17 @@ func (c *Call[S, C, Req, Resp]) Unmake(rpcResp Response) (Resp, error) {
 	return resp, err
 }
 
-func NewMessage2[S, C, A any](client *Client[S, C], rpc MsgDef[A]) *Msg[S, C, A] {
+func NewMessage[S, C, A any](client *Client[S, C], rpc MsgDef[A]) *Msg[S, C, A] {
 	return &Msg[S, C, A]{
 		client: client,
 	}
 }
 
-func NewMessage[S, C, A any](client *Client[S, C]) *Msg[S, C, A] {
-	return &Msg[S, C, A]{
-		client: client,
-	}
-}
+// func NewMessage[S, C, A any](client *Client[S, C]) *Msg[S, C, A] {
+// 	return &Msg[S, C, A]{
+// 		client: client,
+// 	}
+// }
 type Msg[S, C, A any] struct {
 	client *Client[S, C]
 }

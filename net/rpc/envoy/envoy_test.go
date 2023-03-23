@@ -6,14 +6,9 @@ import (
 	"testing"
 
 	"github.com/unitoftime/flow/net"
-	// "github.com/unitoftime/flow/net/rpc"
 )
 
-type TestServiceApi interface {
-	DoThing(ServerReq) (ServerResp, error)
-	HandleMsg(ServerMsg) error
-}
-
+// Define Services
 type TestServiceApiStruct struct {
 	DoThing RpcDef[ServerReq, ServerResp]
 	HandleMsg MsgDef[ServerMsg]
@@ -23,9 +18,6 @@ type TestServiceClientApiStruct struct {
 	ClientDoThing RpcDef[ClientReq, ClientResp]
 }
 
-type TestServiceClientApi interface {
-	ClientDoThing(ClientReq) (ClientResp, error)
-}
 
 type ServerMsg struct {
 	Val uint16
@@ -68,48 +60,7 @@ func (s *TestServiceClient) ClientDoThing(r ClientReq) (ClientResp, error) {
 }
 
 func TestMain(t *testing.T) {
-	// testServiceDef := TestServiceApiStruct{}
-	// testServiceClientDef := TestServiceClientApiStruct{}
-
-	// {
-	// 	s1 := DefineService(testServiceDef)
-	// 	s2 := DefineService(testServiceClientDef)
-
-	// 	fmt.Println(s1)
-	// 	fmt.Println(s2)
-
-	// 	ts := &TestService{}
-	// 	testServiceDef.DoThing.Register(ts.DoThing)
-	// 	// Do some call to create service
-
-	// 	// Do some calls to create calls and message
-	// 	// testServiceClientDef.ClientDoThing.Get()
-	// 	// you need to like combine these two structs somehow then create a client based on that by passing in a socket. preregister all of your handlers, then on the outside you can just lookup the calls and msg executors or whatever
-	// }
-
-	// tsDoThingCall := testServiceDef.DoThing.Call()
-
-	// testService := DefineService(TestServiceApiStruct{})
-	// fmt.Println(testService)
-
-	// Full data would be something like:
-	// rpc1 := RpcDef[ServerReq, ServerResp]()
-	// rpc2 := MsgDef[ServerMsg]()
-
-	// // iface := new(TestServiceApi)
-	// // Add(def, iface.DoThing)
-	// // Add(def, iface.HandleMsg)
-	// rpc1.Register(client, ts.DoThing)
-	// rpc2.Register(client, ts.HandleMsg)
-
-	// doThingCall := rpc1.Call(client)
-	// handleMessage := rpc2.Call(client)
-
-	// definitions:
-	// interfaceDef := NewInterfaceDef(new(TestServiceApi), new(TestServiceClientApi))
-
-	// interfaceDef := NewInterfaceDef[TestServiceApi, TestServiceClientApi]()
-	// interfaceDef := NewInterfaceDef2[TestServiceApiStruct, TestServiceClientApiStruct]()
+	interfaceDef := NewInterfaceDef[TestServiceApiStruct, TestServiceClientApiStruct]()
 
 	// Server
 	go func() {
@@ -123,27 +74,14 @@ func TestMain(t *testing.T) {
 			sock, err := listener.Accept()
 			if err != nil { panic(err) }
 
-			ts := &TestService{}
-
-			interfaceDef := NewInterfaceDef[TestServiceApiStruct, TestServiceClientApiStruct]()
-			interfaceDef.Service.DoThing.Register(ts.DoThing)
-			interfaceDef.Service.HandleMsg.Register(ts.HandleMsg)
-
 			client := interfaceDef.NewServer()
+
+			ts := &TestService{}
+			client.Handler.DoThing.Register(ts.DoThing)
+			client.Handler.HandleMsg.Register(ts.HandleMsg)
+			call := NewCall(client, client.Call.ClientDoThing)
+
 			client.Connect(sock)
-
-			// Register(client, ts.DoThing)
-			// RegisterMessage(client, ts.HandleMsg)
-
-			// call := client.Call.ClientDoThing.Get()
-			call := NewCall2(client, client.Call.ClientDoThing)
-
-			// call := interfaceDef.Client.ClientDoThing.Get(client)
-			// call := NewCall[ClientReq, ClientResp](client)
-
-			// var iface TestServiceClientApi
-			// call := GetCall(client, func() {iface.ClientDoThing)
-			fmt.Println(client)
 
 			resp, err := call.Do(ClientReq{1})
 			if err != nil { panic(err) }
@@ -157,20 +95,14 @@ func TestMain(t *testing.T) {
 	sock := dialConfig.Dial()
 
 	ts := &TestServiceClient{}
-	interfaceDef := NewInterfaceDef[TestServiceApiStruct, TestServiceClientApiStruct]()
-	interfaceDef.Client.ClientDoThing.Register(ts.ClientDoThing)
 
 	client := interfaceDef.NewClient()
+	client.Handler.ClientDoThing.Register(ts.ClientDoThing)
 	client.Connect(sock)
 
-	// call := client.Call.DoThing.Get()
-	call := NewCall2(client, client.Call.DoThing)
+	call := NewCall(client, client.Call.DoThing)
+	msgCall := NewMessage(client, client.Call.HandleMsg)
 
-	// call := interfaceDef.Service.DoThing.Get(client)
-	// Register(client, ts.ClientDoThing)
-	// call := NewCall[ServerReq, ServerResp](client)
-	// msgCall := NewMessage[ServerMsg](client)
-	msgCall := NewMessage2(client, client.Call.HandleMsg)
 	fmt.Println(client)
 
 	time.Sleep(1 * time.Second)
