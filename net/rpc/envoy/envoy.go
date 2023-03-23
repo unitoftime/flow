@@ -293,50 +293,38 @@ func (c *Client[S, C]) start() {
 
 			err := c.sock.Read(dat)
 			if err != nil {
-				fmt.Println("ERROR: ", err)
-				// TODO!!!!! - this might cause the for loop to spin if we are trying to reconnect, for example
-				time.Sleep(10 * time.Millisecond)
+				// TODO - I need a better way to wait if the socket is disconnected. If I remove the sleep then we will spin when disconnected
+				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 
 			msg, err := rpcSerdes.Unmarshal(dat)
 			if err != nil {
-				fmt.Println("ERROR: ", err)
+				fmt.Println("Envoy: data unmarshal error:", err)
 				continue
 			}
 
 			// If the message was empty, just continue to the next one
 			if msg == nil { continue }
 
-			// TODO - these should probably be started in separate goroutines?
 			switch typedMsg := msg.(type) {
 			case Request:
-				resp, err := c.handleRequest(typedMsg)
+				err := c.handleRequest(typedMsg)
 				if err != nil {
-					fmt.Println("ERROR: ", err)
-				}
-
-				respDat, err := rpcSerdes.Marshal(resp)
-				if err != nil {
-					fmt.Println("ERROR: ", err)
-				}
-
-				err = c.sock.Write(respDat)
-				if err != nil {
-					fmt.Println("ERROR: ", err)
+					fmt.Println("Envoy.Request error:", err)
 				}
 			case Response:
 				err := c.handleResponse(typedMsg)
 				if err != nil {
-					fmt.Println("ERROR: ", err)
+					fmt.Println("Envoy.Response error:", err)
 				}
 			case Message:
 				err := c.handleMessage(typedMsg)
 				if err != nil {
-					fmt.Println("ERROR: ", err)
+					fmt.Println("Envoy.Message error:", err)
 				}
 			default:
-				fmt.Printf("Unknown message type: %T\n", typedMsg)
+				fmt.Printf("Envoy: unknown type error: %T\n", typedMsg)
 			}
 		}
 	}()
@@ -348,7 +336,7 @@ func (c *Client[S, C]) handleResponse(rpcResp Response) error {
 
 	callChan, ok := c.activeCalls[rpcResp.Id]
 	if !ok {
-		return fmt.Errorf("Disassociated Response")
+		return fmt.Errorf("disassociated response")
 	}
 
 	// Send the response to the appropriate call
@@ -357,29 +345,39 @@ func (c *Client[S, C]) handleResponse(rpcResp Response) error {
 	return nil
 }
 
-func (c *Client[S, C]) handleRequest(rpcReq Request) (Response, error) {
-	rpcResp := Response{
-		Id: rpcReq.Id,
-	}
-
+func (c *Client[S, C]) handleRequest(rpcReq Request) error {
 	reqVal, err := c.serviceDef.Requests.Deserialize(rpcReq.Data)
-	if err != nil { return rpcResp, err }
+	if err != nil { return err }
 	reqValType := reflect.TypeOf(reqVal)
 
 	handler, ok := c.handlers[reqValType]
 	if !ok {
-		return rpcResp, fmt.Errorf("RPC Handler not set for type: %T", reqVal)
+		return fmt.Errorf("RPC Handler not set for type: %T", reqVal)
 	}
 
 	anyResp := handler(reqVal)
 
 	data, err := c.serviceDef.Responses.Serialize(anyResp)
 	if err != nil {
-		return rpcResp, err
+		return err
 	}
 
-	rpcResp.Data = data
-	return rpcResp, err
+	rpcResp := Response{
+		Id: rpcReq.Id,
+		Data: data,
+	}
+
+	respDat, err := rpcSerdes.Marshal(rpcResp)
+	if err != nil {
+		return err
+	}
+
+	err = c.sock.Write(respDat)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client[S, C]) handleMessage(msg Message) error {
@@ -423,7 +421,6 @@ func (client *Client[S, C]) registerHandlers(service any) {
 	for i := 0; i < numField; i++ {
 
 		field := val.Field(i)
-		fmt.Println(field)
 
 		fieldAny := field.Interface()
 
@@ -568,7 +565,7 @@ func (c *Client[S, C]) cleanupResponseChannel(id uint32) {
 	channel, ok := c.activeCalls[id]
 	if !ok {
 		// This is weird, the channel didn't exist but should have. Probably not worth panicking on
-		fmt.Println("Tried to cleanup channel that was already cleaned up")
+		fmt.Println("Envoy: Tried to cleanup channel that was already cleaned up")
 		return
 	}
 
