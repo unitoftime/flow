@@ -10,6 +10,106 @@ import (
 	// "github.com/unitoftime/flow/net/rpc"
 )
 
+type MsgDefinition interface {
+	MsgType() any
+}
+
+type RpcDefinition interface {
+	ReqType() any
+	RespType() any
+}
+
+type RpcHandler interface {
+	Handler() (reflect.Type, HandlerFunc)
+}
+
+type MsgHandler interface {
+	Handler() (reflect.Type, MessageHandlerFunc)
+}
+
+type MsgDef[A any] struct {
+	handler MessageHandlerFunc
+}
+
+func (d MsgDef[A]) Handler() (reflect.Type, MessageHandlerFunc) {
+	var a A
+	return reflect.TypeOf(a), d.handler
+}
+
+func (d *MsgDef[A]) Register(handler func(A) error) {
+	d.handler = makeMsgHandler(handler)
+}
+
+func (d MsgDef[A]) MsgType() any {
+	var a A
+	return a
+}
+
+
+type RpcDef[Req, Resp any] struct {
+	handler HandlerFunc
+}
+
+func (d RpcDef[Req, Resp]) ReqType() any {
+	var req Req
+	return req
+}
+
+func (d RpcDef[Req, Resp]) RespType() any {
+	var resp Resp
+	return resp
+}
+
+func (d *RpcDef[Req, Resp]) Register(handler func(Req) (Resp, error)) {
+	d.handler = makeRpcHandler(handler)
+}
+
+// func (d RpcDef[Req, Resp]) Get(client *Client[S, C]) *Call[Req, Resp] {
+// 	return NewCall[Req, Resp](client)
+// }
+
+func (d RpcDef[Req, Resp]) Handler() (reflect.Type, HandlerFunc) {
+	var req Req
+	return reflect.TypeOf(req), d.handler
+}
+
+func DefineService(def any) ServiceDefinition {
+	ty := reflect.TypeOf(def)
+	fmt.Println(ty)
+	numField := ty.NumField()
+	fmt.Println(numField)
+
+	requests := make([]any, 0)
+	responses := make([]any, 0)
+	for i := 0; i < numField; i++ {
+		field := ty.Field(i)
+		fmt.Println(field)
+
+		fieldAny := reflect.New(field.Type).Elem().Interface()
+
+		fmt.Printf("Type: %T\n", fieldAny)
+		switch rpcDef := fieldAny.(type) {
+		case RpcDefinition:
+			fmt.Println("HERE")
+			reqStruct := rpcDef.ReqType()
+			requests = append(requests, reqStruct)
+
+			respStruct := rpcDef.RespType()
+			responses = append(responses, respStruct)
+		case MsgDefinition:
+			msgStruct := rpcDef.MsgType()
+			requests = append(requests, msgStruct)
+		default:
+			panic("Error: Fields must all either be RpcDef or MsgDef")
+		}
+	}
+
+	return ServiceDefinition{
+		Requests: net.NewUnion(requests...),
+		Responses: net.NewUnion(responses...),
+	}
+}
+
 // TODO - maybe define everything based on the Call definitions and the Msg definitions?
 
 // Needs
@@ -40,25 +140,41 @@ import (
 // 	return client
 // }
 type InterfaceDef[S, C any] struct {
+	Service S
+	Client C
 	serviceApi ServiceDefinition
 	clientApi ServiceDefinition
 }
 
 func NewInterfaceDef[S, C any]() InterfaceDef[S, C] {
-	serviceApi := new(S)
-	clientApi := new(C)
+	var serviceApi S
+	var clientApi C
 	return InterfaceDef[S, C]{
-		serviceApi: NewServiceDef(serviceApi),
-		clientApi: NewServiceDef(clientApi),
+		serviceApi: DefineService(serviceApi),
+		clientApi: DefineService(clientApi),
 	}
 }
 
-func (d InterfaceDef[S, C]) NewClient(sock net.Socket) *Client {
-	return NewClient(sock, d.clientApi, d.serviceApi)
+// func NewInterfaceDef[S, C any]() InterfaceDef[S, C] {
+// 	serviceApi := new(S)
+// 	clientApi := new(C)
+// 	return InterfaceDef[S, C]{
+// 		serviceApi: NewServiceDef(serviceApi),
+// 		clientApi: NewServiceDef(clientApi),
+// 	}
+// }
+
+func (d InterfaceDef[S, C]) NewClient() *Client[C, S] {
+	// Note: The C and S are reversed because we call the service and serve the client
+	client := newClient[C, S](d.clientApi, d.serviceApi)
+	client.registerHandlers(d.Client)
+
+	return client
 }
 
-func (d InterfaceDef[S, C]) NewServer(sock net.Socket) *Client {
-	client := NewClient(sock, d.serviceApi, d.clientApi)
+func (d InterfaceDef[S, C]) NewServer() *Client[S, C] {
+	client := newClient[S, C](d.serviceApi, d.clientApi)
+	client.registerHandlers(d.Service)
 
 	return client
 }
@@ -156,13 +272,11 @@ type Message struct {
 	Data []byte
 }
 
-func NewClient(sock net.Socket, serviceDef, clientDef ServiceDefinition) *Client {
+func newClient[S, C any](serviceDef, clientDef ServiceDefinition) *Client[S, C] {
 	rngSrc := rand.NewSource(time.Now().UnixNano())
 	rng := rand.New(rngSrc) // TODO - push this up to the client?
 
-	client := &Client{
-		sock: sock,
-
+	client := &Client[S, C]{
 		serviceDef: serviceDef,
 		clientDef: clientDef,
 
@@ -174,12 +288,20 @@ func NewClient(sock net.Socket, serviceDef, clientDef ServiceDefinition) *Client
 		rng: rng,
 	}
 
-	client.start() // This doesn't block
 	return client
 }
 
-type Client struct {
+func (c *Client[S, C]) Connect(sock net.Socket) {
+	c.sock = sock
+	c.start() // This doesn't block
+}
+
+type Client[S, C any] struct {
 	sock net.Socket
+
+	Call C
+
+	interfaceDef InterfaceDef[S, C]
 
 	serviceDef, clientDef ServiceDefinition
 
@@ -190,18 +312,18 @@ type Client struct {
 	rng *rand.Rand
 }
 
-func (c *Client) Close() {
+func (c *Client[S, C]) Close() {
 	// TODO - what to do about active calls and handlers?
 	c.sock.Close()
 }
 
 
 // TODO - get rid of this
-func (c *Client) Closed() bool {
+func (c *Client[S, C]) Closed() bool {
 	return c.sock.Closed()
 }
 
-func (c *Client) start() {
+func (c *Client[S, C]) start() {
 	dat := make([]byte, 8 * 1024) // TODO - hardcoded
 	go func() {
 		for {
@@ -261,9 +383,9 @@ func (c *Client) start() {
 
 
 type MessageHandlerFunc func(req any) error
-type HandlerFunc func(req any) ([]byte, error)
+type HandlerFunc func(req any) (any, error)
 
-func (c *Client) HandleResponse(rpcResp Response) error {
+func (c *Client[S, C]) HandleResponse(rpcResp Response) error {
 	callChan, ok := c.activeCalls[rpcResp.Id]
 	if !ok {
 		return fmt.Errorf("Disassociated Response")
@@ -279,7 +401,7 @@ func (c *Client) HandleResponse(rpcResp Response) error {
 	return nil
 }
 
-func (c *Client) HandleRequest(rpcReq Request) (Response, error) {
+func (c *Client[S, C]) HandleRequest(rpcReq Request) (Response, error) {
 	rpcResp := Response{
 		Id: rpcReq.Id,
 	}
@@ -293,13 +415,18 @@ func (c *Client) HandleRequest(rpcReq Request) (Response, error) {
 		return rpcResp, fmt.Errorf("RPC Handler not set for type: %T", reqVal)
 	}
 
-	data, err := handler(reqVal)
-	rpcResp.Data = data
+	anyResp, err := handler(reqVal)
 
+	data, err := c.serviceDef.Responses.Serialize(anyResp)
+	if err != nil {
+		return rpcResp, err
+	}
+
+	rpcResp.Data = data
 	return rpcResp, err
 }
 
-func (c *Client) HandleMessage(msg Message) error {
+func (c *Client[S, C]) HandleMessage(msg Message) error {
 	msgVal, err := c.serviceDef.Requests.Deserialize(msg.Data)
 	if err != nil { return err }
 	msgValType := reflect.TypeOf(msgVal)
@@ -312,42 +439,90 @@ func (c *Client) HandleMessage(msg Message) error {
 	return handler(msgVal)
 }
 
-func RegisterMessage[M any](client *Client, handler func(M) error) {
-	var msgVal M
-	msgValType := reflect.TypeOf(msgVal)
-	_, exists := client.messageHandlers[msgValType]
-	if exists {
-		panic("Cant reregister the same handler type")
-	}
+// func RegisterMessage[S, C, M any](client *Client[S, C], handler func(M) error) {
+// 	var msgVal M
+// 	msgValType := reflect.TypeOf(msgVal)
+// 	_, exists := client.messageHandlers[msgValType]
+// 	if exists {
+// 		panic("Cant reregister the same handler type")
+// 	}
 
-	// Create a handler function
-	generalHandlerFunc := func(anyMsg any) error {
-		msg, ok := anyMsg.(M)
-		if !ok {
-			panic(fmt.Errorf("Mismatched message types: %T, %T", msgVal, msg))
+// 	// Create a handler function
+// 	generalHandlerFunc := makeMsgHandler(handler)
+
+// 	// Store the handler function
+// 	client.messageHandlers[msgValType] = generalHandlerFunc
+// }
+
+func (client *Client[S, C]) registerHandlers(service any) {
+	ty := reflect.TypeOf(service)
+	val := reflect.ValueOf(service)
+	numField := ty.NumField()
+	for i := 0; i < numField; i++ {
+		// field := ty.Field(i)
+		// fmt.Println(field)
+		field := val.Field(i)
+		fmt.Println(field)
+
+		// fieldAny := reflect.New(field.Type).Elem().Interface()
+		fieldAny := field.Interface()
+
+		fmt.Printf("Type: %T\n", fieldAny)
+		switch rpcHandler := fieldAny.(type) {
+		case RpcHandler:
+			reqType, handler := rpcHandler.Handler()
+			client.registerRpc(reqType, handler)
+		case MsgHandler:
+			msgType, handler := rpcHandler.Handler()
+			client.registerMsg(msgType, handler)
+		default:
+			panic("ERROR") // TODO - must be an RpcDef or a message Def
 		}
-
-		err := handler(msg)
-		return err
 	}
-
-	// Store the handler function
-	client.messageHandlers[msgValType] = generalHandlerFunc
 }
 
-func Register[Req any, Resp any](client *Client, handler func(Req) (Resp, error)) {
-	var reqVal Req
-	reqValType := reflect.TypeOf(reqVal)
+func (client *Client[S, C]) registerRpc(reqValType reflect.Type, handler HandlerFunc) {
+	if handler == nil { panic("Handler must not be nil!") }
 	_, exists := client.handlers[reqValType]
 	if exists {
 		panic("Cant reregister the same handler type")
 	}
 
-	// Create a handler function
-	generalHandlerFunc := func(anyReq any) ([]byte, error) {
+	// Store the handler function
+	client.handlers[reqValType] = handler
+}
+
+func (client *Client[S, C]) registerMsg(msgValType reflect.Type, handler MessageHandlerFunc) {
+
+	_, exists := client.messageHandlers[msgValType]
+	if exists {
+		panic("Cant reregister the same handler type")
+	}
+
+	// Store the handler function
+	client.messageHandlers[msgValType] = handler
+}
+
+// func Register[S, C, Req, Resp any](client *Client[S, C], handler func(Req) (Resp, error)) {
+// 	var reqVal Req
+// 	reqValType := reflect.TypeOf(reqVal)
+// 	_, exists := client.handlers[reqValType]
+// 	if exists {
+// 		panic("Cant reregister the same handler type")
+// 	}
+
+// 	// Create a handler function
+// 	generalHandlerFunc := makeRpcHandler(handler)
+
+// 	// Store the handler function
+// 	client.handlers[reqValType] = generalHandlerFunc
+// }
+
+func makeRpcHandler[Req, Resp any](handler func(Req) (Resp, error)) HandlerFunc {
+	return func(anyReq any) (any, error) {
 		req, ok := anyReq.(Req)
 		if !ok {
-			panic(fmt.Errorf("Mismatched request types: %T, %T", reqVal, req))
+			panic(fmt.Errorf("Mismatched request types: %T", req))
 		}
 
 		res, err := handler(req)
@@ -355,19 +530,21 @@ func Register[Req any, Resp any](client *Client, handler func(Req) (Resp, error)
 			return nil, err
 		}
 
-		data, err := client.serviceDef.Responses.Serialize(res)
-		if err != nil {
-			return nil, err
-		}
-
-		return data, nil
+		return res, nil
 	}
-
-	// Store the handler function
-	client.handlers[reqValType] = generalHandlerFunc
 }
 
+func makeMsgHandler[M any](handler func(M) error) MessageHandlerFunc {
+	return func(anyMsg any) error {
+		msg, ok := anyMsg.(M)
+		if !ok {
+			panic(fmt.Errorf("Mismatched message types: %T", anyMsg))
+		}
 
+		err := handler(msg)
+		return err
+	}
+}
 
 // Client - making requests
 // func (c *Client) MakeRequest(req any) (any, error) {
@@ -384,18 +561,31 @@ func Register[Req any, Resp any](client *Client, handler func(Req) (Resp, error)
 // 	return err
 // }
 
-func NewCall[Req, Resp any](client *Client) *Call[Req, Resp] {
-	return &Call[Req, Resp]{
+// func Rpc[Req, Resp any](f func(Req) (Resp, error))
+
+// func GetCall[Req, Resp any](client *Client, _ func(Req) (Resp, error)) *Call[Req, Resp] {
+// 	return NewCall[Req, Resp](client)
+// }
+
+func NewCall2[S, C, Req, Resp any](client *Client[S, C], rpc RpcDef[Req, Resp]) *Call[S, C, Req, Resp] {
+	return &Call[S, C, Req, Resp]{
 		client: client,
 		timeout: 5 * time.Second,
 	}
 }
-type Call[Req, Resp any] struct {
-	client *Client
+
+func NewCall[S, C, Req, Resp any](client *Client[S, C]) *Call[S, C, Req, Resp] {
+	return &Call[S, C, Req, Resp]{
+		client: client,
+		timeout: 5 * time.Second,
+	}
+}
+type Call[S, C, Req, Resp any] struct {
+	client *Client[S, C]
 	timeout time.Duration
 }
 
-func (c *Call[Req, Resp]) Do(req Req) (Resp, error) {
+func (c *Call[S, C, Req, Resp]) Do(req Req) (Resp, error) {
 	var resp Resp
 	rpcReq, err := c.Make(req)
 	if err != nil { return resp, err }
@@ -423,7 +613,7 @@ func (c *Call[Req, Resp]) Do(req Req) (Resp, error) {
 	}
 }
 
-func (c *Call[Req, Resp]) Make(req Req) (Request, error) {
+func (c *Call[S, C, Req, Resp]) Make(req Req) (Request, error) {
 	dat, err := c.client.clientDef.Requests.Serialize(req)
 
 	return Request{
@@ -432,7 +622,7 @@ func (c *Call[Req, Resp]) Make(req Req) (Request, error) {
 	}, err
 }
 
-func (c *Call[Req, Resp]) Unmake(rpcResp Response) (Resp, error) {
+func (c *Call[S, C, Req, Resp]) Unmake(rpcResp Response) (Resp, error) {
 	anyResp, err := c.client.clientDef.Responses.Deserialize(rpcResp.Data)
 	var resp Resp
 	if err != nil { return resp, err }
@@ -441,15 +631,21 @@ func (c *Call[Req, Resp]) Unmake(rpcResp Response) (Resp, error) {
 	return resp, err
 }
 
-func NewMessage[A any](client *Client) *Msg[A] {
-	return &Msg[A]{
+func NewMessage2[S, C, A any](client *Client[S, C], rpc MsgDef[A]) *Msg[S, C, A] {
+	return &Msg[S, C, A]{
 		client: client,
 	}
 }
-type Msg[A any] struct {
-	client *Client
+
+func NewMessage[S, C, A any](client *Client[S, C]) *Msg[S, C, A] {
+	return &Msg[S, C, A]{
+		client: client,
+	}
 }
-func (m *Msg[A]) Send(req A) error {
+type Msg[S, C, A any] struct {
+	client *Client[S, C]
+}
+func (m *Msg[S, C, A]) Send(req A) error {
 	rpcMsg, err := m.Make(req)
 	if err != nil { return err }
 
@@ -463,7 +659,7 @@ func (m *Msg[A]) Send(req A) error {
 	return nil
 }
 
-func (m *Msg[A]) Make(req A) (Message, error) {
+func (m *Msg[S, C, A]) Make(req A) (Message, error) {
 	dat, err := m.client.clientDef.Requests.Serialize(req)
 
 	return Message{
