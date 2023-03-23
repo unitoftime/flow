@@ -79,11 +79,12 @@ func TestMain(t *testing.T) {
 			ts := &TestService{}
 			client.Handler.DoThing.Register(ts.DoThing)
 			client.Handler.HandleMsg.Register(ts.HandleMsg)
-			call := NewCall(client, client.Call.ClientDoThing)
+			// call := NewCall(client, client.Call.ClientDoThing)
 
 			client.Connect(sock)
 
-			resp, err := call.Do(ClientReq{1})
+			resp, err := client.Call.ClientDoThing.Call(ClientReq{1})
+			// resp, err := call.Do(ClientReq{1})
 			if err != nil { panic(err) }
 			fmt.Println("ClientDoThingResp: ", resp)
 		}
@@ -100,17 +101,19 @@ func TestMain(t *testing.T) {
 	client.Handler.ClientDoThing.Register(ts.ClientDoThing)
 	client.Connect(sock)
 
-	call := NewCall(client, client.Call.DoThing)
+	// call := NewCall(client, client.Call.DoThing)
 	msgCall := NewMessage(client, client.Call.HandleMsg)
 
 	fmt.Println(client)
 
 	time.Sleep(1 * time.Second)
 
-	msgCall.Send(ServerMsg{9})
+	err := msgCall.Send(ServerMsg{9})
+	if err != nil { panic(err) }
 
+	resp, err := client.Call.DoThing.Call(ServerReq{5})
 	// resp := client.MakeRequest(Req{5})
-	resp, err := call.Do(ServerReq{5})
+	// resp, err := call.Do(ServerReq{5})
 	if err != nil { panic(err) }
 	fmt.Println("Resp: ", resp)
 

@@ -10,6 +10,11 @@ import (
 	// "github.com/unitoftime/flow/net/rpc"
 )
 
+type rpcClient interface {
+	doRpc(any, time.Duration) (any, error)
+	doMsg(any) error
+}
+
 type MsgDefinition interface {
 	MsgType() any
 }
@@ -17,6 +22,10 @@ type MsgDefinition interface {
 type RpcDefinition interface {
 	ReqType() any
 	RespType() any
+}
+
+type clientSetter interface {
+	setClient(rpcClient)
 }
 
 type RpcHandler interface {
@@ -29,6 +38,11 @@ type MsgHandler interface {
 
 type MsgDef[A any] struct {
 	handler MessageHandlerFunc
+	client rpcClient
+}
+
+func (d *MsgDef[A]) setClient(client rpcClient) {
+	d.client = client
 }
 
 func (d MsgDef[A]) Handler() (reflect.Type, MessageHandlerFunc) {
@@ -45,9 +59,18 @@ func (d MsgDef[A]) MsgType() any {
 	return a
 }
 
+func (d MsgDef[A]) Send(msg A) error {
+	return d.client.doMsg(msg)
+}
+
 
 type RpcDef[Req, Resp any] struct {
 	handler HandlerFunc
+	client rpcClient
+}
+
+func (d *RpcDef[Req, Resp]) setClient(client rpcClient) {
+	d.client = client
 }
 
 func (d RpcDef[Req, Resp]) ReqType() any {
@@ -67,6 +90,15 @@ func (d *RpcDef[Req, Resp]) Register(handler func(Req) (Resp, error)) {
 // func (d RpcDef[Req, Resp]) Get(client *Client[S, C]) *Call[Req, Resp] {
 // 	return NewCall[Req, Resp](client)
 // }
+
+func (d RpcDef[Req, Resp]) Call(req Req) (Resp, error) {
+	var resp Resp
+	anyResp, err := d.client.doRpc(req, 5 * time.Second)
+	if err != nil { return resp, err }
+	resp, ok := anyResp.(Resp)
+	if !ok { panic("Mismatched type!") }
+	return resp, nil
+}
 
 func (d RpcDef[Req, Resp]) Handler() (reflect.Type, HandlerFunc) {
 	var req Req
@@ -270,6 +302,7 @@ func newClient[S, C any](serviceDef, clientDef ServiceDefinition) *Client[S, C] 
 
 func (c *Client[S, C]) Connect(sock net.Socket) {
 	c.registerHandlers(c.Handler)
+	c.registerCallers(&c.Call)
 
 	c.sock = sock
 	c.start() // This doesn't block
@@ -432,6 +465,29 @@ func (c *Client[S, C]) HandleMessage(msg Message) error {
 // 	client.messageHandlers[msgValType] = generalHandlerFunc
 // }
 
+// TODO - Note: caller must be passed in as a pointer
+func (client *Client[S, C]) registerCallers(caller any) {
+	ty := reflect.TypeOf(caller)
+	val := reflect.ValueOf(caller)
+	numField := ty.Elem().NumField()
+	for i := 0; i < numField; i++ {
+		// field := ty.Field(i)
+		// fmt.Println(field)
+		field := val.Elem().Field(i).Addr()
+		fmt.Println(field)
+
+		fieldAny := field.Interface()
+
+		fmt.Printf("Type: %T\n", fieldAny)
+		switch rpcDef := fieldAny.(type) {
+		case clientSetter:
+			rpcDef.setClient(client)
+		default:
+			panic("Error: Must be a clientSetter")
+		}
+	}
+}
+
 func (client *Client[S, C]) registerHandlers(service any) {
 	ty := reflect.TypeOf(service)
 	val := reflect.ValueOf(service)
@@ -565,20 +621,22 @@ type Call[S, C, Req, Resp any] struct {
 	timeout time.Duration
 }
 
+
 func (c *Call[S, C, Req, Resp]) Do(req Req) (Resp, error) {
 	var resp Resp
-	rpcReq, err := c.Make(req)
+	rpcReq, err := c.client.MakeRequest(req)
 	if err != nil { return resp, err }
 
 	// TODO!!! - check if this ID is already being used, if it is, then use a different one
 
-	// Make a channel to wait for a response on this Id
-	respChan := make(chan Response)
-	c.client.activeCalls[rpcReq.Id] = respChan
-
 	// Send over socket
 	reqDat, err := rpcSerdes.Marshal(rpcReq)
 	if err != nil { return resp, err }
+
+	// Make a channel to wait for a response on this Id
+	// TODO - you need to clean this up on any error
+	respChan := make(chan Response)
+	c.client.activeCalls[rpcReq.Id] = respChan
 
 	// TODO - retry sending? Or push to a queue to be batch sent?
 	err = c.client.sock.Write(reqDat)
@@ -586,29 +644,77 @@ func (c *Call[S, C, Req, Resp]) Do(req Req) (Resp, error) {
 
 	select {
 	case rpcResp := <-respChan:
-		return c.Unmake(rpcResp)
+		anyResp, err := c.client.UnmakeResponse(rpcResp)
+		if err != nil { return resp, err }
+		resp, ok := anyResp.(Resp)
+		if !ok { panic("Mismatched type!") }
+		return resp, nil
 	case <-time.After(c.timeout):
 		// TODO - I need to cleanup the channel here
 		return resp, fmt.Errorf("rpc timeout reached, giving up waiting")
 	}
 }
 
-func (c *Call[S, C, Req, Resp]) Make(req Req) (Request, error) {
-	dat, err := c.client.clientDef.Requests.Serialize(req)
+func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
+	rpcReq, err := c.MakeRequest(req)
+	if err != nil { return nil, err }
+
+	// TODO!!! - check if this ID is already being used, if it is, then use a different one
+
+	// Send over socket
+	reqDat, err := rpcSerdes.Marshal(rpcReq)
+	if err != nil { return nil, err }
+
+	// Make a channel to wait for a response on this Id
+	// TODO - you need to clean this up on any error
+	respChan := make(chan Response)
+	c.activeCalls[rpcReq.Id] = respChan
+
+	// TODO - retry sending? Or push to a queue to be batch sent?
+	err = c.sock.Write(reqDat)
+	if err != nil { return nil, err }
+
+	select {
+	case rpcResp := <-respChan:
+		return c.UnmakeResponse(rpcResp)
+	case <-time.After(timeout):
+		// TODO - I need to cleanup the channel here
+		return nil, fmt.Errorf("rpc timeout reached, giving up waiting")
+	}
+}
+
+func (c *Client[S, C]) doMsg(msg any) error {
+	rpcMsg, err := c.MakeMessage(msg)
+	if err != nil { return err }
+
+	// Send over socket
+	msgDat, err := rpcSerdes.Marshal(rpcMsg)
+	if err != nil { return err }
+
+	err = c.sock.Write(msgDat)
+	if err != nil { return err }
+
+	return nil
+}
+
+func (c *Client[S, C]) MakeRequest(req any) (Request, error) {
+// func (c *Call[S, C, Req, Resp]) Make(req any) (Request, error) {
+	dat, err := c.clientDef.Requests.Serialize(req)
 
 	return Request{
-		Id: c.client.rng.Uint32(),
+		Id: c.rng.Uint32(),
 		Data: dat,
 	}, err
 }
 
-func (c *Call[S, C, Req, Resp]) Unmake(rpcResp Response) (Resp, error) {
-	anyResp, err := c.client.clientDef.Responses.Deserialize(rpcResp.Data)
-	var resp Resp
-	if err != nil { return resp, err }
-	resp, ok := anyResp.(Resp)
-	if !ok { panic("Mismatched type!") }
-	return resp, err
+func (c *Client[S, C]) UnmakeResponse(rpcResp Response) (any, error) {
+	anyResp, err := c.clientDef.Responses.Deserialize(rpcResp.Data)
+	// var resp Resp
+	// if err != nil { return resp, err }
+	return anyResp, err
+	// resp, ok := anyResp.(Resp)
+	// if !ok { panic("Mismatched type!") }
+	// return resp, err
 }
 
 func NewMessage[S, C, A any](client *Client[S, C], rpc MsgDef[A]) *Msg[S, C, A] {
@@ -641,6 +747,14 @@ func (m *Msg[S, C, A]) Send(req A) error {
 
 func (m *Msg[S, C, A]) Make(req A) (Message, error) {
 	dat, err := m.client.clientDef.Requests.Serialize(req)
+
+	return Message{
+		Data: dat,
+	}, err
+}
+
+func (c *Client[S, C]) MakeMessage(msg any) (Message, error) {
+	dat, err := c.clientDef.Requests.Serialize(msg)
 
 	return Message{
 		Data: dat,
