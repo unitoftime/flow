@@ -31,16 +31,15 @@ type ServerResp struct {
 
 type TestService struct {
 }
-func (s *TestService) HandleMsg(r ServerMsg) error {
+func (s *TestService) HandleMsg(r ServerMsg) {
 	fmt.Println("HandleMsg: ", r)
-	return nil
 }
 
-func (s *TestService) DoThing(r ServerReq) (ServerResp, error) {
+func (s *TestService) DoThing(r ServerReq) ServerResp {
 	fmt.Println("DoThing: ", r)
 	return ServerResp{
 		r.Val + 1,
-	}, nil
+	}
 }
 
 type ClientReq struct {
@@ -52,11 +51,11 @@ type ClientResp struct {
 
 type TestServiceClient struct {
 }
-func (s *TestServiceClient) ClientDoThing(r ClientReq) (ClientResp, error) {
+func (s *TestServiceClient) ClientDoThing(r ClientReq) ClientResp {
 	fmt.Println("ClientDoThing: ", r)
 	return ClientResp{
 		r.Val + 100,
-	}, nil
+	}
 }
 
 func TestMain(t *testing.T) {

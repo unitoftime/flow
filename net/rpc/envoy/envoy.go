@@ -55,7 +55,7 @@ func (d MsgDef[A]) Handler() (reflect.Type, MessageHandlerFunc) {
 	return reflect.TypeOf(a), d.handler
 }
 
-func (d *MsgDef[A]) Register(handler func(A) error) {
+func (d *MsgDef[A]) Register(handler func(A)) {
 	d.handler = makeMsgHandler(handler)
 }
 
@@ -88,7 +88,7 @@ func (d RpcDef[Req, Resp]) RespType() any {
 	return resp
 }
 
-func (d *RpcDef[Req, Resp]) Register(handler func(Req) (Resp, error)) {
+func (d *RpcDef[Req, Resp]) Register(handler func(Req) Resp) {
 	d.handler = makeRpcHandler(handler)
 }
 
@@ -398,8 +398,8 @@ func (c *Client[S, C]) start() {
 }
 
 
-type MessageHandlerFunc func(req any) error
-type HandlerFunc func(req any) (any, error)
+type MessageHandlerFunc func(req any)
+type HandlerFunc func(req any) any
 
 func (c *Client[S, C]) HandleResponse(rpcResp Response) error {
 	callChan, ok := c.activeCalls[rpcResp.Id]
@@ -431,7 +431,7 @@ func (c *Client[S, C]) HandleRequest(rpcReq Request) (Response, error) {
 		return rpcResp, fmt.Errorf("RPC Handler not set for type: %T", reqVal)
 	}
 
-	anyResp, err := handler(reqVal)
+	anyResp := handler(reqVal)
 
 	data, err := c.serviceDef.Responses.Serialize(anyResp)
 	if err != nil {
@@ -452,7 +452,8 @@ func (c *Client[S, C]) HandleMessage(msg Message) error {
 		return fmt.Errorf("Message Handler not set for type: %T", msgVal)
 	}
 
-	return handler(msgVal)
+	handler(msgVal)
+	return nil
 }
 
 // func RegisterMessage[S, C, M any](client *Client[S, C], handler func(M) error) {
@@ -559,31 +560,27 @@ func (client *Client[S, C]) registerMsg(msgValType reflect.Type, handler Message
 // 	client.handlers[reqValType] = generalHandlerFunc
 // }
 
-func makeRpcHandler[Req, Resp any](handler func(Req) (Resp, error)) HandlerFunc {
-	return func(anyReq any) (any, error) {
+func makeRpcHandler[Req, Resp any](handler func(Req) Resp) HandlerFunc {
+	return func(anyReq any) any {
 		req, ok := anyReq.(Req)
 		if !ok {
 			panic(fmt.Errorf("Mismatched request types: %T", req))
 		}
 
-		res, err := handler(req)
-		if err != nil {
-			return nil, err
-		}
+		res := handler(req)
 
-		return res, nil
+		return res
 	}
 }
 
-func makeMsgHandler[M any](handler func(M) error) MessageHandlerFunc {
-	return func(anyMsg any) error {
+func makeMsgHandler[M any](handler func(M)) MessageHandlerFunc {
+	return func(anyMsg any) {
 		msg, ok := anyMsg.(M)
 		if !ok {
 			panic(fmt.Errorf("Mismatched message types: %T", anyMsg))
 		}
 
-		err := handler(msg)
-		return err
+		handler(msg)
 	}
 }
 
