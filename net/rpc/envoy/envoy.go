@@ -3,12 +3,17 @@ package envoy
 import (
 	"fmt"
 	"time"
+	"errors"
 	"math/rand"
 	"reflect"
 
 	"github.com/unitoftime/flow/net"
 	// "github.com/unitoftime/flow/net/rpc"
 )
+
+var ErrTimeout = errors.New("timeout reached")
+var ErrDisconnected = errors.New("socket disconnected")
+
 
 type rpcClient interface {
 	doRpc(any, time.Duration) (any, error)
@@ -323,9 +328,9 @@ type Client[S, C any] struct {
 	rng *rand.Rand
 }
 
-func (c *Client[S, C]) Close() {
+func (c *Client[S, C]) Close() error {
 	// TODO - what to do about active calls and handlers?
-	c.sock.Close()
+	return c.sock.Close()
 }
 
 
@@ -651,7 +656,7 @@ func (c *Call[S, C, Req, Resp]) Do(req Req) (Resp, error) {
 		return resp, nil
 	case <-time.After(c.timeout):
 		// TODO - I need to cleanup the channel here
-		return resp, fmt.Errorf("rpc timeout reached, giving up waiting")
+		return resp, ErrTimeout
 	}
 }
 
@@ -672,14 +677,17 @@ func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
 
 	// TODO - retry sending? Or push to a queue to be batch sent?
 	err = c.sock.Write(reqDat)
-	if err != nil { return nil, err }
+	if err != nil {
+		// TODO - snuffing underlying error because if we coudln't send it means we are trying to reconnect.
+		return nil, ErrDisconnected
+	}
 
 	select {
 	case rpcResp := <-respChan:
 		return c.UnmakeResponse(rpcResp)
 	case <-time.After(timeout):
 		// TODO - I need to cleanup the channel here
-		return nil, fmt.Errorf("rpc timeout reached, giving up waiting")
+		return nil, ErrTimeout
 	}
 }
 
@@ -692,7 +700,10 @@ func (c *Client[S, C]) doMsg(msg any) error {
 	if err != nil { return err }
 
 	err = c.sock.Write(msgDat)
-	if err != nil { return err }
+	if err != nil {
+		// TODO - snuffing underlying error because if we coudln't send it means we are trying to reconnect.
+		return ErrDisconnected
+	}
 
 	return nil
 }
