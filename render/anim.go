@@ -94,6 +94,10 @@ func (a *Animation) SetAnimationWithDuration(name string, dur time.Duration) {
 	a.speed = totalAnimTime.Seconds() / dur.Seconds()
 }
 
+func (a *Animation) GetAnimationName() string {
+	return a.animName
+}
+
 func (a *Animation) SetAnimation(name string) {
 	if name == a.animName { return } // Skip if we aren't actually changing the animation
 
