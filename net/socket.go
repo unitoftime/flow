@@ -101,6 +101,9 @@ func (s *PipeSocket) Closed() bool {
 
 func (s *PipeSocket) Close() error {
 	s.closed.Store(true)
+
+	s.redialMu.Lock()
+	defer s.redialMu.Unlock()
 	if s.redialTimer != nil {
 		s.redialTimer.Stop()
 	}
