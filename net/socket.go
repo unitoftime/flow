@@ -29,6 +29,7 @@ type PipeSocket struct {
 	closed atomic.Bool    // Used to indicate that the user has requested to close this ClientConn
 	connected atomic.Bool // Used to indicate that the underlying connection is still active
 
+	redialMu sync.Mutex
 	redialTimer *time.Timer // Tracks the redial timer
 }
 
@@ -229,6 +230,12 @@ func (s *PipeSocket) Read(buf []byte) (int, error) {
 // 	}
 // }
 
+func (s *PipeSocket) triggerRedial(dur time.Duration) {
+	s.redialMu.Lock()
+	defer s.redialMu.Unlock()
+	s.redialTimer = time.AfterFunc(dur, s.redial)
+}
+
 func (s *PipeSocket) redial() {
 	if s.dialConfig == nil { return } // If socket cant dial, then skip
 	if s.Closed() { return } // If socket is closed, then never reconnect
@@ -237,7 +244,8 @@ func (s *PipeSocket) redial() {
 		// TODO - I'd like this to be more on-demand
 		// Trigger the next redial attempt
 		defer func() {
-			s.redialTimer = time.AfterFunc(1 * time.Second, s.redial)
+			// s.redialTimer = time.AfterFunc(1 * time.Second, s.redial)
+			s.triggerRedial(1 * time.Second)
 		}()
 
 		if s.connected.Load() {

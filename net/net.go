@@ -95,11 +95,12 @@ func (c *DialConfig) Dial() Socket {
 	sock := newDialSocket(c)
 
 	// TODO - would prefer to just immediately dial, but we cant block
-	sock.redialTimer = time.AfterFunc(1, sock.redial)
+	// sock.redialTimer = time.AfterFunc(1, sock.redial)
+	// time.AfterFunc(1, sock.redial)
+	sock.triggerRedial(1 * time.Nanosecond)
 
 	return sock
 }
-
 
 func (c *DialConfig) dialPipe() (Pipe, error) {
 	fmt.Println("Redialing: ", c)
