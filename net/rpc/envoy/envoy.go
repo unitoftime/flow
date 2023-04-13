@@ -284,7 +284,7 @@ func (c *Client[S, C]) Closed() bool {
 }
 
 func (c *Client[S, C]) start() {
-	dat := make([]byte, 8 * 1024) // TODO - hardcoded
+	dat := make([]byte, 64 * 1024) // TODO!!!! - hardcoded to max webrtc packet size
 	go func() {
 		for {
 			if c.sock.Closed() {
@@ -392,7 +392,9 @@ func (c *Client[S, C]) handleRequest(rpcReq Request) error {
 
 func (c *Client[S, C]) handleMessage(msg Message) error {
 	msgVal, err := c.serviceDef.Requests.Deserialize(msg.Data)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	msgValType := reflect.TypeOf(msgVal)
 
 	handler, ok := c.messageHandlers[msgValType]
