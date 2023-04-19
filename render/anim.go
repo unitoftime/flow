@@ -48,6 +48,7 @@ type Animation struct {
 	animName string
 	curAnim []Frame // This is the current animation frames that we are operating on
 
+	done bool
 	Loop bool
 	speed float64 // This is used to scale the duration of the animation evenly so that the animation can fit a certain time duration
 
@@ -114,10 +115,21 @@ func (a *Animation) SetAnimation(name string) {
 	a.SetFrame(0)
 	a.speed = 1.0
 	a.hasUpdatedOnce = false
+	a.done = false
 }
 
 func (a *Animation) NextFrame() {
 	a.SetFrame(a.frameIdx + 1)
+}
+
+// Returns true when the current animation is done, else returns false
+// Always returns false if the animation loops
+func (a *Animation) Done() bool {
+	if a.Loop {
+		return false
+	}
+
+	return a.done
 }
 
 func (a *Animation) SetFrame(idx int) {
@@ -129,6 +141,7 @@ func (a *Animation) SetFrame(idx int) {
 	} else {
 		// If the idx is passed the animation, snap to the last frame
 		if idx >= len(a.curAnim) {
+			a.done = true
 			idx = len(a.curAnim) - 1
 		}
 		a.frameIdx = idx
