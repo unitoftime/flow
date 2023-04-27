@@ -95,6 +95,11 @@ func (a *Animation) SetAnimationWithDuration(name string, dur time.Duration) {
 	a.speed = totalAnimTime.Seconds() / dur.Seconds()
 }
 
+func (a *Animation) HasAnimation(name string) bool {
+	_, exists := a.frames[name]
+	return exists
+}
+
 func (a *Animation) GetAnimationName() string {
 	return a.animName
 }
