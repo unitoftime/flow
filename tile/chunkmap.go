@@ -466,11 +466,11 @@ func (t *ChunkMath) GetOverlappingTiles(x, y float64, collider *phy2.CircleColli
 	return ret
 }
 
-func (t *ChunkMath) GetOverlappingTiles2(ret []TilePosition, x, y float64, collider *phy2.CircleCollider) []TilePosition {
-	minX := x - collider.Radius
-	maxX := x + collider.Radius
-	minY := y - collider.Radius
-	maxY := y + collider.Radius
+func (t *ChunkMath) GetOverlappingTiles2(ret []TilePosition, x, y float64, radius float64) []TilePosition {
+	minX := x - float64(radius)
+	maxX := x + float64(radius)
+	minY := y - float64(radius)
+	maxY := y + float64(radius)
 
 	min := t.PositionToTile(minX, minY)
 	max := t.PositionToTile(maxX, maxY)
