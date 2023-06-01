@@ -52,7 +52,7 @@ type CircleCollider struct {
 	Radius float64
 	HitLayer CollisionLayer
 	Layer CollisionLayer
-	Disabled bool // If set true, this collider won't collide with anything
+	// Disabled bool // If set true, this collider won't collide with anything
 }
 
 func NewCircleCollider(radius float64) CircleCollider {
@@ -64,6 +64,15 @@ func NewCircleCollider(radius float64) CircleCollider {
 func (c *CircleCollider) LayerMask(layer CollisionLayer) bool {
 	return (c.HitLayer & layer) > 0 // One layer must overlap for the layermask to work
 }
+
+// func (c *CircleCollider) Position() Pos {
+// 	return Pos{c.CenterX, c.CenterY}
+// }
+
+// func (c *CircleCollider) SetPosition(pos Pos) {
+// 	c.CenterX = pos.X
+// 	c.CenterY = pos.Y
+// }
 
 func (c *CircleCollider) Bounds() Rect {
 	return Rect{
@@ -84,9 +93,9 @@ func (c *CircleCollider) Contains(yProjection float64, pos Pos) bool {
 }
 
 // TODO - Maybe pass position based delta into collider?
-func (c *CircleCollider) Collides(yProjection float64, c2 *CircleCollider) bool {
-	return !c.Disabled && !c2.Disabled && c.Overlaps(yProjection, c2)
-}
+// func (c *CircleCollider) Collides(yProjection float64, c2 *CircleCollider) bool {
+// 	return !c.Disabled && !c2.Disabled && c.Overlaps(yProjection, c2)
+// }
 
 func (c *CircleCollider) Overlaps(yProjection float64, c2 *CircleCollider) bool {
 	dx := c2.CenterX - c.CenterX

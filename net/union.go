@@ -59,6 +59,8 @@ func (u *UnionBuilder) Make(val any) (Union, error) {
 	if err != nil {
 		return Union{}, err
 	}
+	// fmt.Printf("%T: %d\n", val, len(serializedVal))
+
 	union := Union{
 		Type: typeId,
 		Payload: serializedVal,

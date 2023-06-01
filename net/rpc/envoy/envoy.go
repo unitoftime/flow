@@ -22,7 +22,6 @@ import (
 // 6. Message batching?
 
 var ErrTimeout = errors.New("timeout reached")
-var ErrDisconnected = errors.New("socket disconnected")
 
 // Internal serialization
 var rpcSerdes serdes
@@ -284,7 +283,7 @@ func (c *Client[S, C]) Closed() bool {
 }
 
 func (c *Client[S, C]) start() {
-	dat := make([]byte, 64 * 1024) // TODO!!!! - hardcoded to max webrtc packet size
+	dat := make([]byte, 64 * 1024) // TODO!!!! - hardcoded
 	go func() {
 		for {
 			if c.sock.Closed() {
@@ -511,8 +510,7 @@ func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
 	// TODO - check that n is correct?
 	_, err = c.sock.Write(reqDat)
 	if err != nil {
-		// TODO - snuffing underlying error because if we coudln't send it means we are trying to reconnect.
-		return nil, ErrDisconnected
+		return nil, err
 	}
 
 	select {
@@ -527,6 +525,8 @@ func (c *Client[S, C]) doMsg(msg any) error {
 	dat, err := c.clientDef.Requests.Serialize(msg)
 	if err != nil { return err }
 
+	// println("sendMsg: ", len(dat))
+
 	rpcMsg := Message{
 		Data: dat,
 	}
@@ -538,8 +538,7 @@ func (c *Client[S, C]) doMsg(msg any) error {
 	// TODO - check that n is correct?
 	_, err = c.sock.Write(msgDat)
 	if err != nil {
-		// TODO - snuffing underlying error because if we coudln't send it means we are trying to reconnect.
-		return ErrDisconnected
+		return err
 	}
 
 	return nil
