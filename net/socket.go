@@ -100,6 +100,9 @@ func (s *PipeSocket) Closed() bool {
 }
 
 func (s *PipeSocket) Close() error {
+	alreadyClosed := s.closed.Load()
+	if alreadyClosed { return nil }
+
 	s.closed.Store(true)
 
 	s.redialMu.Lock()
