@@ -198,11 +198,14 @@ func (b *Buffer) ReadInt64() (int64, error) {
 // --------------------------------------------------------------------------------
 // - Complex types
 // --------------------------------------------------------------------------------
+// This copies the data
 func (b *Buffer) WriteByteSlice(v []byte) *Buffer {
 	b.WriteInt64(int64(len(v)))
 	b.buf = append(b.buf, v...)
 	return b
 }
+
+// This does not copy the data
 func (b *Buffer) ReadByteSlice() ([]byte, error) {
 	v, err := b.ReadInt64()
 	if err != nil { return nil, err }

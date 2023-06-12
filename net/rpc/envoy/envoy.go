@@ -240,7 +240,7 @@ func (d InterfaceDef[S, C]) NewServer() *Client[S, C] {
 // TODO - I think I'd prefer this to be based on method name and not based on input argument type
 // TODO - reordering the definition, or switching between a message and an RPC will break api compatibility
 type serviceDef struct {
-	Requests, Responses *net.UnionBuilder
+	Requests, Responses *cod.UnionBuilder
 }
 
 func makeServiceDef(def any) serviceDef {
@@ -272,8 +272,8 @@ func makeServiceDef(def any) serviceDef {
 	}
 
 	return serviceDef{
-		Requests: net.NewUnion(requests...),
-		Responses: net.NewUnion(responses...),
+		Requests: cod.NewUnion(requests...),
+		Responses: cod.NewUnion(responses...),
 	}
 }
 
@@ -410,9 +410,7 @@ func (c *Client[S, C]) handleResponse(buf *cod.Buffer) error {
 	if err != nil { return err } // TODO: Should this error inform the doRpc call?
 
 	// TODO: codify this to remove the alloc
-	respData, err := buf.ReadByteSlice()
-	if err != nil { return err } // TODO: Should this error inform the doRpc call?
-	respVal, err := c.clientDef.Responses.Deserialize(respData)
+	respVal, err := c.clientDef.Responses.Deserialize(buf)
 	if err != nil { return err } // TODO: Should this error inform the doRpc call?
 
 	c.reqLock.Lock()
@@ -436,9 +434,7 @@ func (c *Client[S, C]) handleRequest(buf *cod.Buffer) error {
 	if err != nil { return err }
 
 	// TODO: codify this to remove the alloc
-	rpcReqData, err := buf.ReadByteSlice()
-	if err != nil { return err }
-	reqVal, err := c.serviceDef.Requests.Deserialize(rpcReqData)
+	reqVal, err := c.serviceDef.Requests.Deserialize(buf)
 	if err != nil { return err }
 	reqValType := reflect.TypeOf(reqVal)
 
@@ -458,11 +454,10 @@ func (c *Client[S, C]) handleRequest(buf *cod.Buffer) error {
 	sendBuf.WriteUint32(reqId)
 
 	// TODO: codify this to remove the alloc
-	data, err := c.serviceDef.Responses.Serialize(anyResp)
+	err = c.serviceDef.Responses.Serialize(sendBuf, anyResp)
 	if err != nil {
 		return err
 	}
-	sendBuf.WriteByteSlice(data)
 
 	// TODO - check that n is correct?
 	_, err = c.sock.Write(sendBuf.Bytes())
@@ -475,9 +470,7 @@ func (c *Client[S, C]) handleRequest(buf *cod.Buffer) error {
 
 func (c *Client[S, C]) handleMessage(buf *cod.Buffer) error {
 	// TODO: codify this to remove the alloc
-	msgData, err := buf.ReadByteSlice()
-	if err != nil { return err }
-	msgVal, err := c.serviceDef.Requests.Deserialize(msgData)
+	msgVal, err := c.serviceDef.Requests.Deserialize(buf)
 	if err != nil {
 		return err
 	}
@@ -584,18 +577,13 @@ func makeMsgHandler[M any](handler func(M)) MessageHandlerFunc {
 }
 
 func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
-	rpcReq, respChan, err := c.makeRequest(req)
-	if err != nil { return nil, err }
-
-	defer c.cleanupResponseChannel(rpcReq.Id)
-
-	// Build RPC
 	sendBuf := sendBufPool.Get().(*cod.Buffer)
 	sendBuf.Reset()
 
-	sendBuf.WriteUint8(wireTypeRequest)
-	sendBuf.WriteUint32(rpcReq.Id)
-	sendBuf.WriteByteSlice(rpcReq.Data) // TODO: codify this to save an alloc
+	// Build RPC
+	reqId, respChan, err := c.encodeRequest(sendBuf, req)
+	defer c.cleanupResponseChannel(reqId) // Even if we fail, we definitely created a channel. so we need to make sure we clean that up. This code is coupled to encodeRequest
+	if err != nil { return nil, err }
 
 	// Send over socket
 	// TODO - retry sending? Or push to a queue to be batch sent?
@@ -608,7 +596,6 @@ func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
 
 	select {
 	case rpcResp := <-respChan:
-		// return c.clientDef.Responses.Deserialize(rpcResp.Data)
 		return rpcResp, nil
 	case <-time.After(timeout):
 		return nil, ErrTimeout
@@ -622,9 +609,8 @@ func (c *Client[S, C]) doMsg(msg any) error {
 
 	sendBuf.WriteUint8(wireTypeMessage)
 
-	dat, err := c.clientDef.Requests.Serialize(msg)
+	err := c.clientDef.Requests.Serialize(sendBuf, msg)
 	if err != nil { return err }
-	sendBuf.WriteByteSlice(dat) // TODO: codify this to save an alloc
 
 	// println("sendMsg: ", len(dat))
 
@@ -638,11 +624,21 @@ func (c *Client[S, C]) doMsg(msg any) error {
 	return nil
 }
 
-func (c *Client[S, C]) makeRequest(req any) (Request, chan any, error) {
-	// TODO: codify to remove alloc
-	dat, err := c.clientDef.Requests.Serialize(req)
-	if err != nil { return Request{}, nil, err }
+// Encode a request into the buffer
+// Make a channel for the request
+func (c *Client[S, C]) encodeRequest(buf *cod.Buffer, req any) (uint32, chan any, error) {
+	reqId, respChan := c.generateReqId()
 
+	buf.WriteUint8(wireTypeRequest)
+	buf.WriteUint32(reqId)
+	err := c.clientDef.Requests.Serialize(buf, req)
+	if err != nil { return reqId, respChan, err } // TODO: can i get rid of this serialize failure?
+
+	return reqId, respChan, nil
+}
+
+// Generate a request Id and create a channel for it
+func (c *Client[S, C]) generateReqId() (uint32, chan any) {
 	c.reqLock.Lock()
 	defer c.reqLock.Unlock()
 
@@ -658,12 +654,7 @@ func (c *Client[S, C]) makeRequest(req any) (Request, chan any, error) {
 		c.activeCalls[rngId] = respChan
 		break
 	}
-
-	request := Request{
-		Id: rngId,
-		Data: dat,
-	}
-	return request, respChan, nil
+	return rngId, respChan
 }
 
 func (c *Client[S, C]) cleanupResponseChannel(id uint32) {
