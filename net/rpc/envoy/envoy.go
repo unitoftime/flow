@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/unitoftime/flow/net"
+	"github.com/unitoftime/flow/cod"
 )
 
 // Has
@@ -23,27 +24,74 @@ import (
 
 var ErrTimeout = errors.New("timeout reached")
 
-// Internal serialization
-var rpcSerdes serdes
-func init() {
-	rpcSerdes = serdes{
-		union: net.NewUnion(
-			Request{},
-			Response{},
-			Message{},
-		),
-	}
-}
+const (
+	wireTypeRequest uint8 = iota
+	wireTypeResponse
+	wireTypeMessage
+)
 
-type serdes struct {
-	union *net.UnionBuilder
-}
-func (s *serdes) Marshal(v any) ([]byte, error) {
-	return s.union.Serialize(v)
-}
-func (s *serdes) Unmarshal(dat []byte) (any, error) {
-	return s.union.Deserialize(dat)
-}
+// // Internal serialization
+// var rpcSerdes serdes
+// func init() {
+// 	rpcSerdes = serdes{
+// 		// union: net.NewUnion(
+// 		// 	Request{},
+// 		// 	Response{},
+// 		// 	Message{},
+// 		// ),
+// 	}
+// }
+
+// type serdes struct {
+// 	// union *net.UnionBuilder
+// }
+// func (s *serdes) Marshal(v any) ([]byte, error) {
+// 	// return s.union.Serialize(v)
+
+// 	buf := cod.NewBuffer(1024)
+
+// 	switch msgDat := m.Data.(type) {
+// 	case Request:
+// 		buf.WriteUint8(headerRequest)
+// 		// encodeRequest(buf, msgDat)
+// 		msgDat.EncodeCod(buf)
+// 	case Response:
+// 		buf.WriteUint8(headerResponse)
+// 		msgDat.EncodeCod(buf)
+// 	case Message:
+// 		buf.WriteUint8(headerMessage)
+// 		msgDat.EncodeCod(buf)
+// 	default:
+// 		panic(fmt.Errorf("Envoy internal: unknown type error: %T\n", msgDat))
+// 	}
+
+// 	return buf.Bytes(), nil
+// }
+// func (s *serdes) Unmarshal(dat []byte) (any, error) {
+// 	// return s.union.Deserialize(dat)
+
+// 	header := buf.ReadUint8()
+
+// 	var err error
+
+// 	switch header {
+// 	case headerRequest:
+// 		req := Request{}
+// 		err = req.DecodeCod(buf)
+// 		// err = decodeRequest(buf)
+// 	case headerResponse:
+// 		res := Response{}
+// 		err = res.DecodeCod(buf)
+// 		// m.Data, err = decodeResponse(buf)
+// 	case headerMessage:
+// 		msg := Message{}
+// 		err = msg.DecodeCod(buf)
+// 		// m.Data, err = decodeMessage(buf)
+// 	default:
+// 		err = fmt.Errorf("unknown header id: %d", header)
+// 	}
+// 	return err
+// }
 
 // Internal messages
 type Request struct {
@@ -241,7 +289,7 @@ type Client[S, C any] struct {
 	messageHandlers map[reflect.Type]MessageHandlerFunc
 
 	reqLock sync.Mutex
-	activeCalls map[uint32]chan Response
+	activeCalls map[uint32]chan any
 
 	rng *rand.Rand
 }
@@ -256,7 +304,7 @@ func newClient[S, C any](serviceDef, clientDef serviceDef) *Client[S, C] {
 
 		handlers: make(map[reflect.Type]HandlerFunc),
 		messageHandlers: make(map[reflect.Type]MessageHandlerFunc),
-		activeCalls: make(map[uint32]chan Response),
+		activeCalls: make(map[uint32]chan any),
 
 		rng: rng,
 	}
@@ -282,14 +330,32 @@ func (c *Client[S, C]) Closed() bool {
 	return c.sock.Closed()
 }
 
+var receiveBufPool = sync.Pool{
+	New: func() any {
+		// The Pool's New function should generally only return pointer
+		// types, since a pointer can be put into the return interface
+		// value without an allocation:
+		return make([]byte, 1024 * 64) // TODO!!!! - hardcoded
+	},
+}
+
+var sendBufPool = sync.Pool{
+	New: func() any {
+		// The Pool's New function should generally only return pointer
+		// types, since a pointer can be put into the return interface
+		// value without an allocation:
+		return cod.NewBuffer(1024) // TODO!!!! - hardcoded
+	},
+}
+
 func (c *Client[S, C]) start() {
-	dat := make([]byte, 64 * 1024) // TODO!!!! - hardcoded
 	go func() {
 		for {
 			if c.sock.Closed() {
 				return // sockets can never redial
 			}
 
+			dat := receiveBufPool.Get().([]byte)
 			n, err := c.sock.Read(dat)
 			if err != nil {
 				// TODO - I need a better way to wait if the socket is disconnected. If I remove the sleep then we will spin when disconnected
@@ -298,63 +364,81 @@ func (c *Client[S, C]) start() {
 			}
 			if n == 0 { continue } // Empty message
 
+			buf := cod.NewBufferFrom(dat)
+			wireType := buf.ReadUint8()
+			// if err != nil {
+			// 	fmt.Println("Envoy: data unmarshal error:", err)
+			// 	continue
+			// }
 
-			msg, err := rpcSerdes.Unmarshal(dat)
-			if err != nil {
-				fmt.Println("Envoy: data unmarshal error:", err)
-				continue
-			}
-
-			// If the message was empty, just continue to the next one
-			if msg == nil { continue }
-
-			switch typedMsg := msg.(type) {
-			case Request:
+			switch wireType {
+			case wireTypeRequest:
 				go func() {
-					err := c.handleRequest(typedMsg)
+					err := c.handleRequest(buf)
 					if err != nil {
 						fmt.Println("Envoy.Request error:", err)
 					}
+					receiveBufPool.Put(dat)
 				}()
-			case Response:
+			case wireTypeResponse:
 				// TODO - this one may not need to be run in a goroutine. b/c it will exit quickly enough?
 				go func() {
-					err := c.handleResponse(typedMsg)
+					err := c.handleResponse(buf)
 					if err != nil {
 						fmt.Println("Envoy.Response error:", err)
 					}
+					receiveBufPool.Put(dat)
 				}()
-			case Message:
+			case wireTypeMessage:
 				go func() {
-					err := c.handleMessage(typedMsg)
+					err := c.handleMessage(buf)
 					if err != nil {
 						fmt.Println("Envoy.Message error:", err)
 					}
+					receiveBufPool.Put(dat)
 				}()
 			default:
-				fmt.Printf("Envoy: unknown type error: %T\n", typedMsg)
+				fmt.Printf("Envoy: unknown wire type error: %d\n", wireType)
+				receiveBufPool.Put(dat)
 			}
 		}
 	}()
 }
 
-func (c *Client[S, C]) handleResponse(rpcResp Response) error {
+func (c *Client[S, C]) handleResponse(buf *cod.Buffer) error {
+	respId, err := buf.ReadUint32()
+	if err != nil { return err } // TODO: Should this error inform the doRpc call?
+
+	// TODO: codify this to remove the alloc
+	respData, err := buf.ReadByteSlice()
+	if err != nil { return err } // TODO: Should this error inform the doRpc call?
+	respVal, err := c.clientDef.Responses.Deserialize(respData)
+	if err != nil { return err } // TODO: Should this error inform the doRpc call?
+
 	c.reqLock.Lock()
 	defer c.reqLock.Unlock()
 
-	callChan, ok := c.activeCalls[rpcResp.Id]
+	callChan, ok := c.activeCalls[respId]
 	if !ok {
 		return fmt.Errorf("disassociated response")
 	}
 
+	// TODO: Should the channel disassociate if the receive side has closed?
 	// Send the response to the appropriate call
-	callChan <-rpcResp
+	callChan <-respVal
 
 	return nil
 }
 
-func (c *Client[S, C]) handleRequest(rpcReq Request) error {
-	reqVal, err := c.serviceDef.Requests.Deserialize(rpcReq.Data)
+// func (c *Client[S, C]) handleRequest(rpcReq Request) error {
+func (c *Client[S, C]) handleRequest(buf *cod.Buffer) error {
+	reqId, err := buf.ReadUint32()
+	if err != nil { return err }
+
+	// TODO: codify this to remove the alloc
+	rpcReqData, err := buf.ReadByteSlice()
+	if err != nil { return err }
+	reqVal, err := c.serviceDef.Requests.Deserialize(rpcReqData)
 	if err != nil { return err }
 	reqValType := reflect.TypeOf(reqVal)
 
@@ -365,23 +449,23 @@ func (c *Client[S, C]) handleRequest(rpcReq Request) error {
 
 	anyResp := handler(reqVal)
 
+	// Build response
+	sendBuf := sendBufPool.Get().(*cod.Buffer)
+	sendBuf.Reset()
+	defer sendBufPool.Put(sendBuf)
+
+	sendBuf.WriteUint8(wireTypeResponse)
+	sendBuf.WriteUint32(reqId)
+
+	// TODO: codify this to remove the alloc
 	data, err := c.serviceDef.Responses.Serialize(anyResp)
 	if err != nil {
 		return err
 	}
-
-	rpcResp := Response{
-		Id: rpcReq.Id,
-		Data: data,
-	}
-
-	respDat, err := rpcSerdes.Marshal(rpcResp)
-	if err != nil {
-		return err
-	}
+	sendBuf.WriteByteSlice(data)
 
 	// TODO - check that n is correct?
-	_, err = c.sock.Write(respDat)
+	_, err = c.sock.Write(sendBuf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -389,8 +473,11 @@ func (c *Client[S, C]) handleRequest(rpcReq Request) error {
 	return nil
 }
 
-func (c *Client[S, C]) handleMessage(msg Message) error {
-	msgVal, err := c.serviceDef.Requests.Deserialize(msg.Data)
+func (c *Client[S, C]) handleMessage(buf *cod.Buffer) error {
+	// TODO: codify this to remove the alloc
+	msgData, err := buf.ReadByteSlice()
+	if err != nil { return err }
+	msgVal, err := c.serviceDef.Requests.Deserialize(msgData)
 	if err != nil {
 		return err
 	}
@@ -502,41 +589,48 @@ func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
 
 	defer c.cleanupResponseChannel(rpcReq.Id)
 
-	// Send over socket
-	reqDat, err := rpcSerdes.Marshal(rpcReq)
-	if err != nil { return nil, err }
+	// Build RPC
+	sendBuf := sendBufPool.Get().(*cod.Buffer)
+	sendBuf.Reset()
 
+	sendBuf.WriteUint8(wireTypeRequest)
+	sendBuf.WriteUint32(rpcReq.Id)
+	sendBuf.WriteByteSlice(rpcReq.Data) // TODO: codify this to save an alloc
+
+	// Send over socket
 	// TODO - retry sending? Or push to a queue to be batch sent?
 	// TODO - check that n is correct?
-	_, err = c.sock.Write(reqDat)
+	_, err = c.sock.Write(sendBuf.Bytes())
 	if err != nil {
 		return nil, err
 	}
+	sendBufPool.Put(sendBuf)
 
 	select {
 	case rpcResp := <-respChan:
-		return c.clientDef.Responses.Deserialize(rpcResp.Data)
+		// return c.clientDef.Responses.Deserialize(rpcResp.Data)
+		return rpcResp, nil
 	case <-time.After(timeout):
 		return nil, ErrTimeout
 	}
 }
 
 func (c *Client[S, C]) doMsg(msg any) error {
+	sendBuf := sendBufPool.Get().(*cod.Buffer)
+	sendBuf.Reset()
+	defer sendBufPool.Put(sendBuf)
+
+	sendBuf.WriteUint8(wireTypeMessage)
+
 	dat, err := c.clientDef.Requests.Serialize(msg)
 	if err != nil { return err }
+	sendBuf.WriteByteSlice(dat) // TODO: codify this to save an alloc
 
 	// println("sendMsg: ", len(dat))
 
-	rpcMsg := Message{
-		Data: dat,
-	}
-
 	// Send over socket
-	msgDat, err := rpcSerdes.Marshal(rpcMsg)
-	if err != nil { return err }
-
 	// TODO - check that n is correct?
-	_, err = c.sock.Write(msgDat)
+	_, err = c.sock.Write(sendBuf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -544,14 +638,15 @@ func (c *Client[S, C]) doMsg(msg any) error {
 	return nil
 }
 
-func (c *Client[S, C]) makeRequest(req any) (Request, chan Response, error) {
+func (c *Client[S, C]) makeRequest(req any) (Request, chan any, error) {
+	// TODO: codify to remove alloc
 	dat, err := c.clientDef.Requests.Serialize(req)
 	if err != nil { return Request{}, nil, err }
 
 	c.reqLock.Lock()
 	defer c.reqLock.Unlock()
 
-	respChan := make(chan Response)
+	respChan := make(chan any)
 
 	// TODO - instead of a map could I use some other data structure? is it important that the Id is hard to guess? Should I use some other crypto-random-rng generator?
 	var rngId uint32
@@ -586,3 +681,4 @@ func (c *Client[S, C]) cleanupResponseChannel(id uint32) {
 	c.activeCalls[id] = nil
 	delete(c.activeCalls, id)
 }
+
