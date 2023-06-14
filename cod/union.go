@@ -4,13 +4,37 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/unitoftime/binary"
+	// "github.com/unitoftime/binary"
 )
 
 type Union struct {
-	Type uint8
-	Payload []byte
+	value any
 }
+func (u Union) GetRawValue() any {
+	return u.value
+}
+func (u *Union) PutRawValue(v any) {
+	u.value = v
+}
+
+// type Union struct {
+// 	tag uint64
+// 	hidden Er
+// }
+
+// func (u *Union) EncodeCod(buf *Buffer) {
+// 	buf.WriteUint64(u.tag)
+// 	buf.Wr
+// }
+
+// func (u *Union) DecodeCod(buf *Buffer) error {
+
+// }
+
+// type Union struct {
+// 	Type uint8
+// 	Payload []byte
+// }
 
 type UnionBuilder struct {
 	types map[reflect.Type]uint8
@@ -47,60 +71,109 @@ func ptrToVal(valPtr any) any {
 	return reflect.Indirect(reflect.ValueOf(valPtr)).Interface()
 }
 
-func (u *UnionBuilder) Make(val any) (Union, error) {
+// func (u *UnionBuilder) Make(buf *Buffer, val any) error {
+// 	typeStr := reflect.TypeOf(val)
+// 	typeId, ok := u.types[typeStr]
+// 	if !ok {
+// 		return fmt.Errorf("Unknown Type: %T", val)
+// 	}
+
+// 	// TODO - can optimize the double serialize
+// 	serializedVal, err := binary.Marshal(val)
+// 	if err != nil { return err } // TODO: get rid of
+// 	// fmt.Printf("%T: %d\n", val, len(serializedVal))
+
+// 	buf.WriteUint8(typeId)
+// 	buf.WriteByteSlice(serializedVal)
+
+// 	return nil
+// }
+// func (u *UnionBuilder) Make(val any) (Union, error) {
+// 	typeStr := reflect.TypeOf(val)
+// 	typeId, ok := u.types[typeStr]
+// 	if !ok {
+// 		return Union{}, fmt.Errorf("Unknown Type: %T", val)
+// 	}
+
+// 	// TODO - can optimize the double serialize
+// 	serializedVal, err := binary.Marshal(val)
+// 	if err != nil {
+// 		return Union{}, err
+// 	}
+// 	// fmt.Printf("%T: %d\n", val, len(serializedVal))
+
+// 	union := Union{
+// 		Type: typeId,
+// 		Payload: serializedVal,
+// 	}
+// 	return union, nil
+// }
+
+// func (u *UnionBuilder) Unmake(union Union) (any, error) {
+// 	idx := int(union.Type)
+// 	if idx >= len(u.impl) {
+// 		return nil, fmt.Errorf("Unknown message opcode %d max: %d", idx, len(u.impl)-1)
+// 	}
+// 	val := u.impl[idx]
+// 	valPtr := valToPtr(val)
+
+// 	err := binary.Unmarshal(union.Payload, valPtr)
+
+// 	return ptrToVal(valPtr), err
+// }
+
+func (u *UnionBuilder) Serialize(buf *Buffer, val any) error {
+	// union, err := u.Make(val)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// dat, err := binary.Marshal(union)
+	// if err != nil { return err }
+	// buf.WriteByteSlice(dat)
+	// return nil
+
 	typeStr := reflect.TypeOf(val)
 	typeId, ok := u.types[typeStr]
 	if !ok {
-		return Union{}, fmt.Errorf("Unknown Type: %T", val)
+		return fmt.Errorf("Unknown Type: %T", val)
 	}
 
-	// TODO - can optimize the double serialize
-	serializedVal, err := binary.Marshal(val)
-	if err != nil {
-		return Union{}, err
-	}
+	// serializedVal, err := binary.Marshal(val)
+	// if err != nil { return err } // TODO: get rid of
 	// fmt.Printf("%T: %d\n", val, len(serializedVal))
 
-	union := Union{
-		Type: typeId,
-		Payload: serializedVal,
-	}
-	return union, nil
+	buf.WriteUint8(typeId)
+	// buf.WriteByteSlice(serializedVal)
+	buf.WriteAny(val)
+
+	return nil
 }
 
-func (u *UnionBuilder) Unmake(union Union) (any, error) {
-	idx := int(union.Type)
+func (u *UnionBuilder) Deserialize(buf *Buffer) (any, error) {
+	// dat, err := buf.ReadByteSlice()
+	// if err != nil { return nil, err }
+
+	// union := Union{}
+	// err = binary.Unmarshal(dat, &union)
+	// if err != nil { return nil, err }
+
+	// return u.Unmake(union)
+
+	typeId := buf.ReadUint8()
+	// if err != nil { return nil, err }
+	// dat, err := buf.ReadByteSlice()
+	// if err != nil { return nil, err }
+
+	idx := int(typeId)
 	if idx >= len(u.impl) {
 		return nil, fmt.Errorf("Unknown message opcode %d max: %d", idx, len(u.impl)-1)
 	}
 	val := u.impl[idx]
 	valPtr := valToPtr(val)
 
-	err := binary.Unmarshal(union.Payload, valPtr)
+	// err = binary.Unmarshal(dat, valPtr)
+	err := buf.ReadAny(valPtr)
 
 	return ptrToVal(valPtr), err
-}
-
-func (u *UnionBuilder) Serialize(buf *Buffer, val any) error {
-	union, err := u.Make(val)
-	if err != nil {
-		return err
-	}
-
-	dat, err := binary.Marshal(union)
-	if err != nil { return err }
-	buf.WriteByteSlice(dat)
-
-	return nil
-}
-
-func (u *UnionBuilder) Deserialize(buf *Buffer) (any, error) {
-	dat, err := buf.ReadByteSlice()
-	if err != nil { return nil, err }
-
-	union := Union{}
-	err = binary.Unmarshal(dat, &union)
-	if err != nil { return nil, err }
-
-	return u.Unmake(union)
 }

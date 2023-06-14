@@ -3,6 +3,8 @@ package cod
 import (
 	"errors"
 	"math"
+	"sync"
+	"bytes"
 	"encoding/binary"
 
 	binreflection "github.com/unitoftime/binary"
@@ -226,30 +228,58 @@ func (b *Buffer) ReadString() (string, error) {
 	return string(dat), nil
 }
 
-func (b *Buffer) WriteCod(v Er) *Buffer {
+func (b *Buffer) WriteCod(v Cod) *Buffer {
 	v.EncodeCod(b)
 	return b
 }
-func (b *Buffer) ReadCod(v Er) error {
+func (b *Buffer) ReadCod(v Dec) error {
 	return v.DecodeCod(b)
 }
 
+type refEnc struct {
+	buf *bytes.Buffer
+	enc *binreflection.Encoder
+}
+var bufPool = sync.Pool{
+	New: func() any {
+		// The Pool's New function should generally only return pointer
+		// types, since a pointer can be put into the return interface
+		// value without an allocation:
+		buf := new(bytes.Buffer)
+		return &refEnc {
+			buf: buf,
+			enc: binreflection.NewEncoder(buf),
+		}
+	},
+}
+
 func (b *Buffer) WriteAny(v any) *Buffer {
-	coder, ok := v.(Er)
+	coder, ok := v.(Cod)
 	if ok {
 		return b.WriteCod(coder)
 	}
 
-	dat, err := binreflection.Marshal(v)
-	if err != nil {
-		panic(err)
-	}
+	pool := bufPool.Get().(*refEnc)
+	pool.buf.Reset()
+	defer bufPool.Put(pool)
 
-	return b.WriteByteSlice(dat)
+	err :=  pool.enc.Encode(v)
+	if err != nil { panic(err) }
+
+	// TODO: Technically a wasted copy. Could optimize by building a reflection system into my api (where cod.Buffer just keeps getting passed deeper and deeper
+	return b.WriteByteSlice(pool.buf.Bytes())
+
+	// Old:
+	// dat, err := binreflection.Marshal(v)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// return b.WriteByteSlice(dat)
 }
 // Must be pointer to underlying type
 func (b *Buffer) ReadAny(p any) error {
-	coder, ok := p.(Er)
+	coder, ok := p.(Dec)
 	if ok {
 		return b.ReadCod(coder)
 	}
@@ -257,11 +287,27 @@ func (b *Buffer) ReadAny(p any) error {
 	dat, err := b.ReadByteSlice()
 	if err != nil { return err }
 
-	return binreflection.Unmarshal(dat, p)
+	byteBuffer := bytes.NewBuffer(dat)
+	dec := binreflection.NewDecoder(byteBuffer)
+	return dec.Decode(p)
+
+	// Old:
+	// dat, err := b.ReadByteSlice()
+	// if err != nil { return err }
+
+	// return binreflection.Unmarshal(dat, p)
 }
 
 // The cod.Er interface
 type Er interface {
 	EncodeCod(*Buffer) // Encode data to the buffer
+	DecodeCod(*Buffer) error // Decode data from the buffer
+}
+
+type Cod interface {
+	EncodeCod(*Buffer) // Encode data to the buffer
+}
+
+type Dec interface {
 	DecodeCod(*Buffer) error // Decode data from the buffer
 }

@@ -44,7 +44,7 @@ func (c *Codec[T]) ReadSlice(buf *Buffer) ([]T, error) {
 	for i := 0; i < length; i++ {
 		val, err := c.Read(buf)
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 		ret[i] = val
 	}
@@ -56,7 +56,7 @@ type MapCodec[K comparable,V any] struct {
 	valCodec *Codec[V]
 }
 
-func NewMapCodec[K,V comparable](keyCodec *Codec[K], valCodec *Codec[V]) *MapCodec[K,V] {
+func NewMapCodec[K comparable,V any](keyCodec *Codec[K], valCodec *Codec[V]) *MapCodec[K,V] {
 	return &MapCodec[K,V]{
 		keyCodec: keyCodec,
 		valCodec: valCodec,

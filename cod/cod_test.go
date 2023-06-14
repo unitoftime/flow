@@ -478,7 +478,7 @@ func BenchmarkStructOfStruct(b *testing.B) {
 	}
 
 	b.ReportMetric(float64(serialSize)/float64(b.N), "B/serial")
-	b.Log(buffer.Bytes())
+	// b.Log(buffer.Bytes())
 	b.Log(res)
 }
 
@@ -505,7 +505,68 @@ func BenchmarkStructOfStructAnyEncoding(b *testing.B) {
 		serialSize += len(buffer.Bytes())
 	}
 	b.ReportMetric(float64(serialSize)/float64(b.N), "B/serial")
-	b.Log(buffer.Bytes())
+	// b.Log(buffer.Bytes())
 	b.Log(res)
 }
 
+//--------------------------------------------------------------------------------
+func (d hardData) EncodeCod(buf *Buffer) {
+	encodeHard(buf, d)
+}
+
+func (d *hardData) DecodeCod(buf *Buffer) error {
+	hd, err := decodeHard(buf)
+	if err != nil { return err }
+	*d = hd
+	return nil
+}
+
+func BenchmarkInterfaceImpl(b *testing.B) {
+	d := newHardData()
+	res := hardData{}
+	serialSize := 0
+
+	buffer := NewBuffer(0)
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		buffer.Reset()
+		buffer.WriteCod(d)
+
+		err := buffer.ReadCod(&res)
+		if err != nil { panic(err) }
+		serialSize += len(buffer.Bytes())
+	}
+	b.ReportMetric(float64(serialSize)/float64(b.N), "B/serial")
+	// b.Log(buffer.Bytes())
+	b.Log(res)
+}
+
+// type lookup struct {
+// 	enc map[reflect.Type]func(*Buffer)
+// 	dec map[reflect.Type]func(*Buffer) error
+// }
+
+// func BenchmarkInterfaceMapLookup(b *testing.B) {
+// 	encMap := make(map[reflect.Type]func(*Buffer))
+// 	decMap := make(map[reflect.Type]func(*Buffer) error)
+// 	l := lookup{
+// 		enc: encMap,
+// 		dec: decMap,
+// 	}
+
+// 	d := newHardData()
+
+// 	buffer := NewBuffer(0)
+
+// 	b.ResetTimer()
+
+// 	for n := 0; n < b.N; n++ {
+// 		buffer.Reset()
+// 		buffer.WriteCod(d)
+
+// 		res := hardData{}
+// 		buffer.ReadCod(&res)
+// 	}
+// }
