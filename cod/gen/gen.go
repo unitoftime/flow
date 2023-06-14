@@ -24,20 +24,14 @@ func main() {
 }
 
 func generatePackage(dir string) {
-	// We essentially parse the directory into the fileset and list of packages
 	fset := token.NewFileSet()
 	packages, err := parser.ParseDir(fset, dir, nil, parser.ParseComments)
 	if err != nil {
 		panic(err)
 	}
 
-	// Then we loop over the packages
 	for _, pkg := range packages {
 		fmt.Println("Parsing", pkg.Name)
-		// tokenStart := pkg.Pos()
-
-		// We build a blog visitor (which implements the ast.Visitor interface).
-		// This will be used to walk the entire AST!
 		bv := &BlogVisitor{
 			buf: &bytes.Buffer{},
 			pkg: pkg,

@@ -20,6 +20,7 @@ import (
 	// unitbinary "github.com/unitoftime/binary"
 )
 
+//cod:struct
 type MUSA struct {
 	Name     string
 	BirthDay int64

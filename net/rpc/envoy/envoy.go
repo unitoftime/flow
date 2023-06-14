@@ -21,6 +21,7 @@ import (
 // 4. Different reliability levels
 // 5. Automatic retries of messages?
 // 6. Message batching?
+// TODO: Maybe eventually migrate over to the auto generated serialization code
 
 var ErrTimeout = errors.New("timeout reached")
 

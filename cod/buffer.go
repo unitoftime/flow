@@ -51,6 +51,23 @@ func (b *Buffer) Bytes() []byte {
 	return b.buf
 }
 
+// bool
+func (b *Buffer) WriteBool(v bool) *Buffer {
+	val := uint8(0)
+	if v {
+		val = 1
+	}
+	b.WriteUint8(val)
+	return b
+}
+func (b *Buffer) ReadBool() bool {
+	val := b.ReadUint8()
+	if val == 0 {
+		return false
+	}
+
+	return true
+}
 // Write Uint values
 func (b *Buffer) WriteUint8(v uint8) *Buffer {
 	b.buf = append(b.buf, v)

@@ -106,6 +106,34 @@ buf.WriteUint64({{.Name}})`)
 	addTemplate("reg_uint64_unmarshal", `
 {{.Name}}, err = buf.ReadUint64()`)
 
+	// int32
+	addTemplate("reg_int32_marshal", `
+buf.WriteInt32({{.Name}})`)
+
+	addTemplate("reg_int32_unmarshal", `
+{{.Name}}, err = buf.ReadInt32()`)
+
+	// int64
+	addTemplate("reg_int64_marshal", `
+buf.WriteInt64({{.Name}})`)
+
+	addTemplate("reg_int64_unmarshal", `
+{{.Name}}, err = buf.ReadInt64()`)
+
+	// float64
+	addTemplate("reg_float64_marshal", `
+buf.WriteFloat64({{.Name}})`)
+
+	addTemplate("reg_float64_unmarshal", `
+{{.Name}} = buf.ReadFloat64()`)
+
+	// bool
+	addTemplate("reg_bool_marshal", `
+buf.WriteBool({{.Name}})`)
+
+	addTemplate("reg_bool_unmarshal", `
+{{.Name}} = buf.ReadBool()`)
+
 	// string
 	addTemplate("reg_string_marshal", `
 buf.WriteString({{.Name}})`)
