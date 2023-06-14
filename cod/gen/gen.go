@@ -9,7 +9,7 @@ import (
 	"io/fs"
 	"go/ast"
 	"go/parser"
-	"go/printer"
+	// "go/printer"
 	"go/token"
 	"go/format"
 	"text/template"
@@ -32,55 +32,28 @@ func generatePackage(dir string) {
 
 	for _, pkg := range packages {
 		fmt.Println("Parsing", pkg.Name)
-		bv := &BlogVisitor{
-			buf: &bytes.Buffer{},
+		bv := &Visitor{
+			// buf: &bytes.Buffer{},
 			pkg: pkg,
 			fset: fset,
 			// lastCommentPos: &tokenStart,
 			structs: make(map[string]StructData),
 		}
 
-		// We start walking our BlogVisitor `bv` through the AST in a depth-first way.
+		// We start walking our Visitor `bv` through the AST in a depth-first way.
 		ast.Walk(bv, pkg)
 
 		bv.Output("cod_encode.go")
 	}
 }
-
-// func formatFunc(buf *bytes.Buffer, fset *token.FileSet, decl ast.FuncDecl, cGroups []*ast.CommentGroup) {
-// 	decl.Doc = nil // nil the Doc field so that we don't print it
-
-// 	// Build a CommentedNode. This is important, if you don't attach the comment
-// 	// group to the node then the comments inside the function will be removed!
-// 	commentedNode := printer.CommentedNode{
-// 		Node:     &decl,
-// 		Comments: cGroups,
-// 	}
-// 	formatNode(buf, fset, &commentedNode)
-// }
-
-func formatGen(buf *bytes.Buffer, fset *token.FileSet, decl ast.GenDecl, cGroups []*ast.CommentGroup) (StructData, bool) {
+func formatGen(decl ast.GenDecl, cGroups []*ast.CommentGroup) (StructData, bool) {
 	structData := StructData{}
-
-	// commentedNode := printer.CommentedNode{
-	// 	Node:     &decl,
-	// 	Comments: cGroups,
-	// }
 
 	// Skip everything that isn't a type. we can only generate for types
 	if decl.Tok != token.TYPE {
 		decl.Doc = nil // nil the Doc field so that we don't print it
 		return structData, false
 	}
-
-	// if decl.Tok == token.IMPORT || decl.Tok == token.TYPE{
-	// 	decl.Doc = nil // nil the Doc field so that we don't print it
-	// } else if decl.Tok == token.CONST || decl.Tok == token.VAR {
-	// 	// Don't nil the documentation
-	// }
-
-	// formatNode(buf, fset, &commentedNode)
-
 
 	fields := make([]Field, 0)
 
@@ -138,12 +111,6 @@ func generateField(name string, idxDepth int, node ast.Node) Field {
 	switch expr := node.(type) {
 	case *ast.Ident:
 		fmt.Println("Ident: ", expr.Name)
-
-		if expr.Obj != nil {
-			// Then type alias?
-			fmt.Println("AAAAAAA", name, expr.Obj.Kind, expr.Obj.Name)
-			fmt.Printf("Obj: %T -- %T\n", expr.Obj, expr.Obj.Decl)
-		}
 		field := &BasicField{
 			Name: name,
 			Type: expr.Name,
@@ -214,88 +181,45 @@ func generateField(name string, idxDepth int, node ast.Node) Field {
 	return nil
 }
 
-// // just make this function take in the field, then have it return the formatted BasicField or PointerField or MapField or ArrayField (or whatever as a response)
-// func getFieldType(t ast.Expr) (string) {
-// 	switch expr := t.(type) {
-// 	case *ast.Ident:
-// 		fmt.Println("Ident: ", expr.Name)
-// 		// if expr.Name == "string" {
-// 		// 	return FieldString
-// 		// } else if expr.Name == "uint8" {
-// 		// 	return FieldUint8
-// 		// }
-// 		return expr.Name
-// 	case *ast.StarExpr:
-// 		// fmt.Println("StarExpr: ", expr.Name)
-// 		fmt.Printf("STAR %T\n", expr.X)
-// 		return getFieldType(expr.X)
-// 	case *ast.ArrayType:
-// 		fmt.Printf("ARRAY %T %T\n", expr.Len, expr.Elt)
-// 		return getFieldType(expr.Elt)
-
-// 	case *ast.MapType:
-// 		fmt.Printf("MAP %T %T\n", expr.Key, expr.Value)
-// 	default:
-// 		panic(fmt.Sprintf("unknown type %T", expr))
-// 	}
-// 	return "none"
-// }
-
 func getDirective(t ast.GenDecl) (DirectiveType, []string) {
 	if t.Doc == nil {
 		return DirectiveNone, nil
 	}
 
 	for _, c := range t.Doc.List {
-		fmt.Println("Doc: ", c.Text)
-		if strings.HasPrefix(c.Text, "//cod:struct") {
-			after, found := strings.CutPrefix(c.Text, "//cod:struct")
-			if !found { panic("BUG") }
-			unionNames := strings.Split(after, ",")
-			for i := range unionNames {
-				unionNames[i] = strings.TrimSpace(unionNames[i])
+		after, foundStruct := strings.CutPrefix(c.Text, "//cod:struct")
+		if foundStruct {
+			csv := strings.Split(after, ",")
+			for i := range csv {
+				csv[i] = strings.TrimSpace(csv[i])
 			}
 
-			return DirectiveStruct, unionNames
-		} else if strings.HasPrefix(c.Text, "//cod:union") {
-			after, found := strings.CutPrefix(c.Text, "//cod:union")
-			if !found { panic("BUG") }
-			unionNames := strings.Split(after, ",")
-			for i := range unionNames {
-				unionNames[i] = strings.TrimSpace(unionNames[i])
+			return DirectiveStruct, csv
+		}
+
+		after, foundUnion := strings.CutPrefix(c.Text, "//cod:union")
+		if foundUnion {
+			csv := strings.Split(after, ",")
+			for i := range csv {
+				csv[i] = strings.TrimSpace(csv[i])
 			}
 
-			return DirectiveUnion, unionNames
+			return DirectiveUnion, csv
 		}
 	}
 	return DirectiveNone, nil
 }
 
-func formatNode(buf *bytes.Buffer, fset *token.FileSet, node any) {
-	config := printer.Config{
-		Mode:     printer.UseSpaces,
-		Tabwidth: 2,
-	}
-
-	err := config.Fprint(buf, fset, node)
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-type BlogVisitor struct {
-	buf *bytes.Buffer // The buffered blog output
+type Visitor struct {
 	pkg *ast.Package  // The package that we are processing
 	fset *token.FileSet // The fileset of the package we are processing
 	file *ast.File // The file we are currently processing (Can be nil if we haven't started processing a file yet!)
 	cmap ast.CommentMap // The comment map of the file we are processing
 
-	// lastCommentPos *token.Pos // The token.Pos of the last comment or node that we processed
 	structs map[string]StructData
 }
 
-func (v *BlogVisitor) Visit(node ast.Node) ast.Visitor {
+func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	if node == nil { return nil }
 
 	// If we are a package, then just keep searching
@@ -319,7 +243,7 @@ func (v *BlogVisitor) Visit(node ast.Node) ast.Visitor {
 	gen, ok := node.(*ast.GenDecl)
 	if ok {
 		cgroups := v.cmap.Filter(gen).Comments()
-		sd, ok := formatGen(v.buf, v.fset, *gen, cgroups)
+		sd, ok := formatGen(*gen, cgroups)
 		if ok {
 			v.structs[sd.Name] = sd
 		}
@@ -427,22 +351,6 @@ func (f BasicField) WriteMarshal(buf *bytes.Buffer) {
 		})
 		if err != nil { panic(err) }
 	}
-
-	// pointerStar := "reg"
-	// if f.Pointer { pointerStar = "ptr" }
-
-	// templateName := fmt.Sprintf("%s_%s_marshal", pointerStar, f.Type)
-	// err := BasicTemp.ExecuteTemplate(buf, templateName, map[string]any{
-	// 	"Name": f.Name,
-	// })
-	// if err != nil {
-	// 	fmt.Println("Couldn't find type, assuming its a struct: ", f.Name)
-	// 	templateName := fmt.Sprintf("%s_%s_marshal", pointerStar, "struct")
-	// 	err := BasicTemp.ExecuteTemplate(buf, templateName, map[string]any{
-	// 		"Name": f.Name,
-	// 	})
-	// 	if err != nil { panic(err) }
-	// }
 }
 
 func (f BasicField) WriteUnmarshal(buf *bytes.Buffer) {
@@ -717,7 +625,7 @@ const (
 )
 
 
-func (v *BlogVisitor) Output(filename string) {
+func (v *Visitor) Output(filename string) {
 	marshal, err := template.New("marshal").Parse(`
 func (t {{.Name}})EncodeCod(buf *cod.Buffer) {
 {{.MarshalCode}}

@@ -4,6 +4,159 @@ import (
 	"github.com/unitoftime/flow/cod"
 )
 
+func (t MyUnion) EncodeCod(buf *cod.Buffer) {
+
+	// codUnion := cod.Union(t)
+	// rawVal := codUnion.GetRawValue()
+	rawVal := t.Get()
+	if rawVal == nil {
+		buf.WriteUint8(0) // Zero tag indicates nil
+		return
+	}
+
+	switch sv := rawVal.(type) {
+
+	case Id:
+		buf.WriteUint8(1)
+		sv.EncodeCod(buf)
+		// <no value>
+
+	case SpecialMap:
+		buf.WriteUint8(2)
+		sv.EncodeCod(buf)
+		// <no value>
+
+	default:
+		panic("unknown type placed in union")
+	}
+
+}
+
+func (t *MyUnion) DecodeCod(buf *cod.Buffer) error {
+	var err error
+
+	// codUnion := cod.Union(*t)
+
+	tagVal := buf.ReadUint8()
+
+	switch tagVal {
+	case 0: // Zero tag indicates nil
+		return nil
+
+	case 1:
+		var decoded Id
+		err = decoded.DecodeCod(buf)
+		if err != nil {
+			return err
+		}
+		// codUnion.PutRawValue(decoded)
+		t.Set(decoded)
+
+	case 2:
+		var decoded SpecialMap
+		err = decoded.DecodeCod(buf)
+		if err != nil {
+			return err
+		}
+		// codUnion.PutRawValue(decoded)
+		t.Set(decoded)
+
+	default:
+		panic("unknown type placed in union")
+	}
+	return err
+
+	return err
+}
+
+func (t SpecialMap) EncodeCod(buf *cod.Buffer) {
+
+	{
+		value0 := map[string][]uint8(t)
+
+		{
+			buf.WriteUint64(uint64(len(value0)))
+
+			for k1, v1 := range value0 {
+
+				buf.WriteString(k1)
+				{
+					buf.WriteUint64(uint64(len(v1)))
+					for i2 := range v1 {
+
+						buf.WriteUint8(v1[i2])
+					}
+				}
+			}
+
+		}
+
+	}
+}
+
+func (t *SpecialMap) DecodeCod(buf *cod.Buffer) error {
+	var err error
+
+	{
+		var value0 map[string][]uint8
+
+		{
+			length, err := buf.ReadUint64()
+			if err != nil {
+				return err
+			}
+
+			if value0 == nil {
+				value0 = make(map[string][]uint8)
+			}
+
+			for i1 := 0; i1 < int(length); i1++ {
+				var key1 string
+				var val1 []uint8
+
+				key1, err = buf.ReadString()
+				{
+					length, err := buf.ReadUint64()
+					if err != nil {
+						return err
+					}
+					for i2 := 0; i2 < int(length); i2++ {
+						var value2 uint8
+
+						value2 = buf.ReadUint8()
+						if err != nil {
+							return err
+						}
+
+						val1 = append(val1, value2)
+					}
+				}
+				if err != nil {
+					return err
+				}
+
+				value0[key1] = val1
+			}
+		}
+		*t = SpecialMap(value0)
+	}
+
+	return err
+}
+
+func (t Id) EncodeCod(buf *cod.Buffer) {
+
+	buf.WriteUint16(t.Val)
+}
+
+func (t *Id) DecodeCod(buf *cod.Buffer) error {
+	var err error
+
+	t.Val, err = buf.ReadUint16()
+
+	return err
+}
+
 func (t Person) EncodeCod(buf *cod.Buffer) {
 
 	buf.WriteString(t.Name)
@@ -237,159 +390,6 @@ func (t *Person) DecodeCod(buf *cod.Buffer) error {
 		}
 	}
 	t.MyUnion.DecodeCod(buf)
-
-	return err
-}
-
-func (t MyUnion) EncodeCod(buf *cod.Buffer) {
-
-	// codUnion := cod.Union(t)
-	// rawVal := codUnion.GetRawValue()
-	rawVal := t.Get()
-	if rawVal == nil {
-		buf.WriteUint8(0) // Zero tag indicates nil
-		return
-	}
-
-	switch sv := rawVal.(type) {
-
-	case Id:
-		buf.WriteUint8(1)
-		sv.EncodeCod(buf)
-		// <no value>
-
-	case SpecialMap:
-		buf.WriteUint8(2)
-		sv.EncodeCod(buf)
-		// <no value>
-
-	default:
-		panic("unknown type placed in union")
-	}
-
-}
-
-func (t *MyUnion) DecodeCod(buf *cod.Buffer) error {
-	var err error
-
-	// codUnion := cod.Union(*t)
-
-	tagVal := buf.ReadUint8()
-
-	switch tagVal {
-	case 0: // Zero tag indicates nil
-		return nil
-
-	case 1:
-		var decoded Id
-		err = decoded.DecodeCod(buf)
-		if err != nil {
-			return err
-		}
-		// codUnion.PutRawValue(decoded)
-		t.Set(decoded)
-
-	case 2:
-		var decoded SpecialMap
-		err = decoded.DecodeCod(buf)
-		if err != nil {
-			return err
-		}
-		// codUnion.PutRawValue(decoded)
-		t.Set(decoded)
-
-	default:
-		panic("unknown type placed in union")
-	}
-	return err
-
-	return err
-}
-
-func (t SpecialMap) EncodeCod(buf *cod.Buffer) {
-
-	{
-		value0 := map[string][]uint8(t)
-
-		{
-			buf.WriteUint64(uint64(len(value0)))
-
-			for k1, v1 := range value0 {
-
-				buf.WriteString(k1)
-				{
-					buf.WriteUint64(uint64(len(v1)))
-					for i2 := range v1 {
-
-						buf.WriteUint8(v1[i2])
-					}
-				}
-			}
-
-		}
-
-	}
-}
-
-func (t *SpecialMap) DecodeCod(buf *cod.Buffer) error {
-	var err error
-
-	{
-		var value0 map[string][]uint8
-
-		{
-			length, err := buf.ReadUint64()
-			if err != nil {
-				return err
-			}
-
-			if value0 == nil {
-				value0 = make(map[string][]uint8)
-			}
-
-			for i1 := 0; i1 < int(length); i1++ {
-				var key1 string
-				var val1 []uint8
-
-				key1, err = buf.ReadString()
-				{
-					length, err := buf.ReadUint64()
-					if err != nil {
-						return err
-					}
-					for i2 := 0; i2 < int(length); i2++ {
-						var value2 uint8
-
-						value2 = buf.ReadUint8()
-						if err != nil {
-							return err
-						}
-
-						val1 = append(val1, value2)
-					}
-				}
-				if err != nil {
-					return err
-				}
-
-				value0[key1] = val1
-			}
-		}
-		*t = SpecialMap(value0)
-	}
-
-	return err
-}
-
-func (t Id) EncodeCod(buf *cod.Buffer) {
-
-	buf.WriteUint16(t.Val)
-}
-
-func (t *Id) DecodeCod(buf *cod.Buffer) error {
-	var err error
-
-	t.Val, err = buf.ReadUint16()
 
 	return err
 }

@@ -15,54 +15,6 @@ func addStructTemplate(name string, dat string) {
 	template.Must(BasicTemp.New(name).Parse(dat))
 }
 
-// func executeBasicMarshal(buf *bytes.Buffer, Name string, Type string) {
-// 	err := BasicTemp.ExecuteTemplate(buf, "basic_marshal", map[string]any{
-// 		"Name": Name,
-// 		"Type": Type,
-// 	})
-// 	if err != nil {
-// 		fmt.Println("Couldn't find type, assuming its a struct: ", f.Name)
-
-// 		err := BasicTemp.ExecuteTemplate(buf, "struct_marshal", map[string]any{
-// 			"Name": Name,
-// 			"Type": Type,
-// 		})
-// 		if err != nil { panic(err) }
-// 	}
-// }
-
-// func executeBasicUnmarshal(buf *bytes.Buffer, Name string, Type string) {
-// 	err := BasicTemp.ExecuteTemplate(buf, "basic_unmarshal", map[string]any{
-// 		"Name": Name,
-// 		"Type": Type,
-// 	})
-// 	if err != nil {
-// 		fmt.Println("Couldn't find type, assuming its a struct: ", f.Name)
-
-// 		err := BasicTemp.ExecuteTemplate(buf, "struct_unmarshal", map[string]any{
-// 			"Name": Name,
-// 			"Type": Type,
-// 		})
-// 		if err != nil { panic(err) }
-// 	}
-// }
-
-// func executeBasicMarshal(buf *bytes.Buffer, Name string, Type string) {
-// 	err := BasicTemp.ExecuteTemplate(buf, "basic_marshal", map[string]any{
-// 		"Name": Name,
-// 		"Type": Type,
-// 	})
-// 	if err != nil { panic(err) }
-// }
-
-// func executeBasicUnmarshal(buf *bytes.Buffer, Name string, Type string) {
-// 	err := BasicTemp.ExecuteTemplate(buf, "basic_unmarshal", map[string]any{
-// 		"Name": Name,
-// 		"Type": Type,
-// 	})
-// 	if err != nil { panic(err) }
-// }
-
 func init() {
 	BasicTemp = template.New("BasicTemp")
 
