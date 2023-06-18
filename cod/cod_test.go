@@ -170,9 +170,9 @@ func BenchmarkStructManual(b *testing.B) {
 		// bs = encodeTestDataVarint(bs, d)
 		bs = encodeTestData(bs, d)
 
-		// res, err := decodeTestData(bs)
-		// if err != nil { panic(err) }
-		// if d != res { panic("dne") }
+		res, err := decodeTestData(bs)
+		if err != nil { panic(err) }
+		if d != res { panic("dne") }
 	}
 }
 

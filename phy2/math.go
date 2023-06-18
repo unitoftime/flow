@@ -7,6 +7,7 @@ import (
 
 type Vec = Vec2
 
+//cod:struct
 type Vec2 struct {
 	X, Y float64
 }

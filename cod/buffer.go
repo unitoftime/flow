@@ -102,21 +102,25 @@ func (b *Buffer) WriteRawInt64(v int64) *Buffer {
 
 // Read Uint values
 func (b *Buffer) ReadUint8() uint8 {
+	if len(b.buf) < 1 { panic("AA") }
 	ret := b.buf[b.off]
 	b.off += 1
 	return ret
 }
 func (b *Buffer) ReadRawUint16() uint16 {
+	if len(b.buf) < 2 { panic("AA") }
 	ret := order.Uint16(b.buf[b.off:])
 	b.off += 2
 	return ret
 }
 func (b *Buffer) ReadRawUint32() uint32 {
+	if len(b.buf) < 4 { panic("AA") }
 	ret := order.Uint32(b.buf[b.off:])
 	b.off += 4
 	return ret
 }
 func (b *Buffer) ReadRawUint64() uint64 {
+	if len(b.buf) < 8 { panic("AA") }
 	ret := order.Uint64(b.buf[b.off:])
 	b.off += 8
 	return ret
@@ -229,6 +233,8 @@ func (b *Buffer) ReadByteSlice() ([]byte, error) {
 	v, err := b.ReadInt64()
 	if err != nil { return nil, err }
 	if v < 0 { return nil, ErrVarintCorrupted }
+
+	if len(b.buf) < b.off + int(v) { panic("AA") }
 
 	ret := b.buf[b.off:b.off+int(v)]
 	b.off += int(v)

@@ -17,12 +17,12 @@ type FrameConn struct {
 func NewFrameConn(conn net.Conn) *FrameConn {
 	encCfg := goframe.EncoderConfig{
 		ByteOrder: binary.BigEndian,
-		LengthFieldLength: 2, // Note: 2 byte length, maximum 64k
+		LengthFieldLength: 4, // Note: 2 byte length, maximum 64k
 	}
 	decCfg := goframe.DecoderConfig{
 		ByteOrder: binary.BigEndian,
-		LengthFieldLength: 2, // Note: 2 byte length, maximum 64k
-		InitialBytesToStrip: 2, // Note: Strip out the first two bytes (ie the lenghtField)
+		LengthFieldLength: 4, // Note: 2 byte length, maximum 64k
+		InitialBytesToStrip: 4, // Note: Strip out the first two bytes (ie the lenghtField)
 	}
 
 	return &FrameConn{

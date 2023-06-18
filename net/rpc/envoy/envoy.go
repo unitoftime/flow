@@ -94,6 +94,7 @@ const (
 // 	return err
 // }
 
+
 // Internal messages
 type Request struct {
 	Id uint32 // Tracks the request Id
@@ -190,7 +191,7 @@ func (d *RpcDef[Req, Resp]) Register(handler func(Req) Resp) {
 
 func (d RpcDef[Req, Resp]) Call(req Req) (Resp, error) {
 	var resp Resp
-	anyResp, err := d.client.doRpc(req, 5 * time.Second)
+	anyResp, err := d.client.doRpc(req, 15 * time.Second) // TODO: configurable
 	if err != nil { return resp, err }
 	resp, ok := anyResp.(Resp)
 	if !ok { panic("Mismatched type!") }
@@ -219,17 +220,29 @@ func NewInterfaceDef[S, C any]() InterfaceDef[S, C] {
 	}
 }
 
+type Config struct {
+	MaxRecvPacketSize int // Default 65K
+}
+
 // Returns the client side of the interface
-func (d InterfaceDef[S, C]) NewClient() *Client[C, S] {
+func (d InterfaceDef[S, C]) NewClient(config *Config) *Client[C, S] {
 	// Note: The C and S are reversed because we call the service and serve the client
 	client := newClient[C, S](d.clientApi, d.serviceApi)
+
+	if config != nil {
+		client.maxRecvPacketSize = config.MaxRecvPacketSize
+	}
 
 	return client
 }
 
 // Returns the server side of the interface
-func (d InterfaceDef[S, C]) NewServer() *Client[S, C] {
+func (d InterfaceDef[S, C]) NewServer(config *Config) *Client[S, C] {
 	client := newClient[S, C](d.serviceApi, d.clientApi)
+
+	if config != nil {
+		client.maxRecvPacketSize = config.MaxRecvPacketSize
+	}
 
 	return client
 }
@@ -293,6 +306,7 @@ type Client[S, C any] struct {
 	activeCalls map[uint32]chan any
 
 	rng *rand.Rand
+	maxRecvPacketSize int
 }
 
 func newClient[S, C any](serviceDef, clientDef serviceDef) *Client[S, C] {
@@ -308,6 +322,7 @@ func newClient[S, C any](serviceDef, clientDef serviceDef) *Client[S, C] {
 		activeCalls: make(map[uint32]chan any),
 
 		rng: rng,
+		maxRecvPacketSize: 1000 * 65, // TODO!!!! - hardcoded: 65K Bytes is approximately the largest UDP/WebRTC packet you can send.
 	}
 
 	return client
@@ -331,25 +346,25 @@ func (c *Client[S, C]) Closed() bool {
 	return c.sock.Closed()
 }
 
-var receiveBufPool = sync.Pool{
-	New: func() any {
-		// The Pool's New function should generally only return pointer
-		// types, since a pointer can be put into the return interface
-		// value without an allocation:
-		return make([]byte, 1024 * 64) // TODO!!!! - hardcoded
-	},
-}
-
 var sendBufPool = sync.Pool{
 	New: func() any {
 		// The Pool's New function should generally only return pointer
 		// types, since a pointer can be put into the return interface
 		// value without an allocation:
-		return cod.NewBuffer(1024) // TODO!!!! - hardcoded
+		return cod.NewBuffer(8 * 1024) // TODO!!!! - hardcoded
 	},
 }
 
 func (c *Client[S, C]) start() {
+	var receiveBufPool = sync.Pool{
+		New: func() any {
+			// The Pool's New function should generally only return pointer
+			// types, since a pointer can be put into the return interface
+			// value without an allocation:
+			return make([]byte, c.maxRecvPacketSize)
+		},
+	}
+
 	go func() {
 		for {
 			if c.sock.Closed() {
@@ -613,7 +628,7 @@ func (c *Client[S, C]) doMsg(msg any) error {
 	err := c.clientDef.Requests.Serialize(sendBuf, msg)
 	if err != nil { return err }
 
-	// println("sendMsg: ", len(dat))
+	// println("Envoy.doMsg: ", len(sendBuf.Bytes()))
 
 	// Send over socket
 	// TODO - check that n is correct?

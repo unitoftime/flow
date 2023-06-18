@@ -50,6 +50,7 @@ func (r Rect) Iter() []TilePosition {
 	return ret
 }
 
+//cod:struct
 type Collider struct {
 	Width, Height int // Size of the collider in terms of tiles
 }

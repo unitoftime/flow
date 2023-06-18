@@ -4,6 +4,7 @@ import (
 	"math"
 )
 
+//cod:struct
 type Pos Vec2
 func (v Pos) Add(v2 Pos) Pos {
 	return Pos(Vec2(v).Add(Vec2(v2)))
@@ -37,11 +38,16 @@ func (v Pos) Angle() float64 {
 	return math.Atan2(v.Y, v.X)
 }
 
+//cod:struct
 type Vel Vec2
 
+//cod:struct
 type Scale Vec2
+
+//cod:struct
 type Rotation float64
 
+//cod:struct
 type Rigidbody struct {
 	Mass float64
 	Velocity Vec2

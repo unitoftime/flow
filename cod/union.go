@@ -36,6 +36,14 @@ func (u *Union) PutRawValue(v any) {
 // 	Payload []byte
 // }
 
+type NewEncoder interface {
+	EncodeCod([]byte) []byte
+}
+type NewDecoder interface {
+	DecodeCod([]byte) (int, error)
+}
+
+
 type UnionBuilder struct {
 	types map[reflect.Type]uint8
 	impl []any
@@ -145,7 +153,10 @@ func (u *UnionBuilder) Serialize(buf *Buffer, val any) error {
 
 	buf.WriteUint8(typeId)
 	// buf.WriteByteSlice(serializedVal)
-	buf.WriteAny(val)
+
+	buf.buf = val.(NewEncoder).EncodeCod(buf.buf)
+
+	// buf.WriteAny(val)
 
 	return nil
 }
@@ -172,8 +183,12 @@ func (u *UnionBuilder) Deserialize(buf *Buffer) (any, error) {
 	val := u.impl[idx]
 	valPtr := valToPtr(val)
 
+	n, err := valPtr.(NewDecoder).DecodeCod(buf.buf[buf.off:])
+	if err != nil { return nil, err }
+	buf.off += n
+
 	// err = binary.Unmarshal(dat, valPtr)
-	err := buf.ReadAny(valPtr)
+	// err := buf.ReadAny(valPtr)
 
 	return ptrToVal(valPtr), err
 }
