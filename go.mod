@@ -12,11 +12,11 @@ require (
 	github.com/smallnest/goframe v1.0.0
 	github.com/ungerik/go3d v0.0.0-20220309204530-55ced4bcb334
 	github.com/unitoftime/binary v1.0.20
-	github.com/unitoftime/cod v0.0.0-20230616173404-085cf4fe3918
+	github.com/unitoftime/cod v0.0.0-20230626194639-7603fae7c5d2
 	github.com/unitoftime/ecs v0.0.0-20230618183031-90c9fb8e405f
-	github.com/unitoftime/glitch v0.0.0-20230605220720-6b153c8b2e13
+	github.com/unitoftime/glitch v0.0.0-20230624133037-cc9d5b4b9824
 	github.com/unitoftime/packer v0.0.0-20221103211833-11c7601528ba
-	github.com/unitoftime/rtcnet v0.0.0-20230610071949-3210959afb99
+	github.com/unitoftime/rtcnet v0.0.0-20230627134410-8a46ad8759c5
 	github.com/zergon321/reisen v0.1.8
 	github.com/zyedidia/generic v1.2.1
 	golang.org/x/image v0.8.0
@@ -30,7 +30,7 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b // indirect
 	github.com/go-gl/mathgl v1.0.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.3 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.4 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/klauspost/compress v1.16.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -49,9 +49,9 @@ require (
 	github.com/pion/sctp v1.8.7 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/srtp/v2 v2.0.15 // indirect
-	github.com/pion/stun v0.6.0 // indirect
+	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/transport/v2 v2.2.1 // indirect
-	github.com/pion/turn/v2 v2.1.0 // indirect
+	github.com/pion/turn/v2 v2.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/crypto v0.10.0 // indirect
