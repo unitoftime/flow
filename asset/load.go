@@ -156,7 +156,7 @@ type AnimationFrame struct {
 	Duration time.Duration
 	MirrorY bool
 }
-// TODO - Assumptions: frame name is <filename>_<framenumber>.png (Aseprite doesn't export the file name. But you could maybe repack their spritesheet into your own)
+// TODO - Assumptions: frame name is <filename>-<framenumber>.png (Aseprite doesn't export the file name. But you could maybe repack their spritesheet into your own)
 func (load *Load) AseAnimation(spritesheet *Spritesheet, filepath string) (*Animation, error) {
 	base := path.Base(filepath)
 	baseNoExt := base[:len(base)-len(path.Ext(base))]
@@ -179,7 +179,7 @@ func (load *Load) AseAnimation(spritesheet *Spritesheet, filepath string) (*Anim
 
 		frames := make([]AnimationFrame, 0)
 		for i := frameTag.From; i <= frameTag.To; i++ {
-			spriteName := fmt.Sprintf("%s_%d.png", baseNoExt, i)
+			spriteName := fmt.Sprintf("%s-%d.png", baseNoExt, i)
 			sprite, err := spritesheet.Get(spriteName)
 			if err != nil {
 				return nil, err
