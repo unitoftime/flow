@@ -1,6 +1,7 @@
 package net
 
 import (
+	// "fmt"
 	"net"
 	"time"
 	"encoding/binary"
@@ -39,6 +40,10 @@ func (f *FrameConn) Read(b []byte) (int, error) {
 	}
 
 	length := copy(b, tmpBuf)
+	// if length >= len(b) {
+	// 	fmt.Println("FrameConn: Received message larger than read buffer:", len(tmpBuf), len(b))
+	// }
+
 	return length, nil
 }
 

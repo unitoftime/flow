@@ -374,11 +374,29 @@ func (c *Client[S, C]) start() {
 			dat := receiveBufPool.Get().([]byte)
 			n, err := c.sock.Read(dat)
 			if err != nil {
+				receiveBufPool.Put(dat)
 				// TODO - I need a better way to wait if the socket is disconnected. If I remove the sleep then we will spin when disconnected
 				time.Sleep(100 * time.Millisecond)
 				continue
 			}
-			if n == 0 { continue } // Empty message
+
+			// if n > 30000 {
+			// 	fmt.Println("Envoy.Recv: ", n)
+			// }
+
+			if n == 0 {
+				// fmt.Println("Envoy.Recv: empty! ", n)
+				receiveBufPool.Put(dat)
+				continue
+			} // Empty message
+
+			if n >= len(dat) {
+				// TODO: need to handle this case by dynamically resizing the receive buffer (within reason)
+				// Full message
+				fmt.Println("Envoy error: message was too big: ", n)
+				receiveBufPool.Put(dat)
+				continue
+			}
 
 			buf := cod.NewBufferFrom(dat)
 			wireType := buf.ReadUint8()
@@ -605,10 +623,10 @@ func (c *Client[S, C]) doRpc(req any, timeout time.Duration) (any, error) {
 	// TODO - retry sending? Or push to a queue to be batch sent?
 	// TODO - check that n is correct?
 	_, err = c.sock.Write(sendBuf.Bytes())
+	sendBufPool.Put(sendBuf)
 	if err != nil {
 		return nil, err
 	}
-	sendBufPool.Put(sendBuf)
 
 	select {
 	case rpcResp := <-respChan:
