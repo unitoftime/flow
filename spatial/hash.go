@@ -27,16 +27,13 @@ func (b *Bucket[T]) Add(bounds phy2.Rect, val T) {
 func (b *Bucket[T]) Clear() {
 	b.List = b.List[:0]
 }
-func (b *Bucket[T]) Check(bounds phy2.Rect) []BucketItem[T] {
-	ret := make([]BucketItem[T], 0)
+func (b *Bucket[T]) Check(colSet map[T]struct{}, bounds phy2.Rect) {
 	for i := range b.List {
 		if bounds.Intersects(b.List[i].bounds) {
-			ret = append(ret, b.List[i])
+			colSet[b.List[i].item] = struct{}{}
 		}
 	}
-	return ret
 }
-
 
 type Index struct {
 	X, Y int
@@ -98,27 +95,51 @@ func (h *Hashmap[T]) PositionToIndex(pos phy2.Pos) Index {
 	return Index{xPos, yPos}
 }
 
-func (h *Hashmap[T]) Check(bounds phy2.Rect) []T {
+// Finds collisions and adds them directly into your collision set
+func (h *Hashmap[T]) Check(colSet CollisionSet[T], bounds phy2.Rect) {
 	min := h.PositionToIndex(phy2.Pos(bounds.Min))
 	max := h.PositionToIndex(phy2.Pos(bounds.Max))
 
-	// TODO - there's probably more efficient ways to deduplicate than a map here
-	set := make(map[T]bool)
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			isBorderChunk := (x == min.X || x == max.X) && (y == min.Y || y == max.Y)
+			bucket := h.GetBucket(Index{x, y})
+			if isBorderChunk {
+				// For border chunks, we need to do narrow phase too
+				bucket.Check(colSet, bounds)
+			} else {
+				// For inner chunks, we can just add everything from the bucket (much faster)
+				for i := range bucket.List {
+					colSet[bucket.List[i].item] = struct{}{}
+				}
+			}
+		}
+	}
+}
+
+// Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
+func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], bounds phy2.Rect) {
+	min := h.PositionToIndex(phy2.Pos(bounds.Min))
+	max := h.PositionToIndex(phy2.Pos(bounds.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket := h.GetBucket(Index{x, y})
-			collisions := bucket.Check(bounds)
-			for i := range collisions {
-				set[collisions[i].item] = true
+			for i := range bucket.List {
+				colSet[bucket.List[i].item] = struct{}{}
 			}
 		}
 	}
+}
 
-	ret := make([]T, 0, len(set))
-	for k := range set {
-		ret = append(ret, k)
+// TODO - there's probably more efficient ways to deduplicate than a map here?
+type CollisionSet[T comparable] map[T]struct{}
+func NewCollisionSet[T comparable](cap int) CollisionSet[T] {
+	return make(CollisionSet[T], cap)
+}
+func (s CollisionSet[T]) Clear() {
+	// Clearing Optimization: https://go.dev/doc/go1.11#performance-compiler
+	for k := range s {
+		delete(s, k)
 	}
-
-	return ret
 }
