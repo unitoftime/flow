@@ -4,6 +4,28 @@ import (
 	"github.com/unitoftime/flow/phy2"
 )
 
+type Index struct {
+	X, Y int
+}
+
+func PositionToIndex(chunksize [2]int, pos phy2.Pos) Index {
+	x := pos.X
+	y := pos.Y
+	xPos := (int(x) + (chunksize[0]/2)) / chunksize[0]
+	yPos := (int(y) + (chunksize[1]/2))/ chunksize[1]
+
+	// Adjust for negatives
+	if x < float64(-chunksize[0] / 2) {
+		xPos -= 1
+	}
+	if y < float64(-chunksize[1] / 2) {
+		yPos -= 1
+	}
+
+	return Index{xPos, yPos}
+}
+
+
 type BucketItem[T comparable] struct {
 	bounds phy2.Rect
 	item T
@@ -35,10 +57,7 @@ func (b *Bucket[T]) Check(colSet map[T]struct{}, bounds phy2.Rect) {
 	}
 }
 
-type Index struct {
-	X, Y int
-}
-
+// TODO: rename? ColliderMap?
 type Hashmap[T comparable] struct {
 	Bucket map[Index]*Bucket[T]
 	chunksize [2]int
@@ -67,8 +86,8 @@ func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 }
 
 func (h *Hashmap[T]) Add(bounds phy2.Rect, val T) {
-	min := h.PositionToIndex(phy2.Pos(bounds.Min))
-	max := h.PositionToIndex(phy2.Pos(bounds.Max))
+	min := PositionToIndex(h.chunksize, phy2.Pos(bounds.Min))
+	max := PositionToIndex(h.chunksize, phy2.Pos(bounds.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -78,27 +97,10 @@ func (h *Hashmap[T]) Add(bounds phy2.Rect, val T) {
 	}
 }
 
-func (h *Hashmap[T]) PositionToIndex(pos phy2.Pos) Index {
-	x := pos.X
-	y := pos.Y
-	xPos := (int(x) + (h.chunksize[0]/2)) / h.chunksize[0]
-	yPos := (int(y) + (h.chunksize[1]/2))/ h.chunksize[1]
-
-	// Adjust for negatives
-	if x < float64(-h.chunksize[0] / 2) {
-		xPos -= 1
-	}
-	if y < float64(-h.chunksize[1] / 2) {
-		yPos -= 1
-	}
-
-	return Index{xPos, yPos}
-}
-
 // Finds collisions and adds them directly into your collision set
 func (h *Hashmap[T]) Check(colSet CollisionSet[T], bounds phy2.Rect) {
-	min := h.PositionToIndex(phy2.Pos(bounds.Min))
-	max := h.PositionToIndex(phy2.Pos(bounds.Max))
+	min := PositionToIndex(h.chunksize, phy2.Pos(bounds.Min))
+	max := PositionToIndex(h.chunksize, phy2.Pos(bounds.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -119,8 +121,8 @@ func (h *Hashmap[T]) Check(colSet CollisionSet[T], bounds phy2.Rect) {
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
 func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], bounds phy2.Rect) {
-	min := h.PositionToIndex(phy2.Pos(bounds.Min))
-	max := h.PositionToIndex(phy2.Pos(bounds.Max))
+	min := PositionToIndex(h.chunksize, phy2.Pos(bounds.Min))
+	max := PositionToIndex(h.chunksize, phy2.Pos(bounds.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
