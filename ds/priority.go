@@ -66,6 +66,10 @@ func (q *PriorityMap[K, T]) Remove(key K) (T, bool) {
 	return t, false
 }
 
+func (q *PriorityMap[K, T]) Len() int {
+	return q.queue.Len()
+}
+
 // Pops the highest priority item
 func (q *PriorityMap[K, T]) Pop() (K, T, int, bool) {
 	if q.queue.Len() <= 0 {
@@ -79,6 +83,14 @@ func (q *PriorityMap[K, T]) Pop() (K, T, int, bool) {
 	return item.Value.key, item.Value.val, item.Priority, true
 }
 
+// Removes all items from the queue
+func (q *PriorityMap[K, T]) Clear() {
+	// Clearing Optimization: https://go.dev/doc/go1.11#performance-compiler
+	for k := range q.lookup {
+		delete(q.lookup, k)
+	}
+	q.queue.Clear()
+}
 
 //--------------------------------------------------------------------------------
 
@@ -115,6 +127,10 @@ func (pq *PriorityQueue[T]) Update(item *Item[T]) {
 
 func (pq *PriorityQueue[T]) Remove(item *Item[T]) {
 	heap.Remove(&pq.heap, item.index)
+}
+
+func (pq *PriorityQueue[T]) Clear() {
+	pq.heap.Clear()
 }
 
 // An Item is something we manage in a priority queue.
@@ -165,4 +181,8 @@ func (pq *heapQueue[T]) Pop() any {
 	item.index = -1 // for safety
 	*pq = old[0 : n-1]
 	return item
+}
+
+func (pq *heapQueue[T]) Clear() {
+	*pq = (*pq)[:0]
 }
