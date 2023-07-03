@@ -35,3 +35,27 @@ func TestPriorityQueue(t *testing.T) {
 		fmt.Printf("%.2d:%s \n", item.Priority, item.Value)
 	}
 }
+
+func TestPriorityMap(t *testing.T) {
+	pq := NewPriorityMap[int, string]()
+
+		pq.Put(1, "1", 1)
+		pq.Put(2, "2", 2)
+		pq.Put(3, "3", 3)
+
+		pq.Put(4, "4.Priority=1", 1)
+
+		pq.Put(5, "5.Priority=2", 2)
+		pq.Put(5, "5.DIFFSTRING=2", 2)
+
+		pq.Put(6, "5.Priority=3", 3)
+		pq.Put(6, "5.Priority=4", 4)
+
+	// Take the items out; they arrive in decreasing priority order.
+	for {
+		key, val, priority, ok := pq.Pop()
+		if !ok { break }
+
+		fmt.Printf("%d:%s: %d \n", key, val, priority)
+	}
+}
