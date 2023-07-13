@@ -6,13 +6,18 @@ import (
 	"github.com/unitoftime/flow/tile"
 )
 
+type TileDraw struct {
+	Sprite *glitch.Sprite
+	Depth float64
+}
+
 type Chunkmap[T any] struct {
 	chunkmap *tile.Chunkmap[T]
 	tilemapRender *TilemapRender[T]
 	chunks map[tile.ChunkPosition]*glitch.Batch
 }
 
-func NewChunkmap[T any](chunkmap *tile.Chunkmap[T], tileToSprite func(t T)*glitch.Sprite) *Chunkmap[T] {
+func NewChunkmap[T any](chunkmap *tile.Chunkmap[T], tileToSprite func(t T)[]TileDraw) *Chunkmap[T] {
 	return &Chunkmap[T]{
 		chunkmap: chunkmap,
 		tilemapRender: NewTilemapRender[T](tileToSprite),
@@ -53,11 +58,11 @@ func (c *Chunkmap[T]) RebatchChunk(chunkPos tile.ChunkPosition) {
 }
 
 type TilemapRender[T any] struct {
-	tileToSprite func(t T)*glitch.Sprite
+	tileToSprite func(t T)[]TileDraw
 	// tileToSprite map[tile.TileType]*glitch.Sprite
 }
 
-func NewTilemapRender[T any](tileToSprite func(t T)*glitch.Sprite) *TilemapRender[T] {
+func NewTilemapRender[T any](tileToSprite func(t T)[]TileDraw) *TilemapRender[T] {
 // func NewTilemapRender(tileToSprite map[tile.TileType]*glitch.Sprite) *TilemapRender {
 	// Note: Assumes that all sprites share the same spritesheet
 	return &TilemapRender[T]{
@@ -88,15 +93,17 @@ func (r *TilemapRender[T]) Draw(tmap *tile.Chunk[T], batch *glitch.Batch) {
 			// 	// If x goes up, then yPos must go up a bit as well
 			// 	-float32((y * t.TileSize[1] / 2) + (x * t.TileSize[1] / 2))}
 
-			sprite := r.tileToSprite(t)
-			if sprite == nil {
-				continue // Skip if the sprite is nil
+			tileDraw := r.tileToSprite(t)
+			for _, d := range tileDraw {
+				if d.Sprite == nil {
+					continue // Skip if the sprite is nil
+				}
+
+
+				mat := glitch.Mat4Ident
+				mat.Translate(pos[0], pos[1], d.Depth)
+				d.Sprite.Draw(batch, mat)
 			}
-
-
-			mat := glitch.Mat4Ident
-			mat.Translate(pos[0], pos[1], 0)
-			sprite.Draw(batch, mat)
 		}
 	}
 }

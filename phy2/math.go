@@ -113,6 +113,10 @@ func (r Rect) Pad(pad Rect) Rect {
 	return R(r.Min.X - pad.Min.X, r.Min.Y - pad.Min.Y, r.Max.X + pad.Max.X, r.Max.Y + pad.Max.Y)
 }
 
+func (r Rect) Unpad(pad Rect) Rect {
+	return R(r.Min.X + pad.Min.X, r.Min.Y + pad.Min.Y, r.Max.X - pad.Max.X, r.Max.Y - pad.Max.Y)
+}
+
 // // --------------------------------------------------------------------------------
 // // - Vec3
 // // --------------------------------------------------------------------------------

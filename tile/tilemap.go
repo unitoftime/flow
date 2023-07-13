@@ -35,8 +35,38 @@ func R(minX, minY, maxX, maxY int) Rect {
 		TilePosition{maxX, maxY},
 	}
 }
+func (r Rect) W() int {
+	return r.Max.X - r.Min.X
+}
+func (r Rect) H() int {
+	return r.Max.Y - r.Min.Y
+}
+
 func (r Rect) Contains(pos TilePosition) bool {
-	return pos.X < r.Max.X && pos.X > r.Min.X && pos.Y < r.Max.Y && pos.Y > r.Min.Y
+	return pos.X <= r.Max.X && pos.X >= r.Min.X && pos.Y <= r.Max.Y && pos.Y >= r.Min.Y
+}
+
+func (r Rect) Norm() Rect {
+	x1, x2 := minMax(r.Min.X, r.Max.X)
+	y1, y2 := minMax(r.Min.Y, r.Max.Y)
+	return R(x1, y1, x2, y2)
+}
+
+func (r Rect) Union (s Rect) Rect {
+	r = r.Norm()
+	s = s.Norm()
+	x1, _ := minMax(r.Min.X, s.Min.X)
+	_, x2 := minMax(r.Max.X, s.Max.X)
+	y1, _ := minMax(r.Min.Y, s.Min.Y)
+	_, y2 := minMax(r.Max.Y, s.Max.Y)
+	return R(x1, y1, x2, y2)
+}
+
+func minMax(a, b int) (int, int) {
+	if a > b {
+		return b, a
+	}
+	return a, b
 }
 
 // TODO! - Replace with actual iterator pattern

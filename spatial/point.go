@@ -60,6 +60,7 @@ func (h *Pointmap[T]) Check(list []T, bounds phy2.Rect) []T {
 	min := PositionToIndex(h.chunksize, phy2.Pos(bounds.Min))
 	max := PositionToIndex(h.chunksize, phy2.Pos(bounds.Max))
 
+	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket := h.GetBucket(Index{x, y})

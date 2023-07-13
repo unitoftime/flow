@@ -47,6 +47,15 @@ var Sinusoid *Equation = &Equation{
 	Func: SinFunc{},
 }
 
+var EaseTest *Bezier = &Bezier{
+	bezier2.T{
+		vec2.T{0.0, 0.0},
+		vec2.T{0.0, 1.0},
+		vec2.T{0.0, 2.0},
+		vec2.T{1.0, 1.0},
+	},
+}
+
 type Interp interface {
 	Uint8(uint8, uint8, float64) uint8
 	Float32(float32, float32, float64) float32

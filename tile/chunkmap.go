@@ -1,7 +1,7 @@
 package tile
 
 import (
-	// "fmt"
+	"fmt"
 
 	"github.com/unitoftime/flow/phy2"
 	"github.com/zyedidia/generic/queue"
@@ -50,6 +50,31 @@ func (c *Chunkmap[T]) GetAllChunkPositions() []ChunkPosition {
 	return ret
 }
 
+func (c *Chunkmap[T]) Bounds() Rect {
+	var bounds Rect
+	i := 0
+	for chunkPos := range c.chunks {
+		fmt.Println(c.GetChunkTileRect(chunkPos))
+		if i == 0 {
+			bounds = c.GetChunkTileRect(chunkPos)
+		} else {
+			bounds = bounds.Union(c.GetChunkTileRect(chunkPos))
+		}
+		i++
+	}
+	return bounds
+	// var bounds Rect
+	// i := 0
+	// for _, chunk := range c.chunks {
+	// 	if i == 0 {
+	// 		bounds = chunk.Bounds()
+	// 	} else {
+	// 		bounds = bounds.Union(chunk.Bounds())
+	// 	}
+	// 	i++
+	// }
+	// return bounds
+}
 
 func (c *Chunkmap[T]) GetChunk(chunkPos ChunkPosition) (*Chunk[T], bool) {
 	chunk, ok := c.chunks[chunkPos]
@@ -133,6 +158,20 @@ func (c *Chunkmap[T]) GetTile(pos TilePosition) (T, bool) {
 	localTilePos := TilePosition{pos.X - tileOffset.X, pos.Y - tileOffset.Y}
 	// fmt.Println("chunk.Get:", chunkPos, pos, localTilePos)
 	return chunk.Get(localTilePos)
+}
+
+// Adds a tile at the position, if the chunk doesnt exist, then it will be created
+func (c *Chunkmap[T]) AddTile(pos TilePosition, tile T) {
+	success := c.SetTile(pos, tile)
+	if !success {
+		// TODO: in my game, I have the default T value being an empty tile, but it might be nice to modify Chunkmap struct to have a 'defaultTile' or something that people can use to fill blank spaces
+		chunkPos := c.TileToChunk(pos)
+		c.GenerateChunk(chunkPos, nil)
+		success := c.SetTile(pos, tile)
+		if !success {
+			panic("programmer error")
+		}
+	}
 }
 
 // Tries to set the tile, returns false if the chunk does not exist
@@ -384,22 +423,13 @@ func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
 	return TilePosition{tX, tY}
 }
 
-// TODO - this probably has an off by 1 error in it
 func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
-	// TODO! - idk this isnt' actually the center. I must have a bug somewhere
 	center := c.ChunkToTile(chunkPos)
-	// fmt.Println("CENTER ", center)
-	// return R(
-	// 	center.X - (c.ChunkSize[0] / 2),
-	// 	center.Y - (c.ChunkSize[1] / 2),
-	// 	center.X + (c.ChunkSize[0] / 2),
-	// 	center.Y + (c.ChunkSize[1] / 2),
-	// )
 	return R(
 		center.X,
 		center.Y,
-		center.X + (c.ChunkSize[0]),
-		center.Y + (c.ChunkSize[1]),
+		center.X + (c.ChunkSize[0]) - 1,
+		center.Y + (c.ChunkSize[1]) - 1,
 	)
 }
 

@@ -90,17 +90,17 @@ func (rule LambdaRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int
 
 	return rule.Func(Pattern(pattern))
 }
-type Set[T any] struct {
+type Set[T, S any] struct {
 	// mapping map[uint8][]int
 	// Rule func(Pattern)int
 	Rule Rule[T]
-	Tiles [][]T
+	Tiles [][]S
 }
 
-func (s *Set[T]) Get(tilemap Tilemap[T], pos tile.TilePosition) (T, bool) {
+func (s *Set[T,S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
 	variant := s.Rule.Execute(tilemap, pos)
 	if variant < 0 {
-		var ret T
+		var ret S
 		return ret, false
 	}
 	idx := rand.Intn(len(s.Tiles[variant]))

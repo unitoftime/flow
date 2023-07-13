@@ -42,6 +42,16 @@ func (t *Chunk[T]) Height() int {
 	return len(t.tiles[0])
 }
 
+// func (t *Chunk[T]) Bounds() Rect {
+// 	min := t.PositionToTile(0, 0)
+// 	return R(
+// 		min.X,
+// 		min.Y,
+// 		min.X + t.Width(),
+// 		min.Y + t.Height(),
+// 	)
+// }
+
 func (t *Chunk[T]) Get(pos TilePosition) (T, bool) {
 	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
 		var ret T
