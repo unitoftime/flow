@@ -18,6 +18,13 @@ type TilePosition struct {
 	X, Y int
 }
 
+func (t TilePosition) Add(v TilePosition) TilePosition {
+	return TilePosition{
+		t.X + v.X,
+		t.Y + v.Y,
+	}
+}
+
 func ManhattanDistance(a, b TilePosition) int {
 	dx := a.X - b.X
 	dy := a.Y - b.Y

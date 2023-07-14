@@ -74,8 +74,11 @@ func R(minX, minY, maxX, maxY float64) Rect {
 }
 
 func (r Rect) WithCenter(v Vec2) Rect {
-	zRect := r.Moved(r.Center().Scaled(-1))
-	return zRect.Moved(v)
+	// zRect := r.Moved(r.Center().Scaled(-1))
+	// return zRect.Moved(v)
+	w := r.W()/2
+	h := r.H()/2
+	return R(v.X - w, v.Y - h, v.X + w, v.Y + h)
 }
 
 func (r Rect) W() float64 {
