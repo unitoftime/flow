@@ -64,6 +64,26 @@ func (rule BlobmapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) in
 	return int(pattern)
 }
 
+type PipemapRule[T any] struct {
+	Match func(a, b T) bool
+}
+func (rule PipemapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
+	tile, t, b, l, r, _, _, _, _ := getEightNeighbors(tilemap, pos)
+	if !rule.Match(tile, tile) {
+		return -1
+	}
+
+	pattern := PackedPipemapNumber(
+		rule.Match(tile, t),
+		rule.Match(tile, b),
+		rule.Match(tile, l),
+		rule.Match(tile, r),
+	)
+
+	return int(pattern)
+}
+
+
 type LambdaRule[T any] struct {
 	// Func func(tilemap Tilemap[T], pos tile.TilePosition) int
 	Func func(Pattern) int

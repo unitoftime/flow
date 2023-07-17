@@ -145,3 +145,13 @@ func WangBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
 
 	return total
 }
+
+func PackedPipemapNumber(t, b, l, r bool) uint8 {
+	total := uint8(0)
+	if t	{ total	+= (1 << 0) }
+	if r	{ total	+= (1 << 1) }
+	if b	{ total	+= (1 << 2) }
+	if l	{ total	+= (1 << 3) }
+
+	return total
+}
