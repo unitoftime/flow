@@ -422,6 +422,10 @@ func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
 	tX, tY := c.Math.PositionToTile(x, y, c.TileSize)
 	return TilePosition{tX, tY}
 }
+func (c *ChunkMath) PositionToTile2(pos phy2.Vec) TilePosition {
+	tX, tY := c.Math.PositionToTile(pos.X, pos.Y, c.TileSize)
+	return TilePosition{tX, tY}
+}
 
 func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 	center := c.ChunkToTile(chunkPos)

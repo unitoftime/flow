@@ -25,6 +25,20 @@ func (t TilePosition) Add(v TilePosition) TilePosition {
 	}
 }
 
+func (t TilePosition) Sub(v TilePosition) TilePosition {
+	return TilePosition{
+		t.X - v.X,
+		t.Y - v.Y,
+	}
+}
+
+func (t TilePosition) Div(val int) TilePosition {
+	return TilePosition{
+		t.X / val,
+		t.Y / val,
+	}
+}
+
 func ManhattanDistance(a, b TilePosition) int {
 	dx := a.X - b.X
 	dy := a.Y - b.Y
@@ -42,6 +56,15 @@ func R(minX, minY, maxX, maxY int) Rect {
 		TilePosition{maxX, maxY},
 	}
 }
+func (r Rect) WithCenter(v TilePosition) Rect {
+	c := r.Center()
+	zRect := r.Moved(TilePosition{
+		X: -c.X,
+		Y: -c.Y,
+	})
+	return zRect.Moved(v)
+}
+
 func (r Rect) W() int {
 	return r.Max.X - r.Min.X
 }
@@ -49,8 +72,27 @@ func (r Rect) H() int {
 	return r.Max.Y - r.Min.Y
 }
 
+func (r Rect) Center() TilePosition {
+	return TilePosition{r.Min.X + (r.W()/2), r.Min.Y + (r.H()/2)}
+}
+
+func (r Rect) Moved(v TilePosition) Rect {
+	return Rect{
+		Min: r.Min.Add(v),
+		Max: r.Max.Add(v),
+	}
+}
+
 func (r Rect) Contains(pos TilePosition) bool {
 	return pos.X <= r.Max.X && pos.X >= r.Min.X && pos.Y <= r.Max.Y && pos.Y >= r.Min.Y
+}
+
+func (r Rect) Intersects(r2 Rect) bool {
+	return (
+		r.Min.X <= r2.Max.X &&
+			r.Max.X >= r2.Min.X &&
+			r.Min.Y <= r2.Max.Y &&
+			r.Max.Y >= r2.Min.Y)
 }
 
 func (r Rect) Norm() Rect {
@@ -76,6 +118,14 @@ func minMax(a, b int) (int, int) {
 	return a, b
 }
 
+func (r Rect) PadAll(pad int) Rect {
+	return R(r.Min.X - pad, r.Min.Y - pad, r.Max.X + pad, r.Max.Y + pad)
+}
+
+func (r Rect) UnpadAll(pad int) Rect {
+	return r.PadAll(-pad)
+}
+
 // TODO! - Replace with actual iterator pattern
 func (r Rect) Iter() []TilePosition {
 	ret := make([]TilePosition, 0)
@@ -87,10 +137,10 @@ func (r Rect) Iter() []TilePosition {
 	return ret
 }
 
-//cod:struct
-type Collider struct {
-	Width, Height int // Size of the collider in terms of tiles
-}
+// //cod:struct
+// type Collider struct {
+// 	Width, Height int // Size of the collider in terms of tiles
+// }
 
 type Tilemap struct {
 	TileSize [2]int // In pixels
@@ -176,22 +226,22 @@ func (t *Tilemap) ClearEntities() {
 	}
 }
 
-// Recalculates all of the entities that are on tiles based on tile colliders
-func (t *Tilemap) RecalculateEntities(world *ecs.World) {
-	t.ClearEntities()
+// // Recalculates all of the entities that are on tiles based on tile colliders
+// func (t *Tilemap) RecalculateEntities(world *ecs.World) {
+// 	t.ClearEntities()
 
-	query := ecs.Query2[Collider, phy2.Pos](world)
-	// Recompute all entities with TileColliders
-	query.MapId(func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
-		tilePos := t.PositionToTile(pos.X, pos.Y)
+// 	query := ecs.Query2[Collider, phy2.Pos](world)
+// 	// Recompute all entities with TileColliders
+// 	query.MapId(func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
+// 		tilePos := t.PositionToTile(pos.X, pos.Y)
 
-		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
-			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
-				t.tiles[x][y].Entity = id // Store the entity
-			}
-		}
-	})
-}
+// 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
+// 			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
+// 				t.tiles[x][y].Entity = id // Store the entity
+// 			}
+// 		}
+// 	})
+// }
 
 // Returns a list of tiles that are overlapping the collider at a position
 func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollider) []TilePosition {
