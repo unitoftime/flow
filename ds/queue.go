@@ -4,14 +4,38 @@ type Queue[T any] struct {
 	Buffer []T
 	ReadIdx int
 	WriteIdx int
+	fixed bool
 }
 
 func NewQueue[T any](length int) *Queue[T] {
+	if length <= 0 {
+		length = 1
+	}
 	return &Queue[T]{
 		Buffer: make([]T, length),
 		ReadIdx: 0,
 		WriteIdx: 0,
 	}
+}
+
+func (q *Queue[T]) GrowDouble() {
+	newQueue := NewQueue[T](2 * len(q.Buffer))
+	for {
+		// TODO: Probably faster ways to do this with copy()
+		v, ok := q.Remove()
+		if !ok { break }
+		newQueue.Add(v)
+	}
+
+	q.Buffer = newQueue.Buffer
+	q.ReadIdx = newQueue.ReadIdx
+	q.WriteIdx = newQueue.WriteIdx
+}
+
+func NewFixedQueue[T any](length int) *Queue[T] {
+	q := NewQueue[T](length)
+	q.fixed = true
+	return q
 }
 
 func (q *Queue[T]) Len() int {
@@ -27,7 +51,12 @@ func (q *Queue[T]) Len() int {
 
 func (q *Queue[T]) Add(t T) {
 	if (q.WriteIdx + 1) % len(q.Buffer) == q.ReadIdx {
-		panic("QUEUE IS FULL!") // TODO - Not sure how to handle this, maybe just keep writing like I would in a ringbuffer?
+		if q.fixed {
+			panic("QUEUE IS FULL!")
+		}
+
+		// If queue size isn't fixed, then double the size
+		q.GrowDouble()
 	}
 	q.Buffer[q.WriteIdx] = t
 	q.WriteIdx = (q.WriteIdx + 1) % len(q.Buffer)
