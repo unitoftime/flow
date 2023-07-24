@@ -13,6 +13,7 @@ import (
 // 	Data string
 // }
 
+// TODO: Dump string labels and use int labels?
 type RoomDag struct {
 	Nodes []string // Holds the nodes in the order that they were added
 	NodeMap map[string]int // holds the rank of the node (to prevent cycles)
@@ -159,6 +160,35 @@ func GenerateRandomGridWalkDag2(rng *rand.Rand, num int, numWalks int) (*RoomDag
 		}
 	}
 	return dag, roomPos
+}
+
+func CalculateRoomDepths(dag *RoomDag, placements map[string]RoomPlacement, start string) {
+	queue := ds.NewQueue[string](len(placements))
+	queue.Add(start)
+
+	visit := make(map[string]bool)
+
+	for {
+		currentNode, ok := queue.Remove()
+		if !ok { return } // Done when there's nothing in the queue
+		currentPlacement, ok := placements[currentNode]
+		if !ok { panic("MUST BE SET") }
+		currentDepth := currentPlacement.Depth
+
+		children := dag.Edges[currentNode]
+		for _, child := range children {
+			visited := visit[child]
+			if visited { continue }
+			visit[child] = true
+
+			childPlacement := placements[child]
+			childPlacement.Depth = currentDepth + 1
+
+			placements[child] = childPlacement
+
+			queue.Add(child)
+		}
+	}
 }
 
 // func GenerateRoomDag(num int, edgeProbability float64, maxEdges int) *RoomDag {
