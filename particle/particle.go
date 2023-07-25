@@ -192,6 +192,10 @@ func (b *RigidbodyBuilder) Add(prefab *ecs.Entity) {
 //--------------------------------------------------------------------------------------------------
 // - Positioners
 //--------------------------------------------------------------------------------------------------
+type Float64Positioner interface {
+	Float64(A float64) float64
+}
+
 type Vec2Positioner interface {
 	Vec2(A phy2.Vec2) phy2.Vec2
 }

@@ -33,7 +33,7 @@ func runGame() {
 	camera := glitch.NewCameraOrtho()
 
 	rng := rand.New(rand.NewSource(99))
-	dag, roomPos := pgen.GenerateRandomGridWalkDag2(rng, 50, 10)
+	dag, roomPos := pgen.GenerateRandomGridWalkDag2(rng, 100, 10)
 	startLabel := "0_0"
 	rooms := make(map[string]pgen.RoomPlacement)
 
@@ -83,8 +83,8 @@ func runGame() {
 		} else if phase == 1 {
 			layout.IterateTowardsParent()
 		}
-		layout.Iterate()
-		layout.Expand()
+		// layout.Iterate()
+		// layout.Expand()
 
 		for label, p := range rooms {
 			if !p.Placed { continue } // Skip if not placed
