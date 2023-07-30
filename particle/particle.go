@@ -3,6 +3,7 @@ package particle
 import (
 	"time"
 	"image/color"
+	"math"
 	"math/rand"
 
 	// "github.com/ungerik/go3d/float64/vec2"
@@ -205,6 +206,21 @@ type ConstantPositioner struct {
 }
 func (p *ConstantPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 	return p.Value
+}
+
+type CirclePositioner struct {
+	Scale phy2.Vec2 // X is min, Y is max
+}
+func (p *CirclePositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+	theta := 2 * math.Pi * rand.Float64()
+
+	w := p.Scale.Y - p.Scale.X
+	scale := (w * rand.Float64()) + p.Scale.X
+
+	x := scale * math.Cos(theta)
+	y := scale * math.Sin(theta)
+
+	return phy2.Vec2{x, y}.Add(A)
 }
 
 type RectPositioner struct {
