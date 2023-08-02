@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"syscall/js"
 	"encoding/gob"
+	"encoding/base64"
 )
 
 // TODO Maybe: https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API
@@ -26,10 +27,16 @@ func GetItem[T any](key string) (*T, error) {
 		return nil, fmt.Errorf("failed to access data, must be a string")
 	}
 
+	baseString := val.String()
+	gobDat, err := base64.StdEncoding.DecodeString(baseString)
+	if err != nil {
+		return nil, err
+	}
+
 	var ret T
-	buf := bytes.NewBufferString(val.String())
+	buf := bytes.NewBuffer(gobDat)
 	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&ret)
+	err = dec.Decode(&ret)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +52,9 @@ func SetItem(key string, val any) error {
 		return err
 	}
 
-	localStorage.Call("setItem", key, buf.String())
+	baseString := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	localStorage.Call("setItem", key, baseString)
 	return nil
 }
 
