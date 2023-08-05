@@ -197,6 +197,19 @@ type Float64Positioner interface {
 	Float64(A float64) float64
 }
 
+type ConstFloat64Positioner struct {
+	Val float64
+}
+func (p *ConstFloat64Positioner) Float64(v float64) float64 {
+	return v + p.Val
+}
+type RandomFloat64Positioner struct {
+}
+func (p *RandomFloat64Positioner) Float64(v float64) float64 {
+	return v + (2 * math.Pi * rand.Float64())
+}
+
+
 type Vec2Positioner interface {
 	Vec2(A phy2.Vec2) phy2.Vec2
 }
