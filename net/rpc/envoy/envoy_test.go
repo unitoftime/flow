@@ -8,6 +8,8 @@ import (
 	"github.com/unitoftime/flow/net"
 )
 
+//go:generate cod
+
 // Define Services
 type TestServiceApiStruct struct {
 	DoThing RpcDef[ServerReq, ServerResp]
@@ -19,12 +21,15 @@ type TestServiceClientApiStruct struct {
 }
 
 
+//cod:struct
 type ServerMsg struct {
 	Val uint16
 }
+//cod:struct
 type ServerReq struct {
 	Val uint16
 }
+//cod:struct
 type ServerResp struct {
 	Val uint16
 }
@@ -42,9 +47,11 @@ func (s *TestService) DoThing(r ServerReq) ServerResp {
 	}
 }
 
+//cod:struct
 type ClientReq struct {
 	Val uint16
 }
+//cod:struct
 type ClientResp struct {
 	Val uint16
 }
@@ -73,7 +80,7 @@ func TestMain(t *testing.T) {
 			sock, err := listener.Accept()
 			if err != nil { panic(err) }
 
-			client := interfaceDef.NewServer()
+			client := interfaceDef.NewServer(nil)
 
 			ts := &TestService{}
 			client.Handler.DoThing.Register(ts.DoThing)
@@ -96,7 +103,7 @@ func TestMain(t *testing.T) {
 
 	ts := &TestServiceClient{}
 
-	client := interfaceDef.NewClient()
+	client := interfaceDef.NewClient(nil)
 	client.Handler.ClientDoThing.Register(ts.ClientDoThing)
 	client.Connect(sock)
 
