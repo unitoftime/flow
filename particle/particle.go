@@ -158,31 +158,31 @@ func (b *LifetimeBuilder) Add(prefab *ecs.Entity) {
 	))
 }
 
-type TransformBuilder struct {
-	PosPositioner Vec2Positioner
-}
-func (p *TransformBuilder) Add(prefab *ecs.Entity) {
-	pos := p.PosPositioner.Vec2(phy2.Vec2{})
-	prefab.Add(ecs.C(phy2.Pos{pos.X, pos.Y}))
-}
+// type TransformBuilder struct {
+// 	PosPositioner Vec2Positioner
+// }
+// func (p *TransformBuilder) Add(prefab *ecs.Entity) {
+// 	pos := p.PosPositioner.Vec2(phy2.Vec2{})
+// 	prefab.Add(ecs.C(phy2.Pos{pos.X, pos.Y}))
+// }
 
-type RigidbodyBuilder struct {
-	Mass float64
-	VelPositioner Vec2Positioner
-}
-func (b *RigidbodyBuilder) Add(prefab *ecs.Entity) {
-	// transform := prefab.Read(phy2.Transform{}).(phy2.Transform)
-	// transform, _ := ecs.ReadFromEntity[phy2.Transform](prefab)
-	// pos := phy2.Vec2{transform.X, transform.Y}
-	pos, _ := ecs.ReadFromEntity[phy2.Pos](prefab)
+// type RigidbodyBuilder struct {
+// 	Mass float64
+// 	VelPositioner Vec2Positioner
+// }
+// func (b *RigidbodyBuilder) Add(prefab *ecs.Entity) {
+// 	// transform := prefab.Read(phy2.Transform{}).(phy2.Transform)
+// 	// transform, _ := ecs.ReadFromEntity[phy2.Transform](prefab)
+// 	// pos := phy2.Vec2{transform.X, transform.Y}
+// 	pos, _ := ecs.ReadFromEntity[phy2.Pos](prefab)
 
-	vel := b.VelPositioner.Vec2(phy2.Vec2(pos))
+// 	vel := b.VelPositioner.Vec2(phy2.Vec2(pos))
 
-	prefab.Add(ecs.C(phy2.Rigidbody{
-		Mass: b.Mass,
-		Velocity: vel,
-	}))
-}
+// 	prefab.Add(ecs.C(phy2.Rigidbody{
+// 		Mass: b.Mass,
+// 		Velocity: vel,
+// 	}))
+// }
 
 // type ConstantBuilder struct {
 // 	Component interface{}
@@ -194,37 +194,64 @@ func (b *RigidbodyBuilder) Add(prefab *ecs.Entity) {
 // - Positioners
 //--------------------------------------------------------------------------------------------------
 type Float64Positioner interface {
-	Float64(A float64) float64
+	Float64(count int, A float64) float64
 }
 
 type ConstFloat64Positioner struct {
 	Val float64
 }
-func (p *ConstFloat64Positioner) Float64(v float64) float64 {
+func (p *ConstFloat64Positioner) Float64(count int, v float64) float64 {
 	return v + p.Val
 }
 type RandomFloat64Positioner struct {
 }
-func (p *RandomFloat64Positioner) Float64(v float64) float64 {
+func (p *RandomFloat64Positioner) Float64(count int, v float64) float64 {
 	return v + (2 * math.Pi * rand.Float64())
 }
 
 
 type Vec2Positioner interface {
-	Vec2(A phy2.Vec2) phy2.Vec2
+	Vec2(count int, A phy2.Vec2) phy2.Vec2
 }
 
 type ConstantPositioner struct {
 	Value phy2.Vec2
 }
-func (p *ConstantPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+func (p *ConstantPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 	return p.Value
+}
+
+type GeometricPositioner struct {
+	Scale phy2.Vec2 // X is min, Y is max
+	Offset float64
+	DistanceOffset float64
+	DistanceMod int
+	DistanceRem int
+}
+func (p *GeometricPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
+	theta := 2 * math.Pi * float64(count) * p.Offset
+
+	// w := p.Scale.Y - p.Scale.X
+	// scale := (w * rand.Float64()) + p.Scale.X
+	modCount := count
+	if p.DistanceMod != 0 {
+		modCount = count % p.DistanceMod
+	}
+	if p.DistanceRem != 0 {
+		modCount = count / p.DistanceRem
+	}
+	scale := float64(modCount) * p.DistanceOffset
+
+	x := scale * math.Cos(theta)
+	y := scale * math.Sin(theta)
+
+	return phy2.Vec2{x, y}.Add(A)
 }
 
 type CirclePositioner struct {
 	Scale phy2.Vec2 // X is min, Y is max
 }
-func (p *CirclePositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+func (p *CirclePositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 	theta := 2 * math.Pi * rand.Float64()
 
 	w := p.Scale.Y - p.Scale.X
@@ -239,7 +266,7 @@ func (p *CirclePositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 type RectPositioner struct {
 	Min, Max phy2.Vec2 // TODO - rectangle passed in
 }
-func (p *RectPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+func (p *RectPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 	w := p.Max.X - p.Min.X
 	h := p.Max.Y - p.Min.Y
 
@@ -252,14 +279,14 @@ func (p *RectPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
 type CopyPositioner struct {
 	Scale float64
 }
-func (p *CopyPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+func (p *CopyPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 	return A.Scaled(p.Scale)
 }
 
 type AnglePositioner struct {
 	Scale float64
 }
-func (p *AnglePositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+func (p *AnglePositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 	return A.Norm().Scaled(p.Scale)
 }
 
@@ -267,7 +294,7 @@ type RingPositioner struct {
 	AngleRange phy2.Vec2
 	RadiusRange phy2.Vec2
 }
-func (p *RingPositioner) Vec2(A phy2.Vec2) phy2.Vec2 {
+func (p *RingPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 	angle := interp.Linear.Float64(p.AngleRange.X, p.AngleRange.Y, rand.Float64())
 	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
 
