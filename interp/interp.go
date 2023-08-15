@@ -2,7 +2,7 @@ package interp
 
 import (
 	"math"
-	"encoding/gob"
+	// "encoding/gob"
 
 	"github.com/ungerik/go3d/float64/bezier2"
 	"github.com/ungerik/go3d/float64/vec2"
@@ -10,12 +10,12 @@ import (
 
 // TODO: use https://easings.net/
 
-func init() {
-	gob.Register(Lerp{})
-	gob.Register(Bezier{})
-	gob.Register(Equation{})
-	gob.Register(SinFunc{})
-}
+// func init() {
+// 	gob.Register(Lerp{})
+// 	gob.Register(Bezier{})
+// 	gob.Register(Equation{})
+// 	gob.Register(SinFunc{})
+// }
 
 var Linear *Lerp = &Lerp{}
 
