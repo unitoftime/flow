@@ -45,10 +45,16 @@ type BlobmapRule[T any] struct {
 	Match func(a, b T) bool
 }
 func (rule BlobmapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
-	tile, t, b, l, r, tl, tr, bl, br := getEightNeighbors(tilemap, pos)
+	tile, ok := tilemap.GetTile(pos)
+	if !ok {
+		return -1
+	}
 	if !rule.Match(tile, tile) {
 		return -1
 	}
+
+	t, b, l, r, tl, tr, bl, br := getEightNeighbors(tilemap, pos)
+
 
 	pattern := PackedBlobmapNumber(
 		rule.Match(tile, t),
@@ -68,10 +74,15 @@ type PipemapRule[T any] struct {
 	Match func(a, b T) bool
 }
 func (rule PipemapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
-	tile, t, b, l, r, _, _, _, _ := getEightNeighbors(tilemap, pos)
+	tile, ok := tilemap.GetTile(pos)
+	if !ok {
+		return -1
+	}
 	if !rule.Match(tile, tile) {
 		return -1
 	}
+
+	t, b, l, r := getEdgeNeighbors(tilemap, pos)
 
 	pattern := PackedPipemapNumber(
 		rule.Match(tile, t),
@@ -85,17 +96,19 @@ func (rule PipemapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) in
 
 
 type LambdaRule[T any] struct {
-	// Func func(tilemap Tilemap[T], pos tile.TilePosition) int
 	Func func(Pattern) int
 	Match func(T, T) bool
 }
 func (rule LambdaRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
-	// return r.Func(tilemap, pos)
-	tile, t, b, l, r, tl, tr, bl, br := getEightNeighbors(tilemap, pos)
-
+	tile, ok := tilemap.GetTile(pos)
+	if !ok {
+		return -1
+	}
 	if !rule.Match(tile, tile) {
 		return -1
 	}
+
+	t, b, l, r, tl, tr, bl, br := getEightNeighbors(tilemap, pos)
 
 	pattern := PackedRawEightNumber(
 		rule.Match(tile, t),
@@ -133,11 +146,15 @@ func (s *Set[T,S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
 // 	return s.Tiles[variant][idx]
 // }
 
-func getEightNeighbors[T any](tilemap Tilemap[T], pos tile.TilePosition) (T, T, T, T, T, T, T, T, T) {
-	centerTile, ok := tilemap.GetTile(pos)
-	if !ok { panic("Tile Doesn't exist!") }
-	// if !ok { return 0 } // TODO - should I do anything if the tile they requested didn't exist? Maybe panic loudly?
+func getEdgeNeighbors[T any](tilemap Tilemap[T], pos tile.TilePosition) (T, T, T, T) {
+	t, _ := tilemap.GetTile(tile.TilePosition{pos.X, pos.Y + 1})
+	b, _ := tilemap.GetTile(tile.TilePosition{pos.X, pos.Y - 1})
+	l, _ := tilemap.GetTile(tile.TilePosition{pos.X - 1, pos.Y})
+	r, _ := tilemap.GetTile(tile.TilePosition{pos.X + 1, pos.Y})
+	return t, b, l, r
+}
 
+func getEightNeighbors[T any](tilemap Tilemap[T], pos tile.TilePosition) (T, T, T, T, T, T, T, T) {
 	t, _ := tilemap.GetTile(tile.TilePosition{pos.X, pos.Y + 1})
 	b, _ := tilemap.GetTile(tile.TilePosition{pos.X, pos.Y - 1})
 	l, _ := tilemap.GetTile(tile.TilePosition{pos.X - 1, pos.Y})
@@ -147,7 +164,7 @@ func getEightNeighbors[T any](tilemap Tilemap[T], pos tile.TilePosition) (T, T, 
 	bl, _ := tilemap.GetTile(tile.TilePosition{pos.X - 1, pos.Y - 1})
 	br, _ := tilemap.GetTile(tile.TilePosition{pos.X + 1, pos.Y - 1})
 
-	return centerTile, t, b, l, r, tl, tr, bl, br
+	return t, b, l, r, tl, tr, bl, br
 }
 
 func PackedRawEightNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
