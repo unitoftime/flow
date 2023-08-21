@@ -123,6 +123,31 @@ func (rule LambdaRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int
 
 	return rule.Func(Pattern(pattern))
 }
+
+// type DualGridRule[T any] struct {
+// 	Match func(a, b T) bool
+// }
+// func (rule DualGridRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
+// 	tile, ok := tilemap.GetTile(pos)
+// 	if !ok {
+// 		return -1
+// 	}
+// 	if !rule.Match(tile, tile) {
+// 		return -1
+// 	}
+
+// 	t, b, l, r := getEdgeNeighbors(tilemap, pos)
+
+// 	pattern := PackedPipemapNumber(
+// 		rule.Match(tile, t),
+// 		rule.Match(tile, b),
+// 		rule.Match(tile, l),
+// 		rule.Match(tile, r),
+// 	)
+
+// 	return int(pattern)
+// }
+
 type Set[T, S any] struct {
 	// mapping map[uint8][]int
 	// Rule func(Pattern)int

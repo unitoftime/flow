@@ -78,7 +78,7 @@ func (r *TilemapRender[T]) Draw(tmap *tile.Chunk[T], batch *glitch.Batch) {
 
 			// pos := r.Math.Position(x, y, t.TileSize)
 			xPos, yPos := tmap.TileToPosition(tile.TilePosition{x, y})
-			pos := glitch.Vec2{xPos, yPos}
+			pos := glitch.Vec2{xPos, yPos}// .Add(glitch.Vec2{8, 8})
 
 			// TODO!!! - This should get captured in maybe some extra offset function?
 			// pos[1] += t.Height * float32(tmap.TileSize[1])

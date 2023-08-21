@@ -2,7 +2,7 @@ package interp
 
 import (
 	"math"
-	// "encoding/gob"
+	"time"
 
 	"github.com/ungerik/go3d/float64/bezier2"
 	"github.com/ungerik/go3d/float64/vec2"
@@ -10,12 +10,17 @@ import (
 
 // TODO: use https://easings.net/
 
-// func init() {
-// 	gob.Register(Lerp{})
-// 	gob.Register(Bezier{})
-// 	gob.Register(Equation{})
-// 	gob.Register(SinFunc{})
-// }
+// This will calculate
+func DynamicValue(val float64, fixedTime, dt time.Duration) float64 {
+	// interpVal := val * dt.Seconds() / (16 * time.Millisecond).Seconds()
+	interpVal := (val  / fixedTime.Seconds()) * dt.Seconds()
+	if interpVal > 1.0 {
+		return 1.0
+	} else if interpVal < 0 {
+		return 0.0
+	}
+	return interpVal
+}
 
 var Linear *Lerp = &Lerp{}
 
