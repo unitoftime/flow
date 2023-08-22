@@ -140,8 +140,5 @@ func NewCollisionSet[T comparable](cap int) CollisionSet[T] {
 	return make(CollisionSet[T], cap)
 }
 func (s CollisionSet[T]) Clear() {
-	// Clearing Optimization: https://go.dev/doc/go1.11#performance-compiler
-	for k := range s {
-		delete(s, k)
-	}
+	clear(s)
 }

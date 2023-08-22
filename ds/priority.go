@@ -85,10 +85,7 @@ func (q *PriorityMap[K, T]) Pop() (K, T, int, bool) {
 
 // Removes all items from the queue
 func (q *PriorityMap[K, T]) Clear() {
-	// Clearing Optimization: https://go.dev/doc/go1.11#performance-compiler
-	for k := range q.lookup {
-		delete(q.lookup, k)
-	}
+	clear(q.lookup)
 	q.queue.Clear()
 }
 
