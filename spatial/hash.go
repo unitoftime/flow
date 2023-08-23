@@ -4,6 +4,33 @@ import (
 	"github.com/unitoftime/flow/phy2"
 )
 
+// TODO: add some sort of shape checking so I can support multiple shape types
+// type ShapeType uint8
+// const (
+// 	ShapeRect ShapeType = iota
+// 	ShapeCircle
+// )
+
+// type Shape struct {
+// 	Type ShapeType
+// 	Width, Height float64
+// }
+// func NewRect(rect phy2.Rect) Shape {
+// 	return Shape{
+// 		Type: ShapeRect,
+// 		Rect: 
+// 	}
+// }
+
+// func NewCircle(radius float64) Shape {
+// 	return Shape{
+// 		Type: ShapeCircle,
+// 		Width: radius,
+// 		Height: radius,
+// 	}
+// }
+
+
 type Index struct {
 	X, Y int
 }

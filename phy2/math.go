@@ -32,6 +32,10 @@ func (v Vec2) Norm() Vec2 {
 	return V2(v.X/len, v.Y/len)
 }
 
+func (v Vec2) Dist(u Vec2) float64 {
+	return v.Sub(u).Len()
+}
+
 func (v Vec2) Dot(u Vec2) float64 {
 	return (v.X * u.X) + (v.Y * u.Y)
 }

@@ -23,6 +23,10 @@ func (v Pos) Dot(u Pos) float64 {
 	return Vec2(v).Dot(Vec2(u))
 }
 
+func (v Pos) Dist(u Pos) float64 {
+	return Vec2(v).Dist(Vec2(u))
+}
+
 func (v Pos) Len() float64 {
 	return Vec2(v).Len()
 }
