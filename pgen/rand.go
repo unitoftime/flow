@@ -36,3 +36,55 @@ func (r *Range[T]) SeededGet(rng *rand.Rand) T {
 // 	}
 // 	return T(rand.Intn(int(delta))) + r.Min
 // }
+
+//--------------------------------------------------------------------------------
+// - Tables
+//--------------------------------------------------------------------------------
+
+type Item[T any] struct{
+	Weight int
+	Item T
+}
+func NewItem[T any](weight int, item T) Item[T] {
+	return Item[T]{
+		Weight: weight,
+		Item: item,
+	}
+}
+
+type Table[T any] struct {
+	Total int
+	Items []Item[T]
+}
+
+func NewTable[T any](items ...Item[T]) *Table[T] {
+	total := 0
+	for i := range items {
+		total += items[i].Weight
+	}
+
+	// TODO - Seeding?
+
+	return &Table[T]{
+		Total: total,
+		Items: items, // TODO - maybe sort this. it might make the search a little faster?
+	}
+}
+
+// Returns the item if successful, else returns nil
+func (t *Table[T]) Get() T {
+	roll := rand.Intn(t.Total + 1)
+
+	// Essentially we just loop forward incrementing the `current` value. and once we pass it, we know that we are in that current section of the distribution.
+	current := 0
+	for i := range t.Items {
+		current += t.Items[i].Weight
+		if roll <= current {
+			return t.Items[i].Item
+		}
+	}
+
+	// TODO: is there a way to write this so it never fails?
+	// Else just return the first item, something went wrong with the search
+	return t.Items[0].Item
+}
