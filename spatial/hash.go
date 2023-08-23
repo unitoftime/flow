@@ -4,7 +4,7 @@ import (
 	"github.com/unitoftime/flow/phy2"
 )
 
-// TODO: add some sort of shape checking so I can support multiple shape types
+// TODO: eventually use shapes
 // type ShapeType uint8
 // const (
 // 	ShapeRect ShapeType = iota
@@ -13,20 +13,40 @@ import (
 
 // type Shape struct {
 // 	Type ShapeType
-// 	Width, Height float64
+// 	Bounds phy2.Rect
 // }
-// func NewRect(rect phy2.Rect) Shape {
+// func Rect(rect phy2.Rect) Shape {
 // 	return Shape{
 // 		Type: ShapeRect,
-// 		Rect: 
+// 		Bounds: rect,
 // 	}
 // }
-
-// func NewCircle(radius float64) Shape {
+// func Circle(rect phy2.Rect) Shape {
 // 	return Shape{
 // 		Type: ShapeCircle,
-// 		Width: radius,
-// 		Height: radius,
+// 		Bounds: rect,
+// 	}
+// }
+// func (s Shape) Rect() phy2.Rect {
+// 	return s.Bounds
+// }
+// func (s Shape) Circle() phy2.Circle {
+// 	phy2.NewCircle(s.Bounds.Center())
+// }
+
+// func (s Shape) Intersects(s2 Shape) bool {
+// 	if s.Type == ShapeRect {
+// 		if s2.Type == ShapeRect {
+// 			return s.Rect().Intersects(s2.Bounds)
+// 		} else if s2.Type == ShapeCircle {
+// 			return s.Rect().IntersectCircle(s2.Circle())
+// 		}
+// 	} else if s.Type == ShapeCircle {
+// 		if s2.Type == ShapeRect {
+// 			return s.Bounds.Intersects(s2.Bounds)
+// 		} else if s2.Type == ShapeCircle {
+// 			return s.Circle().IntersectCircle(s2.Circle())
+// 		}
 // 	}
 // }
 
@@ -54,7 +74,7 @@ func PositionToIndex(chunksize [2]int, pos phy2.Pos) Index {
 
 
 type BucketItem[T comparable] struct {
-	bounds phy2.Rect
+	shape phy2.Rect
 	item T
 }
 
@@ -67,18 +87,18 @@ func NewBucket[T comparable]() *Bucket[T] {
 		List: make([]BucketItem[T], 0),
 	}
 }
-func (b *Bucket[T]) Add(bounds phy2.Rect, val T) {
+func (b *Bucket[T]) Add(shape phy2.Rect, val T) {
 	b.List = append(b.List, BucketItem[T]{
-		bounds: bounds,
+		shape: shape,
 		item: val,
 	})
 }
 func (b *Bucket[T]) Clear() {
 	b.List = b.List[:0]
 }
-func (b *Bucket[T]) Check(colSet map[T]struct{}, bounds phy2.Rect) {
+func (b *Bucket[T]) Check(colSet map[T]struct{}, shape phy2.Rect) {
 	for i := range b.List {
-		if bounds.Intersects(b.List[i].bounds) {
+		if shape.Intersects(b.List[i].shape) {
 			colSet[b.List[i].item] = struct{}{}
 		}
 	}
@@ -112,22 +132,22 @@ func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 	return bucket
 }
 
-func (h *Hashmap[T]) Add(bounds phy2.Rect, val T) {
-	min := PositionToIndex(h.chunksize, phy2.Pos(bounds.Min))
-	max := PositionToIndex(h.chunksize, phy2.Pos(bounds.Max))
+func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {
+	min := PositionToIndex(h.chunksize, phy2.Pos(shape.Min))
+	max := PositionToIndex(h.chunksize, phy2.Pos(shape.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket := h.GetBucket(Index{x, y})
-			bucket.Add(bounds, val)
+			bucket.Add(shape, val)
 		}
 	}
 }
 
 // Finds collisions and adds them directly into your collision set
-func (h *Hashmap[T]) Check(colSet CollisionSet[T], bounds phy2.Rect) {
-	min := PositionToIndex(h.chunksize, phy2.Pos(bounds.Min))
-	max := PositionToIndex(h.chunksize, phy2.Pos(bounds.Max))
+func (h *Hashmap[T]) Check(colSet CollisionSet[T], shape phy2.Rect) {
+	min := PositionToIndex(h.chunksize, phy2.Pos(shape.Min))
+	max := PositionToIndex(h.chunksize, phy2.Pos(shape.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -135,7 +155,7 @@ func (h *Hashmap[T]) Check(colSet CollisionSet[T], bounds phy2.Rect) {
 			bucket := h.GetBucket(Index{x, y})
 			if isBorderChunk {
 				// For border chunks, we need to do narrow phase too
-				bucket.Check(colSet, bounds)
+				bucket.Check(colSet, shape)
 			} else {
 				// For inner chunks, we can just add everything from the bucket (much faster)
 				for i := range bucket.List {
@@ -147,9 +167,9 @@ func (h *Hashmap[T]) Check(colSet CollisionSet[T], bounds phy2.Rect) {
 }
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
-func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], bounds phy2.Rect) {
-	min := PositionToIndex(h.chunksize, phy2.Pos(bounds.Min))
-	max := PositionToIndex(h.chunksize, phy2.Pos(bounds.Max))
+func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape phy2.Rect) {
+	min := PositionToIndex(h.chunksize, phy2.Pos(shape.Min))
+	max := PositionToIndex(h.chunksize, phy2.Pos(shape.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {

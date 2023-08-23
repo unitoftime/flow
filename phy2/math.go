@@ -77,6 +77,14 @@ func R(minX, minY, maxX, maxY float64) Rect {
 	}
 }
 
+// Returns a centered Rect
+func CR(center Vec2, radius Vec2) Rect {
+	return R(
+		center.X - float64(radius.X), center.Y - float64(radius.Y),
+		center.X + float64(radius.Y), center.Y + float64(radius.Y),
+	)
+}
+
 func (r Rect) WithCenter(v Vec2) Rect {
 	// zRect := r.Moved(r.Center().Scaled(-1))
 	// return zRect.Moved(v)
@@ -123,6 +131,31 @@ func (r Rect) Pad(pad Rect) Rect {
 func (r Rect) Unpad(pad Rect) Rect {
 	return R(r.Min.X + pad.Min.X, r.Min.Y + pad.Min.Y, r.Max.X - pad.Max.X, r.Max.Y - pad.Max.Y)
 }
+
+
+// --------------------------------------------------------------------------------
+// - Circle
+// --------------------------------------------------------------------------------
+type Circle struct {
+	Center Vec2
+	Radius float64
+}
+func NewCircle(center Vec2, radius float64) Circle {
+	return Circle{
+		Center: center,
+		Radius: radius,
+	}
+}
+
+// // TODO: Not tested
+// func (c Circle) Intersects(c2 Circle) bool {
+// 	dx := c.Center.X - c2.Center.X
+// 	dy := c.Center.Y - c2.Center.Y
+// 	distSq := (dx * dx) + (dy * dy)
+// 	totalRadiusSq := c.Radius + c2.Radius
+// 	totalRadiusSq = totalRadiusSq * totalRadiusSq
+// 	return dist <= totalRadiusSq
+// }
 
 // // --------------------------------------------------------------------------------
 // // - Vec3
