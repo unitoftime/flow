@@ -7,6 +7,7 @@ import (
 
 type Pos struct {
 	phy2.Pos
+	Height float64
 }
 
 // Represents multiple sprites
