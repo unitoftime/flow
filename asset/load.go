@@ -31,6 +31,16 @@ func (load *Load) Open(filepath string) (fs.File, error) {
 	return load.filesystem.Open(filepath)
 }
 
+func (load *Load) Data(filepath string) ([]byte, error) {
+	file, err := load.filesystem.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	return ioutil.ReadAll(file)
+}
+
 func (load *Load) Font(filepath string, size float64) (font.Face, error) {
 	file, err := load.filesystem.Open(filepath)
 	if err != nil {
