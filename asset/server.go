@@ -2,7 +2,11 @@ package asset
 
 import (
 	"fmt"
+	"os"
+	"io/fs"
+	"io/ioutil"
 	"strings"
+	"path/filepath"
 	"sync/atomic"
 )
 
@@ -11,11 +15,12 @@ import (
 // TODO: Finalizers on handles to deallocate assets that are no longer used?
 type Handle[T any] struct {
 	ptr atomic.Pointer[T]
-	name string
+	Name string
+	Error error
 }
 func newHandle[T any](name string) *Handle[T] {
 	return &Handle[T]{
-		name: name,
+		Name: name,
 	}
 }
 
@@ -31,24 +36,46 @@ type assetHandler interface {}
 type Loader[T any] interface {
 	Ext() []string
 	Load(*Server, []byte) (*T, error)
+	Store(*Server, *T) ([]byte, error)
 }
-
 
 type Server struct {
-	load *Load
+	filesystem fs.FS
 
 	extToLoader map[string]any // Map file extension strings to the loader that loads them
-
 	nameToHandle map[string]assetHandler // Map the full filepath name to the asset handle
 }
-func NewServer(load *Load) *Server {
+func NewServer(filesystem fs.FS) *Server {
 	return &Server{
-		load: load,
+		filesystem: filesystem,
 		extToLoader: make(map[string]any),
 
 		nameToHandle: make(map[string]assetHandler),
 	}
 }
+
+func (s *Server) readRaw(filepath string) ([]byte, error) {
+	file, err := s.filesystem.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	return ioutil.ReadAll(file)
+}
+
+func (s *Server) writeRaw(filepath string, dat []byte) error {
+	// file, err := s.filesystem.Open(filepath)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer file.Close()
+
+	fmt.Println("Writing: ", filepath)
+	// TODO: verify file is writable. This sidesteps the filesystem too
+	return os.WriteFile(filepath, dat, 0755)
+}
+
 
 func Register[T any](s *Server, loader Loader[T]) {
 	extensions := loader.Ext()
@@ -62,7 +89,28 @@ func Register[T any](s *Server, loader Loader[T]) {
 	}
 }
 
-func LoadAsset[T any](server *Server, name string) *Handle[T] {
+// TODO: Extension filters?
+// TODO: Should this return a single handle that gives us access to subhandles in the directory?
+// Loads a directory that contains the same asset type. Returns a slice filled with all asset handles. Does not search recursively
+func LoadDir[T any](server *Server, path string) []*Handle[T] {
+	dirEntries, err := fs.ReadDir(server.filesystem, path)
+	if err != nil {
+		return nil
+	}
+
+	ret := make([]*Handle[T], 0, len(dirEntries))
+	for _, e := range dirEntries {
+		if e.IsDir() { continue } // TODO: Recursive?
+
+		handle := Load[T](server, filepath.Join(path, e.Name()))
+		ret = append(ret, handle)
+	}
+
+	return ret
+}
+
+// Loads a single file
+func Load[T any](server *Server, name string) *Handle[T] {
 	// Check if already loaded
 	anyHandle, ok := server.nameToHandle[name]
 	if ok {
@@ -88,16 +136,17 @@ func LoadAsset[T any](server *Server, name string) *Handle[T] {
 	handle := newHandle[T](name)
 	server.nameToHandle[name] = handle
 
-	go func() {
-		data, err := server.load.Data(name)
+	// go func() {
+	func() {
+		data, err := server.readRaw(name)
 		if err != nil {
-			// TODO: Store error
+			handle.Error = err
 			return
 		}
 
 		val, err := loader.Load(server, data)
 		if err != nil {
-			// TODO: Store error
+			handle.Error = err
 			return
 		}
 
@@ -106,6 +155,33 @@ func LoadAsset[T any](server *Server, name string) *Handle[T] {
 
 	// Success
 	return handle
+}
+
+// Writes the asset handle back to the file
+func Store[T any](server *Server, path string, handle *Handle[T]) error {
+	name := handle.Name
+	// Find a loader for it
+	_, ext, found := strings.Cut(name, ".")
+	if !found {
+		ext = name
+	}
+
+	anyLoader, ok := server.extToLoader[ext]
+	if !ok {
+		panic(fmt.Sprintf("could not find loader for extension: %s", ext))
+	}
+	loader, ok := anyLoader.(Loader[T])
+	if !ok {
+		panic(fmt.Sprintf("wrong type for registered loader on extension: %s", ext))
+	}
+
+	val := handle.Get()
+	dat, err := loader.Store(server, val)
+	if err != nil {
+		return err
+	}
+
+	return server.writeRaw(filepath.Join(path, handle.Name), dat)
 }
 
 // func LoadAsset[T any](server *Server, name string) *Handle[T] {
