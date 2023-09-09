@@ -16,7 +16,7 @@ import (
 type Handle[T any] struct {
 	ptr atomic.Pointer[T]
 	Name string
-	Error error
+	err error
 }
 func newHandle[T any](name string) *Handle[T] {
 	return &Handle[T]{
@@ -140,13 +140,13 @@ func Load[T any](server *Server, name string) *Handle[T] {
 	func() {
 		data, err := server.readRaw(name)
 		if err != nil {
-			handle.Error = err
+			handle.err = err
 			return
 		}
 
 		val, err := loader.Load(server, data)
 		if err != nil {
-			handle.Error = err
+			handle.err = err
 			return
 		}
 

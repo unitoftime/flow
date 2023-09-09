@@ -25,6 +25,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b // indirect
 	github.com/go-gl/mathgl v1.0.0 // indirect
@@ -33,6 +34,7 @@ require (
 	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mus-format/mus-common-go v0.0.0-20230517145153-b4c02f3abdaf // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
@@ -51,7 +53,10 @@ require (
 	github.com/pion/turn/v2 v2.1.0 // indirect
 	github.com/pion/webrtc/v3 v3.2.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/r3labs/diff/v3 v3.0.1 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/net v0.10.0 // indirect

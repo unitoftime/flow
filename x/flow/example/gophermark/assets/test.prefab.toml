@@ -1,0 +1,14 @@
+Id = "abcd"
+
+[Override]
+
+  [[Override.Data]]
+    X = 1.0
+    Y = 2.0
+
+  [[Override.Data]]
+    X = 3.0
+    Y = 4.0
+
+  [[Override.Data]]
+    Name = "gopher.png"

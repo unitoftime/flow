@@ -1,0 +1,17 @@
+Id = "instance"
+
+[Override]
+
+  [[Override.Components]]
+    [Override.Components.Comp]
+      X = 1.0
+      Y = 101.0
+
+  [[Override.Components]]
+    [Override.Components.Comp]
+      X = 3.0
+      Y = 4.0
+
+  [[Override.Components]]
+    [Override.Components.Comp]
+      Name = "gopher.png"
