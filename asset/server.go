@@ -30,6 +30,9 @@ func (h *Handle[T]) Set(val *T) {
 func (h *Handle[T]) Get() *T {
 	return h.ptr.Load()
 }
+func (h *Handle[T]) Error() error {
+	return h.err
+}
 
 type assetHandler interface {}
 
