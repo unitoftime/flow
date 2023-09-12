@@ -19,7 +19,7 @@ type AssetLoader struct {
 	// TODO: Target Sample Rate
 }
 func (l AssetLoader) Ext() []string {
-	return []string{"ogg"} // TODO: //, "opus", "mp3"}
+	return []string{".ogg"} // TODO: //, "opus", "mp3"}
 }
 func (l AssetLoader) Load(server *asset.Server, data []byte) (*Audio, error) {
 	reader := bytes.NewReader(data) // TODO: Would be nice to have streaming connections

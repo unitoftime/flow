@@ -13,7 +13,7 @@ import (
 type SpriteAssetLoader struct {
 }
 func (l SpriteAssetLoader) Ext() []string {
-	return []string{"png"}
+	return []string{".png"}
 }
 func (l SpriteAssetLoader) Load(server *asset.Server, data []byte) (*glitch.Sprite, error) {
 	smooth := false

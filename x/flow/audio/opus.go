@@ -1,6 +1,7 @@
 package audio
 
-// This has some code with pion/opus, but pion/opus only supports 10K bitrate which is pretty bad sounding
+// This was the start of an opus decoder
+
 // import (
 // 	"io"
 // 	"bytes"
@@ -10,7 +11,7 @@ package audio
 
 // // Adapted from: https://github.com/pion/opus/blob/master/examples/playback/main.go
 // // Note: only supports 10K encoding: ffmpeg -i input.mp3 -c:a libopus -ac 1 -b:a 10K output.ogg
-// type OpusReader struct {
+// type opusReader struct {
 // 	oggFile     *oggreader.OggReader
 // 	opusDecoder opus.Decoder
 
@@ -20,13 +21,13 @@ package audio
 // 	segmentBuffer [][]byte
 // }
 
-// func NewOpusReader(fileReader io.Reader) (*OpusReader, error) {
+// func newOpusReader(fileReader io.Reader) (*opusReader, error) {
 // 	oggFile, _, err := oggreader.NewWith(fileReader)
 // 	if err != nil {
 // 		return nil, err
 // 	}
 
-// 	r := &OpusReader{
+// 	r := &opusReader{
 // 		decodeBuffer: make([]byte, 1920), // TODO: Hardcoded
 // 		oggFile:      oggFile,
 // 		opusDecoder:  opus.NewDecoder(),
@@ -34,7 +35,7 @@ package audio
 // 	return r, nil
 // }
 
-// func (o *OpusReader) Read(p []byte) (n int, err error) {
+// func (o *opusReader) Read(p []byte) (n int, err error) {
 // 	if o.decodeBufferOffset == 0 || o.decodeBufferOffset >= len(o.decodeBuffer) {
 // 		if len(o.segmentBuffer) == 0 {
 // 			for {
@@ -61,4 +62,53 @@ package audio
 // 	n = copy(p, o.decodeBuffer[o.decodeBufferOffset:])
 // 	o.decodeBufferOffset += n
 // 	return n, nil
+// }
+
+// func DecodeOpusStream(rc io.ReadCloser) (beep.StreamSeekCloser, beep.Format, error) {
+// 	stream := &pcmStream{
+// 		r:   r,
+// 		f:   format,
+// 		buf: make([]byte, 512*format.Width()),
+// 	}
+// }
+
+// // pcmStream allows faiface to play PCM directly
+// type OpusStream struct {
+// 	r   io.Reader
+// 	f   beep.Format
+// 	buf []byte
+// 	len int
+// 	pos int
+// 	err error
+// }
+
+// func (s *OpusStream) Err() error { return s.err }
+
+// func (s *OpusStream) Stream(samples [][2]float64) (n int, ok bool) {
+// 	width := s.f.Width()
+// 	// if there's not enough data for a full sample, get more
+// 	if size := s.len - s.pos; size < width {
+// 		// if there's a partial sample, move it to the beginning of the buffer
+// 		if size != 0 {
+// 			copy(s.buf, s.buf[s.pos:s.len])
+// 		}
+// 		s.len = size
+// 		s.pos = 0
+// 		// refill the buffer
+// 		nbytes, err := s.r.Read(s.buf[s.len:])
+// 		if err != nil {
+// 			if err != io.EOF {
+// 				s.err = err
+// 			}
+// 			return n, false
+// 		}
+// 		s.len += nbytes
+// 	}
+// 	// decode as many samples as we can
+// 	for n < len(samples) && s.len-s.pos >= width {
+// 		samples[n], _ = s.f.DecodeSigned(s.buf[s.pos:])
+// 		n++
+// 		s.pos += width
+// 	}
+// 	return n, true
 // }

@@ -3,10 +3,12 @@ package asset
 import (
 	"fmt"
 	"os"
+	"io"
 	"io/fs"
 	"io/ioutil"
-	"strings"
+	"net/http"
 	"path/filepath"
+	"net/url"
 	"sync/atomic"
 )
 
@@ -57,14 +59,43 @@ func NewServer(filesystem fs.FS) *Server {
 	}
 }
 
+func getScheme(path string) string {
+	u, err := url.Parse(path)
+	if err != nil {
+		return ""
+	}
+	return u.Scheme
+}
+
 func (s *Server) readRaw(filepath string) ([]byte, error) {
-	file, err := s.filesystem.Open(filepath)
+	scheme := getScheme(filepath)
+
+	var rc io.ReadCloser
+	var err error
+	if scheme == "https" || scheme == "http" {
+		rc, err = s.getHttp(filepath)
+	} else {
+		rc, err = s.getFile(filepath)
+	}
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer rc.Close()
 
-	return ioutil.ReadAll(file)
+	return ioutil.ReadAll(rc)
+}
+
+func (s *Server) getFile(filepath string) (io.ReadCloser, error) {
+	return s.filesystem.Open(filepath)
+}
+
+func (s *Server) getHttp(filepath string) (io.ReadCloser, error) {
+	resp, err := http.Get(filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Body, nil
 }
 
 func (s *Server) writeRaw(filepath string, dat []byte) error {
@@ -74,7 +105,6 @@ func (s *Server) writeRaw(filepath string, dat []byte) error {
 	// }
 	// defer file.Close()
 
-	fmt.Println("Writing: ", filepath)
 	// TODO: verify file is writable. This sidesteps the filesystem too
 	return os.WriteFile(filepath, dat, 0755)
 }
@@ -122,10 +152,7 @@ func Load[T any](server *Server, name string) *Handle[T] {
 	}
 
 	// Find a loader for it
-	_, ext, found := strings.Cut(name, ".")
-	if !found {
-		ext = name
-	}
+	ext := getExtension(name)
 
 	anyLoader, ok := server.extToLoader[ext]
 	if !ok {
@@ -164,10 +191,7 @@ func Load[T any](server *Server, name string) *Handle[T] {
 func Store[T any](server *Server, path string, handle *Handle[T]) error {
 	name := handle.Name
 	// Find a loader for it
-	_, ext, found := strings.Cut(name, ".")
-	if !found {
-		ext = name
-	}
+	ext := getExtension(name)
 
 	anyLoader, ok := server.extToLoader[ext]
 	if !ok {
@@ -185,6 +209,28 @@ func Store[T any](server *Server, path string, handle *Handle[T]) error {
 	}
 
 	return server.writeRaw(filepath.Join(path, handle.Name), dat)
+}
+
+func getExtension(name string) string {
+	idx := -1
+	for i := len(name) - 1; i >= 0 && name[i] != '/'; i-- {
+		if name[i] == '.' {
+			idx = i
+		}
+	}
+	if idx > 0 {
+		return name[idx:]
+	}
+	return ""
+
+	// Note: Does't properly cut slashes
+	// _, ext, found := strings.Cut(name, ".")
+	// if !found {
+	// 	ext = name
+	// }
+
+	// Note: Only returns the very final extension
+	// ext := filepath.Ext(name)
 }
 
 // func LoadAsset[T any](server *Server, name string) *Handle[T] {

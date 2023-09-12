@@ -61,7 +61,7 @@ func (p *PrefabAsset) Get() EntConfig {
 type PrefabAssetLoader struct {
 }
 func (l PrefabAssetLoader) Ext() []string {
-	return []string{"prefab.toml", "prefab.gob"}
+	return []string{".prefab.toml", ".prefab.gob"}
 }
 func (l PrefabAssetLoader) Load(server *asset.Server, data []byte) (*PrefabAsset, error) {
 	var ass PrefabAsset
