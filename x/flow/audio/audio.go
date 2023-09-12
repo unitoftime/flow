@@ -17,7 +17,8 @@ var masterCtrl *beep.Ctrl
 var masterVolume *effects.Volume
 
 func Initialize() error {
-	err := speaker.Init(defaultSampleRate, defaultSampleRate.N(time.Second/10)) // 1/10 of a second
+	err := speaker.Init(defaultSampleRate,
+		defaultSampleRate.N(time.Second/60)) // Buffer length of 1/60 of a second
 	if err != nil {
 		audioFailure = true
 		return err
@@ -43,7 +44,7 @@ func Play(src *Source) {
 	if audioFailure { return }
 	if src == nil { return }
 
-	masterMixer.Add(src.streamer)
+	masterMixer.Add(src.Streamer())
 }
 
 func Mute() {
