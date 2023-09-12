@@ -11,8 +11,15 @@ import (
 	"github.com/unitoftime/flow/asset"
 )
 
-type Audio struct {
+type Source struct {
 	streamer beep.StreamSeekCloser
+}
+
+type Settings struct {
+	// Playback mode: once, loop, despawn (entity once source completes), remove (remove audio components once sound completes
+	// Volume float64
+	// Speed float64
+	// Paused bool
 }
 
 type AssetLoader struct {
@@ -21,16 +28,16 @@ type AssetLoader struct {
 func (l AssetLoader) Ext() []string {
 	return []string{".ogg"} // TODO: //, "opus", "mp3"}
 }
-func (l AssetLoader) Load(server *asset.Server, data []byte) (*Audio, error) {
+func (l AssetLoader) Load(server *asset.Server, data []byte) (*Source, error) {
 	reader := bytes.NewReader(data) // TODO: Would be nice to have streaming connections
 	streamer, err := loadVorbis(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Audio{streamer}, nil
+	return &Source{streamer}, nil
 }
-func (l AssetLoader) Store(server *asset.Server, audio *Audio) ([]byte, error) {
+func (l AssetLoader) Store(server *asset.Server, audio *Source) ([]byte, error) {
 	return nil, errors.New("audio files do not support writeback")
 }
 

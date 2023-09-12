@@ -49,7 +49,7 @@ func setupSystem(world *ecs.World) ecs.System {
 	assetServer := ecs.GetResource[asset.Server](world)
 
 	return ecs.NewSystem(func(dt time.Duration) {
-		audioFile := asset.Load[audio.Audio](assetServer,
+		audioFile := asset.Load[audio.Source](assetServer,
 			"https://upload.wikimedia.org/wikipedia/commons/c/c8/Example.ogg")
 		audio.Play(audioFile.Get())
 	})

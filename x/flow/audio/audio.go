@@ -2,7 +2,6 @@ package audio
 
 import (
 	"time"
-	"github.com/rs/zerolog/log"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/effects"
@@ -17,12 +16,11 @@ var masterMixer *beep.Mixer
 var masterCtrl *beep.Ctrl
 var masterVolume *effects.Volume
 
-func Initialize() {
+func Initialize() error {
 	err := speaker.Init(defaultSampleRate, defaultSampleRate.N(time.Second/10)) // 1/10 of a second
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to initialize audio")
 		audioFailure = true
-		return
+		return err
 	}
 
 	masterMixer = &beep.Mixer{}
@@ -38,13 +36,34 @@ func Initialize() {
 		Silent: false,
 	}
 	speaker.Play(masterVolume)
+	return nil
 }
 
-func Play(audio *Audio) {
+func Play(src *Source) {
 	if audioFailure { return }
-	if audio == nil { return }
+	if src == nil { return }
 
-	masterMixer.Add(audio.streamer)
+	masterMixer.Add(src.streamer)
+}
+
+func Mute() {
+	if masterVolume == nil { return }
+	masterVolume.Silent = true
+}
+func Unmute() {
+	if masterVolume == nil { return }
+	masterVolume.Silent = false
+}
+func Muted() bool {
+	return masterVolume.Silent
+}
+
+func AddVolume(val float64) {
+	if masterVolume == nil { return }
+	masterVolume.Volume += val
+}
+func Volume() float64 {
+	return masterVolume.Volume
 }
 
 // import (
