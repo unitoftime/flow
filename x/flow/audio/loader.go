@@ -19,10 +19,32 @@ func newSource(data []byte) *Source {
 }
 type Source struct {
 	data []byte
-	// buffer *beep.Buffer // TODO: Would be nice to buffer short sound effects
-	streamer beep.Streamer
+	buffer *beep.Buffer // TODO: Would be nice to buffer short sound effects
 }
+
+// Buffers the audio source into a pre-decoded audio buffer.
+// Useful for short sound effects where you play them frequently and they dont take much memory.
+// This will reduce CPU usage and increase memory usage
+func (s *Source) Buffer() {
+	if s.buffer != nil { return } // Skip if we've already buffered
+
+	reader := bytes.NewReader(s.data)
+	streamer, format, err := vorbis.Decode(fakeCloser{reader})
+	if err != nil {
+		return // TODO: How to handle this error?
+	}
+	buffer := beep.NewBuffer(format)
+	buffer.Append(streamer)
+}
+
+// Returns an audio streamer for the audio source
 func (s *Source) Streamer() beep.StreamSeeker {
+	// If we've buffered this audio source, then use that
+	if s.buffer != nil {
+		return s.buffer.Streamer(0, s.buffer.Len())
+	}
+
+	// Else create a decoder for the audio stream
 	reader := bytes.NewReader(s.data)
 	streamer, _, err := vorbis.Decode(fakeCloser{reader})
 	if err != nil {
