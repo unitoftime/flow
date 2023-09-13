@@ -45,10 +45,21 @@ type Loader[T any] interface {
 }
 
 type Server struct {
-	filesystem fs.FS
+	fsPath string
+	filesystem fs.FS // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
 
 	extToLoader map[string]any // Map file extension strings to the loader that loads them
 	nameToHandle map[string]assetHandler // Map the full filepath name to the asset handle
+}
+func NewServerFromPath(fsPath string) *Server {
+	filesystem := os.DirFS(fsPath)
+	return &Server{
+		fsPath: fsPath,
+		filesystem: filesystem,
+		extToLoader: make(map[string]any),
+
+		nameToHandle: make(map[string]assetHandler),
+	}
 }
 func NewServer(filesystem fs.FS) *Server {
 	return &Server{
@@ -59,6 +70,7 @@ func NewServer(filesystem fs.FS) *Server {
 	}
 }
 
+
 func getScheme(path string) string {
 	u, err := url.Parse(path)
 	if err != nil {
@@ -67,15 +79,15 @@ func getScheme(path string) string {
 	return u.Scheme
 }
 
-func (s *Server) readRaw(filepath string) ([]byte, error) {
-	scheme := getScheme(filepath)
+func (s *Server) readRaw(fpath string) ([]byte, error) {
+	scheme := getScheme(fpath)
 
 	var rc io.ReadCloser
 	var err error
 	if scheme == "https" || scheme == "http" {
-		rc, err = s.getHttp(filepath)
+		rc, err = s.getHttp(fpath)
 	} else {
-		rc, err = s.getFile(filepath)
+		rc, err = s.getFile(fpath)
 	}
 	if err != nil {
 		return nil, err
@@ -85,12 +97,12 @@ func (s *Server) readRaw(filepath string) ([]byte, error) {
 	return ioutil.ReadAll(rc)
 }
 
-func (s *Server) getFile(filepath string) (io.ReadCloser, error) {
-	return s.filesystem.Open(filepath)
+func (s *Server) getFile(fpath string) (io.ReadCloser, error) {
+	return s.filesystem.Open(fpath)
 }
 
-func (s *Server) getHttp(filepath string) (io.ReadCloser, error) {
-	resp, err := http.Get(filepath)
+func (s *Server) getHttp(fpath string) (io.ReadCloser, error) {
+	resp, err := http.Get(fpath)
 	if err != nil {
 		return nil, err
 	}
@@ -98,15 +110,21 @@ func (s *Server) getHttp(filepath string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (s *Server) writeRaw(filepath string, dat []byte) error {
-	// file, err := s.filesystem.Open(filepath)
+func (s *Server) writeRaw(fpath string, dat []byte) error {
+	// file, err := s.filesystem.Open(fpath)
 	// if err != nil {
 	// 	return nil, err
 	// }
 	// defer file.Close()
 
-	// TODO: verify file is writable. This sidesteps the filesystem too
-	return os.WriteFile(filepath, dat, 0755)
+	fullFilepath := filepath.Join(s.fsPath, fpath)
+
+	// Build entire filepath
+	err := os.MkdirAll(filepath.Dir(fullFilepath), 0750)
+	if err != nil { return err }
+
+	// TODO: verify file is writable.
+	return os.WriteFile(fullFilepath, dat, 0755)
 }
 
 
@@ -125,17 +143,20 @@ func Register[T any](s *Server, loader Loader[T]) {
 // TODO: Extension filters?
 // TODO: Should this return a single handle that gives us access to subhandles in the directory?
 // Loads a directory that contains the same asset type. Returns a slice filled with all asset handles. Does not search recursively
-func LoadDir[T any](server *Server, path string) []*Handle[T] {
-	dirEntries, err := fs.ReadDir(server.filesystem, path)
+func LoadDir[T any](server *Server, fpath string) []*Handle[T] {
+	fpath = filepath.Clean(fpath)
+
+	dirEntries, err := fs.ReadDir(server.filesystem, fpath)
 	if err != nil {
-		return nil
+		return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
 	}
+
 
 	ret := make([]*Handle[T], 0, len(dirEntries))
 	for _, e := range dirEntries {
 		if e.IsDir() { continue } // TODO: Recursive?
 
-		handle := Load[T](server, filepath.Join(path, e.Name()))
+		handle := Load[T](server, filepath.Join(fpath, e.Name()))
 		ret = append(ret, handle)
 	}
 
@@ -188,7 +209,7 @@ func Load[T any](server *Server, name string) *Handle[T] {
 }
 
 // Writes the asset handle back to the file
-func Store[T any](server *Server, path string, handle *Handle[T]) error {
+func Store[T any](server *Server, handle *Handle[T]) error {
 	name := handle.Name
 	// Find a loader for it
 	ext := getExtension(name)
@@ -208,7 +229,7 @@ func Store[T any](server *Server, path string, handle *Handle[T]) error {
 		return err
 	}
 
-	return server.writeRaw(filepath.Join(path, handle.Name), dat)
+	return server.writeRaw(handle.Name, dat)
 }
 
 func getExtension(name string) string {
