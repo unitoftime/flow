@@ -8,64 +8,116 @@ import (
 	"github.com/faiface/beep/speaker"
 )
 
-// fmpeg -i input.mp3 -c:a libvorbis -q:a 0 -b:a 48000 output.ogg
-var defaultSampleRate = beep.SampleRate(48000)
-var audioFailure bool
+type Channel struct {
+	mixer *beep.Mixer
+	ctrl *beep.Ctrl
+	volume *effects.Volume
+}
+func NewChannel() *Channel {
+	mixer := &beep.Mixer{}
+	ctrl := &beep.Ctrl{
+		Streamer: mixer,
+		Paused: false,
+	}
+	volume := &effects.Volume{
+		Streamer: ctrl,
+		Base: 2,
+		Volume: 0,
+		Silent: false,
+	}
+	return &Channel{
+		mixer: mixer,
+		ctrl: ctrl,
+		volume: volume,
+	}
+}
+func (c *Channel) Add(channels ...*Channel) {
+	if c == nil { return }
 
-var masterMixer *beep.Mixer
-var masterCtrl *beep.Ctrl
-var masterVolume *effects.Volume
+	for _, channel := range channels {
+		if channel == nil { return }
+
+		// TODO: Prevent the same channel from being added multiple times?
+
+		c.mixer.Add(channel.volume)
+	}
+}
+
+func (c *Channel) Play(src *Source) {
+	if c == nil { return }
+	if src == nil { return }
+
+	c.mixer.Add(src.Streamer())
+}
+
+func (c *Channel) Mute() {
+	if c == nil { return }
+	c.volume.Silent = true
+}
+func (c *Channel) Unmute() {
+	if c == nil { return }
+	c.volume.Silent = false
+}
+func (c *Channel) Muted() bool {
+	if c == nil { return false }
+	return c.volume.Silent
+}
+
+func (c *Channel) AddVolume(val float64) {
+	if c == nil { return }
+	c.volume.Volume += val
+}
+func (c *Channel) Volume() float64 {
+	if c == nil { return 0 }
+	return c.volume.Volume
+}
+
+// fmpeg -i input.mp3 -c:a libvorbis -q:a 0 -b:a 44100 output.ogg
+var defaultSampleRate = beep.SampleRate(44100)
+var audioFailure bool
+var MasterChannel *Channel
 
 func Initialize() error {
 	err := speaker.Init(defaultSampleRate,
 		defaultSampleRate.N(time.Second/60)) // Buffer length of 1/60 of a second
 	if err != nil {
-		audioFailure = true
 		return err
 	}
 
-	masterMixer = &beep.Mixer{}
-
-	masterCtrl = &beep.Ctrl{
-		Streamer: masterMixer,
-		Paused: false,
-	}
-	masterVolume = &effects.Volume{
-		Streamer: masterCtrl,
-		Base: 2,
-		Volume: 0,
-		Silent: false,
-	}
-	speaker.Play(masterVolume)
+	MasterChannel = NewChannel()
+	speaker.Play(MasterChannel.volume)
 	return nil
 }
 
-func Play(src *Source) {
-	if audioFailure { return }
-	if src == nil { return }
 
-	masterMixer.Add(src.Streamer())
-}
+// func Play(src *Source) {
+// 	if MasterChannel == nil { return }
+// 	if src == nil { return }
 
-func Mute() {
-	if masterVolume == nil { return }
-	masterVolume.Silent = true
-}
-func Unmute() {
-	if masterVolume == nil { return }
-	masterVolume.Silent = false
-}
-func Muted() bool {
-	return masterVolume.Silent
-}
+// 	MasterChannel.mixer.Add(src.Streamer())
+// }
 
-func AddVolume(val float64) {
-	if masterVolume == nil { return }
-	masterVolume.Volume += val
-}
-func Volume() float64 {
-	return masterVolume.Volume
-}
+// func Mute() {
+// 	if MasterChannel == nil { return }
+// 	MasterChannel.volume.Silent = true
+// }
+// func Unmute() {
+// 	if MasterChannel == nil { return }
+// 	MasterChannel.volume.Silent = false
+// }
+// func Muted() bool {
+// 	if MasterChannel == nil { return false }
+// 	return MasterChannel.volume.Silent
+// }
+
+// func AddVolume(val float64) {
+// 	if MasterChannel == nil { return }
+// 	MasterChannel.volume.Volume += val
+// }
+// func Volume() float64 {
+// 	if MasterChannel == nil { return 0 }
+// 	return MasterChannel.volume.Volume
+// }
 
 // import (
 // 	// "fmt"
