@@ -47,22 +47,8 @@ func (c *Channel) Add(channels ...*Channel) {
 
 		// TODO: Prevent the same channel from being added multiple times?
 
-		c.mixer.Add(channel.volume)
+		c.add(channel.volume)
 	}
-}
-
-func (c *Channel) PlayOnly(src *Source, loop bool) {
-	c.mixer.Clear()
-
-	streamer := src.Streamer()
-	if !loop {
-		c.mixer.Add(streamer)
-		return
-	}
-
-	// Note: -1 indicates to loop forever
-	looper := beep.Loop(-1,  streamer)
-	c.mixer.Add(looper)
 }
 
 // Get the number of sources currently playing
@@ -71,20 +57,46 @@ func (c *Channel) NumSources() int {
 	return c.mixer.Len()
 }
 
+func (c *Channel) add(streamer beep.Streamer) {
+	speaker.Lock()
+	c.mixer.Add(streamer)
+	speaker.Unlock()
+}
+
+func (c *Channel) PlayOnly(src *Source, loop bool) {
+	speaker.Lock()
+	c.mixer.Clear()
+	speaker.Unlock()
+
+	streamer := src.Streamer()
+	if !loop {
+		c.add(streamer)
+		return
+	}
+
+	// Note: -1 indicates to loop forever
+	looper := beep.Loop(-1,  streamer)
+	c.add(looper)
+}
+
 func (c *Channel) Play(src *Source) {
 	if c == nil { return }
 	if src == nil { return }
 
-	c.mixer.Add(src.Streamer())
+	c.add(src.Streamer())
 }
 
 func (c *Channel) Mute() {
 	if c == nil { return }
+	speaker.Lock()
 	c.volume.Silent = true
+	speaker.Unlock()
 }
 func (c *Channel) Unmute() {
 	if c == nil { return }
+	speaker.Lock()
 	c.volume.Silent = false
+	speaker.Unlock()
 }
 func (c *Channel) Muted() bool {
 	if c == nil { return false }
@@ -93,7 +105,9 @@ func (c *Channel) Muted() bool {
 
 func (c *Channel) AddVolume(val float64) {
 	if c == nil { return }
+	speaker.Lock()
 	c.volume.Volume += val
+	speaker.Unlock()
 }
 func (c *Channel) Volume() float64 {
 	if c == nil { return 0 }
