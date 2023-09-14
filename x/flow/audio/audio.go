@@ -8,6 +8,14 @@ import (
 	"github.com/faiface/beep/speaker"
 )
 
+// type Settings struct {
+// 	Loop bool
+// 	// Playback mode: once, loop, despawn (entity once source completes), remove (remove audio components once sound completes
+// 	// Volume float64
+// 	// Speed float64
+// 	// Paused bool
+// }
+
 type Channel struct {
 	mixer *beep.Mixer
 	ctrl *beep.Ctrl
@@ -43,6 +51,26 @@ func (c *Channel) Add(channels ...*Channel) {
 	}
 }
 
+func (c *Channel) PlayOnly(src *Source, loop bool) {
+	c.mixer.Clear()
+
+	streamer := src.Streamer()
+	if !loop {
+		c.mixer.Add(streamer)
+		return
+	}
+
+	// Note: -1 indicates to loop forever
+	looper := beep.Loop(-1,  streamer)
+	c.mixer.Add(looper)
+}
+
+// Get the number of sources currently playing
+func (c *Channel) NumSources() int {
+	if c == nil { return 0 }
+	return c.mixer.Len()
+}
+
 func (c *Channel) Play(src *Source) {
 	if c == nil { return }
 	if src == nil { return }
@@ -74,7 +102,6 @@ func (c *Channel) Volume() float64 {
 
 // fmpeg -i input.mp3 -c:a libvorbis -q:a 0 -b:a 44100 output.ogg
 var defaultSampleRate = beep.SampleRate(44100)
-var audioFailure bool
 var MasterChannel *Channel
 
 func Initialize() error {

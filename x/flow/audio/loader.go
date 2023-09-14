@@ -53,13 +53,6 @@ func (s *Source) Streamer() beep.StreamSeeker {
 	return streamer
 }
 
-type Settings struct {
-	// Playback mode: once, loop, despawn (entity once source completes), remove (remove audio components once sound completes
-	// Volume float64
-	// Speed float64
-	// Paused bool
-}
-
 type AssetLoader struct {
 	// TODO: Target Sample Rate
 }
@@ -76,9 +69,11 @@ func (l AssetLoader) Store(server *asset.Server, audio *Source) ([]byte, error) 
 }
 
 type fakeCloser struct {
-	io.Reader
+	// stop bool // TODO: Do I need closing functionality? Maybe to block reading if I individually close a streamer?
+	io.ReadSeeker // Note: This must be an io.ReadSeeker because decoders require the Seeker to be implemented for `Seek` operations to work
 }
 func (c fakeCloser) Close() error {
+	// stop = true
 	return nil
 }
 
