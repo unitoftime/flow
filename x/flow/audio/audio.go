@@ -64,26 +64,34 @@ func (c *Channel) add(streamer beep.Streamer) {
 }
 
 func (c *Channel) PlayOnly(src *Source, loop bool) {
-	speaker.Lock()
-	c.mixer.Clear()
-	speaker.Unlock()
+	if c == nil { return }
+	if src == nil { return }
 
-	streamer := src.Streamer()
-	if !loop {
-		c.add(streamer)
-		return
-	}
+	go func() {
+		speaker.Lock()
+		c.mixer.Clear()
+		speaker.Unlock()
 
-	// Note: -1 indicates to loop forever
-	looper := beep.Loop(-1,  streamer)
-	c.add(looper)
+		streamer := src.Streamer()
+		if !loop {
+			c.add(streamer)
+			return
+		}
+
+		// Note: -1 indicates to loop forever
+		looper := beep.Loop(-1,  streamer)
+		c.add(looper)
+	}()
 }
 
 func (c *Channel) Play(src *Source) {
 	if c == nil { return }
 	if src == nil { return }
 
-	c.add(src.Streamer())
+	// TODO: You need to pass these via a channel/queue to execute on some other thread. The speaker locks for miliseconds at a time
+	go func() {
+		c.add(src.Streamer())
+	}()
 }
 
 func (c *Channel) Mute() {
