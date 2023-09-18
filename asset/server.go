@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"net/url"
+	"sync"
 	"sync/atomic"
 )
 
@@ -48,6 +49,7 @@ type Server struct {
 	fsPath string
 	filesystem fs.FS // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
 
+	mu sync.Mutex
 	extToLoader map[string]any // Map file extension strings to the loader that loads them
 	nameToHandle map[string]assetHandler // Map the full filepath name to the asset handle
 }
@@ -163,12 +165,27 @@ func LoadDir[T any](server *Server, fpath string) []*Handle[T] {
 	return ret
 }
 
-// Loads a single file
-func Load[T any](server *Server, name string) *Handle[T] {
+// Gets the handle, returns true if the handle has already started loading
+func getHandle[T any](server *Server, name string) (*Handle[T], bool) {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+
 	// Check if already loaded
 	anyHandle, ok := server.nameToHandle[name]
 	if ok {
 		handle := anyHandle.(*Handle[T])
+		return handle, true
+	}
+
+	handle := newHandle[T](name)
+	server.nameToHandle[name] = handle
+	return handle, false
+}
+
+// Loads a single file
+func Load[T any](server *Server, name string) *Handle[T] {
+	handle, loaded := getHandle[T](server, name)
+	if loaded {
 		return handle
 	}
 
@@ -183,9 +200,6 @@ func Load[T any](server *Server, name string) *Handle[T] {
 	if !ok {
 		panic(fmt.Sprintf("wrong type for registered loader on extension: %s", ext))
 	}
-
-	handle := newHandle[T](name)
-	server.nameToHandle[name] = handle
 
 	// go func() {
 	func() {
