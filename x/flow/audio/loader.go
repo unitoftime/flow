@@ -38,19 +38,19 @@ func (s *Source) Buffer() {
 }
 
 // Returns an audio streamer for the audio source
-func (s *Source) Streamer() beep.StreamSeeker {
+func (s *Source) Streamer() (beep.StreamSeeker, error) {
 	// If we've buffered this audio source, then use that
 	if s.buffer != nil {
-		return s.buffer.Streamer(0, s.buffer.Len())
+		return s.buffer.Streamer(0, s.buffer.Len()), nil
 	}
 
 	// Else create a decoder for the audio stream
 	reader := bytes.NewReader(s.data)
 	streamer, _, err := vorbis.Decode(fakeCloser{reader})
 	if err != nil {
-		return nil
+		return nil, errors.New("unable to decode streamer as vorbis")
 	}
-	return streamer
+	return streamer, nil
 }
 
 type AssetLoader struct {
