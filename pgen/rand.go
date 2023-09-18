@@ -3,6 +3,8 @@ package pgen
 import (
 	"math/rand"
 	"golang.org/x/exp/constraints"
+
+	"github.com/unitoftime/flow/phy2"
 )
 
 type castable interface {
@@ -12,12 +14,12 @@ type castable interface {
 type Range[T castable] struct {
 	Min, Max T
 }
-func (r *Range[T]) Get() T {
+func (r Range[T]) Get() T {
 	width := float64(r.Max) - float64(r.Min)
 	return T((rand.Float64() * width) + float64(r.Min))
 }
 
-func (r *Range[T]) SeededGet(rng *rand.Rand) T {
+func (r Range[T]) SeededGet(rng *rand.Rand) T {
 	width := float64(r.Max) - float64(r.Min)
 	return T((rng.Float64() * width) + float64(r.Min))
 }
@@ -36,6 +38,12 @@ func (r *Range[T]) SeededGet(rng *rand.Rand) T {
 // 	}
 // 	return T(rand.Intn(int(delta))) + r.Min
 // }
+
+func RandomPositionInRect(r phy2.Rect) phy2.Pos {
+	randX := Range[float64]{r.Min.X, r.Max.X}.Get()
+	randY := Range[float64]{r.Min.Y, r.Max.Y}.Get()
+	return phy2.Pos{randX, randY}
+}
 
 //--------------------------------------------------------------------------------
 // - Tables
