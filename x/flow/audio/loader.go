@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/vorbis"
-	// "github.com/faiface/beep/wav"
+	"github.com/unitoftime/beep"
+	"github.com/unitoftime/beep/vorbis"
+	// "github.com/unitoftime/beep/wav"
 
 	"github.com/unitoftime/flow/asset"
 )
