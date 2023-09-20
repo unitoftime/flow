@@ -12,8 +12,20 @@ func NewRingBuffer[T any](length int) *RingBuffer[T] {
 	}
 }
 
-func (b *RingBuffer[T]) Len() int {
+func (b *RingBuffer[T]) Cap() int {
 	return len(b.buffer)
+}
+
+func (b *RingBuffer[T]) Len() int {
+	l := len(b.buffer)
+
+	firstIdx := b.readIdx
+	lastIdx := b.idx
+	if lastIdx < firstIdx {
+		lastIdx += l
+	}
+	return lastIdx - firstIdx
+
 }
 
 func (b *RingBuffer[T]) Add(t T) {
@@ -26,17 +38,19 @@ func (b *RingBuffer[T]) Add(t T) {
 	}
 }
 
-func (b *RingBuffer[T]) Remove() T {
+// Returns the last element and false if the buffer is emptied
+func (b *RingBuffer[T]) Remove() (T, bool) {
 	ret := b.buffer[b.readIdx]
 	newReadIdx := (b.readIdx + 1) % len(b.buffer)
 
 	if newReadIdx == b.idx {
 		// If the next index to read from is the current write index, then we know we've read the whole buffer. In this case don't increment the read index, this will cause the next Remove function to read the same value.
+		return ret, false
 	} else {
 		// Else we do want to progress the index
 		b.readIdx = newReadIdx
 	}
-	return ret
+	return ret, true
 }
 
 // TODO - Maybe convert this to an iterator
