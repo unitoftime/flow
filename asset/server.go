@@ -20,10 +20,13 @@ type Handle[T any] struct {
 	ptr atomic.Pointer[T]
 	Name string
 	err error
+	doneChan chan struct{}
+	done atomic.Bool
 }
 func newHandle[T any](name string) *Handle[T] {
 	return &Handle[T]{
 		Name: name,
+		doneChan: make(chan struct{}),
 	}
 }
 
@@ -33,8 +36,19 @@ func (h *Handle[T]) Set(val *T) {
 func (h *Handle[T]) Get() *T {
 	return h.ptr.Load()
 }
-func (h *Handle[T]) Error() error {
+func (h *Handle[T]) Err() error {
 	return h.err
+}
+
+// Returns true if the asset is done loading
+// At this point either an error or the asset will be available
+func (h *Handle[T]) Done() bool {
+	return h.done.Load()
+}
+
+// Blocks until the handle, or an error is set
+func (h *Handle[T]) Wait() {
+	<- h.doneChan
 }
 
 type assetHandler interface {}
@@ -201,8 +215,13 @@ func Load[T any](server *Server, name string) *Handle[T] {
 		panic(fmt.Sprintf("wrong type for registered loader on extension: %s", ext))
 	}
 
-	// go func() {
-	func() {
+	go func() {
+		// TODO: Recover?
+		defer func() {
+			handle.done.Store(true)
+			close(handle.doneChan)
+		}()
+
 		data, err := server.readRaw(name)
 		if err != nil {
 			handle.err = err

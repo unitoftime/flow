@@ -54,7 +54,10 @@ func (c *Channel) Add(channels ...*Channel) {
 // Get the number of sources currently playing
 func (c *Channel) NumSources() int {
 	if c == nil { return 0 }
-	return c.mixer.Len()
+	speaker.Lock()
+	length := c.mixer.Len()
+	speaker.Unlock()
+	return length
 }
 
 func (c *Channel) add(streamer beep.Streamer) {
