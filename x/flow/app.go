@@ -21,6 +21,7 @@ type App struct {
 
 func NewApp() *App {
 	scheduler := ecs.NewScheduler()
+	// scheduler.SetFixedTimeStep(4 * time.Millisecond)
 	app := &App{
 		world: ecs.NewWorld(),
 		scheduler: scheduler,

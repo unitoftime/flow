@@ -12,6 +12,7 @@ import (
 	"github.com/unitoftime/flow/x/flow"
 	"github.com/unitoftime/flow/phy2"
 	"github.com/unitoftime/flow/asset"
+	"github.com/unitoftime/flow/interp"
 
 
 	"github.com/unitoftime/glitch"
@@ -49,10 +50,10 @@ func main() {
 
 func run() {
 	win, err := glitch.NewWindow(1920, 1080, "Gophermark", glitch.WindowConfig{
-		Vsync: true,
+		Vsync: false,
 	})
 	if err != nil { panic(err) }
-	shader, err := glitch.NewShader(shaders.SpriteShader)
+	shader, err := glitch.NewShader(shaders.PixelArtShader)
 	if err != nil { panic(err) }
 	pass := glitch.NewRenderPass(shader)
 
@@ -74,13 +75,14 @@ func run() {
 	)
 
 	app.AddSystems(flow.StageFixedUpdate,
+		copyTransform,
 		movementSystem,
 		collisionSystem,
 	)
 
 	app.AddSystems(flow.StageUpdate,
-		renderSystem,
 		inputSystem,
+		renderSystem,
 	)
 
 	app.Run()
@@ -133,7 +135,7 @@ func (t *Text) Draw(pass *glitch.RenderPass, mat glitch.Mat4) {
 func setupSystem(world *ecs.World) ecs.System {
 	assetServer := ecs.GetResource[asset.Server](world)
 
-	gopherCount := 200
+	gopherCount := 20000
 	vScale := 200.0
 
 	return ecs.NewSystem(func(dt time.Duration) {
@@ -150,8 +152,13 @@ func setupSystem(world *ecs.World) ecs.System {
 
 		for i := 0; i < gopherCount; i++ {
 			id := world.NewId()
+			transform := flow.NewTransform()
+			transform.Position.X = 1920/2
+			transform.Position.Y = 1080/2
 			ecs.Write(world, id,
-				ecs.C(phy2.Pos{1920/2, 1080/2}),
+				ecs.C(transform),
+				ecs.C(flow.LastTransform(transform)),
+				// ecs.C(phy2.Pos{1920/2, 1080/2}),
 				ecs.C(phy2.Vel{
 					float64(2*vScale * (rand.Float64()-0.5)),
 					float64(2*vScale * (rand.Float64()-0.5)),
@@ -168,25 +175,39 @@ func setupSystem(world *ecs.World) ecs.System {
 }
 
 func movementSystem(world *ecs.World) ecs.System {
-	query := ecs.Query2[phy2.Pos, phy2.Vel](world)
+	query := ecs.Query2[flow.Transform, phy2.Vel](world)
 
+	// lastFrameTime := time.Now()
 	return ecs.NewSystem(func(dt time.Duration) {
-		query.MapId(func(id ecs.Id, pos *phy2.Pos, vel *phy2.Vel) {
-			pos.X += vel.X * dt.Seconds()
-			pos.Y += vel.Y * dt.Seconds()
+		query.MapId(func(id ecs.Id, transform *flow.Transform, vel *phy2.Vel) {
+			transform.Position.X += vel.X * dt.Seconds()
+			transform.Position.Y += vel.Y * dt.Seconds()
+		})
+
+		// fmt.Println("Phy:", time.Since(lastFrameTime))
+		// lastFrameTime = time.Now()
+	})
+}
+
+func copyTransform(world *ecs.World) ecs.System {
+	query := ecs.Query2[flow.Transform, flow.LastTransform](world)
+	return ecs.NewSystem(func(dt time.Duration) {
+		query.MapId(func(id ecs.Id, transform *flow.Transform, lastTransform *flow.LastTransform) {
+			*lastTransform = flow.LastTransform(*transform)
 		})
 	})
 }
 
 func collisionSystem(world *ecs.World) ecs.System {
-	query := ecs.Query3[phy2.Pos, phy2.Vel, Sprite](world)
+	query := ecs.Query3[flow.Transform, phy2.Vel, Sprite](world)
 	win := ecs.GetResource[glitch.Window](world)
 	bounds := win.Bounds()
 
 	return ecs.NewSystem(func(dt time.Duration) {
-		query.MapId(func(id ecs.Id, pos *phy2.Pos, vel *phy2.Vel, sprite *Sprite) {
+		query.MapId(func(id ecs.Id, transform *flow.Transform, vel *phy2.Vel, sprite *Sprite) {
 			w := sprite.Bounds().W() / 2
 			h := sprite.Bounds().H() / 2
+			pos := transform.Position
 			if pos.X <= 0 || (pos.X + w) >= bounds.W() {
 				vel.X = -vel.X
 			}
@@ -209,18 +230,30 @@ func inputSystem(world *ecs.World) ecs.System {
 }
 
 func renderSystem(world *ecs.World) ecs.System {
-	query := ecs.Query2[phy2.Pos, Sprite](world)
+	query := ecs.Query3[flow.LastTransform, flow.Transform, Sprite](world)
 	pass := ecs.GetResource[glitch.RenderPass](world)
 	win := ecs.GetResource[glitch.Window](world)
+	scheduler := ecs.GetResource[ecs.Scheduler](world)
 
 	camera := glitch.NewCameraOrtho()
+	lastFrameTime := time.Now()
+
 	return ecs.NewSystem(func(dt time.Duration) {
+		interpVal := scheduler.GetRenderInterp()
+		fmt.Println("Interp:", interpVal)
 		pass.Clear()
 		mat := glitch.Mat4Ident
-		query.MapId(func(id ecs.Id, pos *phy2.Pos, sprite *Sprite) {
+		query.MapId(func(id ecs.Id, lastTransform *flow.LastTransform, transform *flow.Transform, sprite *Sprite) {
 			mat = glitch.Mat4Ident
 			// mat.Scale(0.25, 0.25, 1.0).Translate(pos.X, pos.Y, 0)
-			mat.Translate(pos.X, pos.Y, 0)
+			xPos := interp.Linear.Float64(lastTransform.Position.X, transform.Position.X, interpVal)
+			yPos := interp.Linear.Float64(lastTransform.Position.Y, transform.Position.Y, interpVal)
+			// fmt.Println(lastTransform.Position.X, transform.Position.X)
+			mat.Scale(0.25, 0.25, 1.0)
+			mat.Translate(xPos, yPos, 0)
+
+
+			// mat.Translate(transform.Position.X, transform.Position.Y, 0)
 			sprite.Draw(pass, mat)
 		})
 
@@ -233,6 +266,10 @@ func renderSystem(world *ecs.World) ecs.System {
 		pass.SetUniform("view", camera.View)
 		pass.Draw(win)
 		win.Update()
+
+		fmt.Println("Ren", time.Since(lastFrameTime))
+		// fmt.Println("RenderInterp: ", scheduler.GetRenderInterp())
+		lastFrameTime = time.Now()
 	})
 }
 

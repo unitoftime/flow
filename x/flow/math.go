@@ -6,8 +6,28 @@ package flow
 
 // // // TODO: float64 vs float32?
 
-// type Vec3 struct {
-// 	X, Y, Z float64
+type Vec3 struct {
+	X, Y, Z float64
+}
+type Mat4 [16]float64
+
+type LastTransform Transform
+
+type Transform struct {
+	Position Vec3
+	Scale Vec3
+	// Rotation Quat
+}
+
+func NewTransform() Transform {
+	return Transform{
+		Position: Vec3{0, 0, 0},
+		Scale: Vec3{1, 1, 1},
+	}
+}
+
+// func (t *Transform) Matrix() Mat4 {
+// 	// TODO
 // }
 
 // func (v Vec3) Add(v2 Vec3) Vec3 {
@@ -48,19 +68,3 @@ package flow
 // // 	quaternion.T
 // // }
 
-// type Transform struct {
-// 	Position Vec3
-// 	Scale Vec3
-// 	// Rotation Quat
-// }
-
-// // func (t Transform) Matrix() {
-	
-// // 	// TODO: quat
-// // }
-// func NewTransform() Transform {
-// 	return Transform{
-// 		Position: Vec3{},
-// 		Scale: Vec3{},
-// 	}
-// }

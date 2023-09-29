@@ -16,7 +16,7 @@ func (l SpriteAssetLoader) Ext() []string {
 	return []string{".png"}
 }
 func (l SpriteAssetLoader) Load(server *asset.Server, data []byte) (*glitch.Sprite, error) {
-	smooth := false
+	smooth := true
 
 	img, _, err := image.Decode(bytes.NewBuffer(data))
 	if err != nil {
