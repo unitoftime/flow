@@ -26,6 +26,7 @@ type Source struct {
 // Useful for short sound effects where you play them frequently and they dont take much memory.
 // This will reduce CPU usage and increase memory usage
 func (s *Source) Buffer() {
+	if s == nil { return }
 	if s.buffer != nil { return } // Skip if we've already buffered
 
 	reader := bytes.NewReader(s.data)

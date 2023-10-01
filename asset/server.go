@@ -34,6 +34,7 @@ func (h *Handle[T]) Set(val *T) {
 	h.ptr.Store(val)
 }
 func (h *Handle[T]) Get() *T {
+	h.Wait()
 	return h.ptr.Load()
 }
 func (h *Handle[T]) Err() error {
