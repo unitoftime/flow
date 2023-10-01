@@ -33,9 +33,9 @@ func newHandle[T any](name string) *Handle[T] {
 func (h *Handle[T]) Set(val *T) {
 	h.ptr.Store(val)
 }
-func (h *Handle[T]) Get() *T {
+func (h *Handle[T]) Get() (*T, error) {
 	h.Wait()
-	return h.ptr.Load()
+	return h.ptr.Load(), h.err
 }
 func (h *Handle[T]) Err() error {
 	return h.err
@@ -257,7 +257,11 @@ func Store[T any](server *Server, handle *Handle[T]) error {
 		panic(fmt.Sprintf("wrong type for registered loader on extension: %s", ext))
 	}
 
-	val := handle.Get()
+	val, err := handle.Get()
+	if err != nil {
+		return err
+	}
+
 	dat, err := loader.Store(server, val)
 	if err != nil {
 		return err
