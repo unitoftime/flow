@@ -31,6 +31,8 @@ func newHandle[T any](name string) *Handle[T] {
 }
 
 func (h *Handle[T]) Set(val *T) {
+	h.err = nil
+	h.done.Store(true)
 	h.ptr.Store(val)
 }
 func (h *Handle[T]) Get() (*T, error) {
@@ -138,7 +140,9 @@ func (s *Server) writeRaw(fpath string, dat []byte) error {
 
 	// Build entire filepath
 	err := os.MkdirAll(filepath.Dir(fullFilepath), 0750)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	// TODO: verify file is writable.
 	return os.WriteFile(fullFilepath, dat, 0755)
@@ -257,10 +261,14 @@ func Store[T any](server *Server, handle *Handle[T]) error {
 		panic(fmt.Sprintf("wrong type for registered loader on extension: %s", ext))
 	}
 
-	val, err := handle.Get()
-	if err != nil {
-		return err
+	val, _ := handle.Get()
+	// Note: We skip error checking here b/c we really dont care if there was an error loading. All we want to do is write data to a file. Hence val shouldn't be nil
+	if val == nil {
+		return fmt.Errorf("handle data can't be nil when storing")
 	}
+	// if err != nil {
+	// 	return err
+	// }
 
 	dat, err := loader.Store(server, val)
 	if err != nil {
