@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // TODO: if I wanted this to be more "ecs-like" I would make a resource per asset type then use some kind of integer handle (ie `type Handle[T] uint32` or something). Then I use that handle to index into the asset type resource (ie `assets.Get(handle)` and `assets := ecs.GetResource[T](world)`)
@@ -22,6 +23,7 @@ type Handle[T any] struct {
 	err error
 	doneChan chan struct{}
 	done atomic.Bool
+	modTime time.Time
 }
 func newHandle[T any](name string) *Handle[T] {
 	return &Handle[T]{
@@ -98,26 +100,44 @@ func getScheme(path string) string {
 	return u.Scheme
 }
 
-func (s *Server) readRaw(fpath string) ([]byte, error) {
+func (s *Server) getModTime(fpath string) (time.Time, error) {
+	// TODO: Wont work for networked files
+	file, err := s.filesystem.Open(fpath)
+	if err != nil { return time.Time{}, err }
+
+	info, err := file.Stat()
+	if err != nil { return time.Time{}, err }
+
+	return info.ModTime(), nil
+}
+
+func (s *Server) readRaw(fpath string) ([]byte, time.Time, error) {
 	scheme := getScheme(fpath)
 
 	var rc io.ReadCloser
 	var err error
+	var modTime time.Time
 	if scheme == "https" || scheme == "http" {
 		rc, err = s.getHttp(fpath)
 	} else {
-		rc, err = s.getFile(fpath)
+		rc, modTime, err = s.getFile(fpath)
 	}
 	if err != nil {
-		return nil, err
+		return nil, modTime, err
 	}
 	defer rc.Close()
 
-	return ioutil.ReadAll(rc)
+	dat, err := ioutil.ReadAll(rc)
+	return dat, modTime, err
 }
 
-func (s *Server) getFile(fpath string) (io.ReadCloser, error) {
-	return s.filesystem.Open(fpath)
+func (s *Server) getFile(fpath string) (io.ReadCloser, time.Time, error) {
+	file, err := s.filesystem.Open(fpath)
+	if err != nil { return nil, time.Time{}, err }
+	info, err := file.Stat()
+	if err != nil { return nil, time.Time{}, err }
+
+	return file, info.ModTime(), nil
 }
 
 func (s *Server) getHttp(fpath string) (io.ReadCloser, error) {
@@ -227,11 +247,13 @@ func Load[T any](server *Server, name string) *Handle[T] {
 			close(handle.doneChan)
 		}()
 
-		data, err := server.readRaw(name)
+		data, modTime, err := server.readRaw(name)
 		if err != nil {
 			handle.err = err
 			return
 		}
+
+		handle.modTime = modTime // TODO: Data race here if reload is called simultaneously with load
 
 		val, err := loader.Load(server, data)
 		if err != nil {
@@ -244,6 +266,52 @@ func Load[T any](server *Server, name string) *Handle[T] {
 
 	// Success
 	return handle
+}
+
+// Loads a single file
+func Reload[T any](server *Server, handle *Handle[T]) {
+	name := handle.Name
+
+	// Find a loader for it
+	ext := getExtension(name)
+
+	anyLoader, ok := server.extToLoader[ext]
+	if !ok {
+		panic(fmt.Sprintf("could not find loader for extension: %s", ext))
+	}
+	loader, ok := anyLoader.(Loader[T])
+	if !ok {
+		panic(fmt.Sprintf("wrong type for registered loader on extension: %s", ext))
+	}
+
+	go func() {
+		// TODO: Recover?
+
+		modTime, err := server.getModTime(name)
+		if err != nil {
+			handle.err = err
+			return
+		}
+		if handle.modTime == modTime {
+			// Same file, don't reload
+			return
+		}
+
+		data, modTime, err := server.readRaw(name)
+		if err != nil {
+			handle.err = err
+			return
+		}
+		handle.modTime = modTime
+
+		val, err := loader.Load(server, data)
+		if err != nil {
+			handle.err = err
+			return
+		}
+
+		handle.Set(val)
+	}()
 }
 
 // Writes the asset handle back to the file
