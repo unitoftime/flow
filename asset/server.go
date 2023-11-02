@@ -24,6 +24,7 @@ type Handle[T any] struct {
 	doneChan chan struct{}
 	done atomic.Bool
 	modTime time.Time
+	generation atomic.Int32
 }
 func newHandle[T any](name string) *Handle[T] {
 	return &Handle[T]{
@@ -32,10 +33,15 @@ func newHandle[T any](name string) *Handle[T] {
 	}
 }
 
+func (h *Handle[T]) Gen() int {
+	return int(h.generation.Load())
+}
+
 func (h *Handle[T]) Set(val *T) {
 	h.err = nil
-	h.done.Store(true)
 	h.ptr.Store(val)
+	h.done.Store(true)
+	h.generation.Add(1)// Note: Do this last so that everything else is in place when we swap generations
 }
 func (h *Handle[T]) Get() (*T, error) {
 	h.Wait()
