@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"strings"
 )
 
 // TODO: if I wanted this to be more "ecs-like" I would make a resource per asset type then use some kind of integer handle (ie `type Handle[T] uint32` or something). Then I use that handle to index into the asset type resource (ie `assets.Get(handle)` and `assets := ecs.GetResource[T](world)`)
@@ -70,33 +71,71 @@ type Loader[T any] interface {
 	Store(*Server, *T) ([]byte, error)
 }
 
-type Server struct {
-	fsPath string
-	filesystem fs.FS // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
 
+type Filesystem struct {
+	path string
+	fs fs.FS // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
+	prefix string // dynamically added when registered
+}
+func NewFilesystem(path string, fsys fs.FS) Filesystem {
+	return Filesystem{path, fsys, ""}
+}
+
+func (fsys *Filesystem) getModTime(fpath string) (time.Time, error) {
+	// TODO: Wont work for networked files
+	file, err := fsys.fs.Open(fpath)
+	if err != nil { return time.Time{}, err }
+
+	info, err := file.Stat()
+	if err != nil { return time.Time{}, err }
+
+	return info.ModTime(), nil
+}
+
+type Server struct {
+	// fsPath string
+	// filesystem fs.FS // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
 	mu sync.Mutex
+	fsMap map[string]Filesystem // Maps a prefix to a filesystem
 	extToLoader map[string]any // Map file extension strings to the loader that loads them
 	nameToHandle map[string]assetHandler // Map the full filepath name to the asset handle
 }
-func NewServerFromPath(fsPath string) *Server {
-	filesystem := os.DirFS(fsPath)
-	return &Server{
-		fsPath: fsPath,
-		filesystem: filesystem,
-		extToLoader: make(map[string]any),
+// func NewServerFromPath(fsPath string) *Server {
+// 	filesystem := os.DirFS(fsPath)
+// 	return &Server{
+// 		// fsPath: fsPath,
+// 		// filesystem: filesystem,
+// 		extToLoader: make(map[string]any),
 
+// 		nameToHandle: make(map[string]assetHandler),
+// 	}
+// }
+// func NewServer(filesystem fs.FS) *Server {
+// 	return &Server{
+// 		filesystem: filesystem,
+// 		extToLoader: make(map[string]any),
+
+// 		nameToHandle: make(map[string]assetHandler),
+// 	}
+// }
+func NewServer() *Server {
+	return &Server{
+		fsMap: make(map[string]Filesystem), // TODO: Would be faster to be a prefix tree
+		extToLoader: make(map[string]any),
 		nameToHandle: make(map[string]assetHandler),
 	}
 }
-func NewServer(filesystem fs.FS) *Server {
-	return &Server{
-		filesystem: filesystem,
-		extToLoader: make(map[string]any),
 
-		nameToHandle: make(map[string]assetHandler),
-	}
+
+func (s *Server) RegisterFilesystem(prefix string, fs Filesystem) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.fsMap[prefix]
+	if ok { panic("flow:asset: failed to register filesystem, prefix already registered") }
+
+	fs.prefix = prefix
+	s.fsMap[prefix] = fs
 }
-
 
 func getScheme(path string) string {
 	u, err := url.Parse(path)
@@ -106,15 +145,37 @@ func getScheme(path string) string {
 	return u.Scheme
 }
 
+func (s *Server) getFilesystem(fpath string) (Filesystem, string, bool) {
+	for prefix, fs := range s.fsMap {
+		if !strings.HasPrefix(fpath, prefix) { continue }
+
+		return fs, strings.TrimPrefix(fpath, prefix), true
+	}
+	return Filesystem{}, "", false
+}
+
 func (s *Server) getModTime(fpath string) (time.Time, error) {
-	// TODO: Wont work for networked files
-	file, err := s.filesystem.Open(fpath)
+	fsys, trimmedPath, ok := s.getFilesystem(fpath)
+	if !ok {
+		return time.Time{}, fmt.Errorf("Couldnt find file prefix: %s", fpath)
+	}
+	file, err := fsys.fs.Open(trimmedPath)
 	if err != nil { return time.Time{}, err }
 
 	info, err := file.Stat()
 	if err != nil { return time.Time{}, err }
 
 	return info.ModTime(), nil
+
+
+	// // TODO: Wont work for networked files
+	// file, err := s.filesystem.Open(fpath)
+	// if err != nil { return time.Time{}, err }
+
+	// info, err := file.Stat()
+	// if err != nil { return time.Time{}, err }
+
+	// return info.ModTime(), nil
 }
 
 func (s *Server) readRaw(fpath string) ([]byte, time.Time, error) {
@@ -138,12 +199,24 @@ func (s *Server) readRaw(fpath string) ([]byte, time.Time, error) {
 }
 
 func (s *Server) getFile(fpath string) (io.ReadCloser, time.Time, error) {
-	file, err := s.filesystem.Open(fpath)
+	fsys, trimmedPath, ok := s.getFilesystem(fpath)
+	if !ok {
+		return nil, time.Time{}, fmt.Errorf("Couldnt find file prefix: %s", fpath)
+	}
+
+	file, err := fsys.fs.Open(trimmedPath)
 	if err != nil { return nil, time.Time{}, err }
 	info, err := file.Stat()
 	if err != nil { return nil, time.Time{}, err }
 
 	return file, info.ModTime(), nil
+
+	// file, err := s.filesystem.Open(fpath)
+	// if err != nil { return nil, time.Time{}, err }
+	// info, err := file.Stat()
+	// if err != nil { return nil, time.Time{}, err }
+
+	// return file, info.ModTime(), nil
 }
 
 func (s *Server) getHttp(fpath string) (io.ReadCloser, error) {
@@ -156,13 +229,10 @@ func (s *Server) getHttp(fpath string) (io.ReadCloser, error) {
 }
 
 func (s *Server) writeRaw(fpath string, dat []byte) error {
-	// file, err := s.filesystem.Open(fpath)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer file.Close()
+	fsys, trimmedPath, ok := s.getFilesystem(fpath)
+	if !ok { return fmt.Errorf("Couldnt find file prefix: %s", fpath) }
 
-	fullFilepath := filepath.Join(s.fsPath, fpath)
+	fullFilepath := filepath.Join(fsys.path, trimmedPath)
 
 	// Build entire filepath
 	err := os.MkdirAll(filepath.Dir(fullFilepath), 0750)
@@ -172,6 +242,23 @@ func (s *Server) writeRaw(fpath string, dat []byte) error {
 
 	// TODO: verify file is writable.
 	return os.WriteFile(fullFilepath, dat, 0755)
+
+	// // file, err := s.filesystem.Open(fpath)
+	// // if err != nil {
+	// // 	return nil, err
+	// // }
+	// // defer file.Close()
+
+	// fullFilepath := filepath.Join(s.fsPath, fpath)
+
+	// // Build entire filepath
+	// err := os.MkdirAll(filepath.Dir(fullFilepath), 0750)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // TODO: verify file is writable.
+	// return os.WriteFile(fullFilepath, dat, 0755)
 }
 
 
@@ -191,23 +278,45 @@ func Register[T any](s *Server, loader Loader[T]) {
 // TODO: Should this return a single handle that gives us access to subhandles in the directory?
 // Loads a directory that contains the same asset type. Returns a slice filled with all asset handles. Does not search recursively
 func LoadDir[T any](server *Server, fpath string) []*Handle[T] {
-	fpath = filepath.Clean(fpath)
-
-	dirEntries, err := fs.ReadDir(server.filesystem, fpath)
-	if err != nil {
+	fsys, trimmedPath, ok := server.getFilesystem(fpath)
+	if !ok {
 		return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
 	}
 
+	fpath = filepath.Clean(trimmedPath)
+
+	dirEntries, err := fs.ReadDir(fsys.fs, fpath)
+	if err != nil {
+		return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
+	}
 
 	ret := make([]*Handle[T], 0, len(dirEntries))
 	for _, e := range dirEntries {
 		if e.IsDir() { continue } // TODO: Recursive?
 
-		handle := Load[T](server, filepath.Join(fpath, e.Name()))
+		handle := Load[T](server, filepath.Join(fsys.prefix, fpath, e.Name()))
 		ret = append(ret, handle)
 	}
 
 	return ret
+
+	// fpath = filepath.Clean(fpath)
+
+	// dirEntries, err := fs.ReadDir(server.filesystem, fpath)
+	// if err != nil {
+	// 	return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
+	// }
+
+
+	// ret := make([]*Handle[T], 0, len(dirEntries))
+	// for _, e := range dirEntries {
+	// 	if e.IsDir() { continue } // TODO: Recursive?
+
+	// 	handle := Load[T](server, filepath.Join(fpath, e.Name()))
+	// 	ret = append(ret, handle)
+	// }
+
+	// return ret
 }
 
 // Gets the handle, returns true if the handle has already started loading
