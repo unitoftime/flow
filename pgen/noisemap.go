@@ -35,6 +35,11 @@ func (n *NoiseMap) Get(x, y int) float64 {
 		ret += n.octaves[i].Scale * n.noise.Eval2(xNoise, yNoise)
 	}
 
+	// Exit early if the exponent is just 1.0
+	if n.exponent == 1.0 {
+		return ret
+	}
+
 	ret = math.Pow(ret, n.exponent)
 	return ret
 }

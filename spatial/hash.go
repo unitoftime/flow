@@ -96,10 +96,10 @@ func (b *Bucket[T]) Add(shape phy2.Rect, val T) {
 func (b *Bucket[T]) Clear() {
 	b.List = b.List[:0]
 }
-func (b *Bucket[T]) Check(colSet map[T]struct{}, shape phy2.Rect) {
+func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 	for i := range b.List {
 		if shape.Intersects(b.List[i].shape) {
-			colSet[b.List[i].item] = struct{}{}
+			colSet.Add(b.List[i].item)
 		}
 	}
 }
@@ -145,7 +145,7 @@ func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {
 }
 
 // Finds collisions and adds them directly into your collision set
-func (h *Hashmap[T]) Check(colSet CollisionSet[T], shape phy2.Rect) {
+func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 	min := PositionToIndex(h.chunksize, phy2.Pos(shape.Min))
 	max := PositionToIndex(h.chunksize, phy2.Pos(shape.Max))
 
@@ -159,7 +159,7 @@ func (h *Hashmap[T]) Check(colSet CollisionSet[T], shape phy2.Rect) {
 			} else {
 				// For inner chunks, we can just add everything from the bucket (much faster)
 				for i := range bucket.List {
-					colSet[bucket.List[i].item] = struct{}{}
+					colSet.Add(bucket.List[i].item)
 				}
 			}
 		}
@@ -175,17 +175,44 @@ func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape phy2.Rect) {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket := h.GetBucket(Index{x, y})
 			for i := range bucket.List {
-				colSet[bucket.List[i].item] = struct{}{}
+				colSet.Add(bucket.List[i].item)
 			}
 		}
 	}
 }
 
 // TODO - there's probably more efficient ways to deduplicate than a map here?
-type CollisionSet[T comparable] map[T]struct{}
-func NewCollisionSet[T comparable](cap int) CollisionSet[T] {
-	return make(CollisionSet[T], cap)
+// type CollisionSet[T comparable] map[T]struct{}
+// func NewCollisionSet[T comparable](cap int) CollisionSet[T] {
+// 	return make(CollisionSet[T], cap)
+// }
+// func (s CollisionSet[T]) Add(t T) {
+// 	s[t] = struct{}{}
+// }
+// func (s CollisionSet[T]) Clear() {
+// 	// clear(s) // TODO: Is this slow?
+// 	// Clearing Optimization: https://go.dev/doc/go1.11#performance-compiler
+// 	for k := range s {
+// 		delete(s, k)
+// 	}
+// }
+
+type CollisionSet[T comparable] struct{
+	List []T
 }
-func (s CollisionSet[T]) Clear() {
-	clear(s)
+func NewCollisionSet[T comparable](cap int) *CollisionSet[T] {
+	return &CollisionSet[T]{
+		List: make([]T, cap),
+	}
+}
+func (s *CollisionSet[T]) Add(t T) {
+	for i := range s.List {
+		if s.List[i] == t {
+			return // Already added
+		}
+	}
+	s.List = append(s.List, t)
+}
+func (s *CollisionSet[T]) Clear() {
+	s.List = s.List[:0]
 }
