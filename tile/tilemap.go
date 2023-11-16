@@ -14,32 +14,34 @@ type Tile struct {
 	Entity ecs.Id // This holds the entity Id of the object that is placed here
 }
 
-type TilePosition struct {
+type TilePosition = Position
+
+type Position struct {
 	X, Y int
 }
 
-func (t TilePosition) Add(v TilePosition) TilePosition {
-	return TilePosition{
+func (t Position) Add(v Position) Position {
+	return Position{
 		t.X + v.X,
 		t.Y + v.Y,
 	}
 }
 
-func (t TilePosition) Sub(v TilePosition) TilePosition {
-	return TilePosition{
+func (t Position) Sub(v Position) Position {
+	return Position{
 		t.X - v.X,
 		t.Y - v.Y,
 	}
 }
 
-func (t TilePosition) Div(val int) TilePosition {
-	return TilePosition{
+func (t Position) Div(val int) Position {
+	return Position{
 		t.X / val,
 		t.Y / val,
 	}
 }
 
-func ManhattanDistance(a, b TilePosition) int {
+func ManhattanDistance(a, b Position) int {
 	dx := a.X - b.X
 	dy := a.Y - b.Y
 	if dx < 0 { dx = -dx }
@@ -48,17 +50,17 @@ func ManhattanDistance(a, b TilePosition) int {
 }
 
 type Rect struct {
-	Min, Max TilePosition
+	Min, Max Position
 }
 func R(minX, minY, maxX, maxY int) Rect {
 	return Rect{
-		TilePosition{minX, minY},
-		TilePosition{maxX, maxY},
+		Position{minX, minY},
+		Position{maxX, maxY},
 	}
 }
-func (r Rect) WithCenter(v TilePosition) Rect {
+func (r Rect) WithCenter(v Position) Rect {
 	c := r.Center()
-	zRect := r.Moved(TilePosition{
+	zRect := r.Moved(Position{
 		X: -c.X,
 		Y: -c.Y,
 	})
@@ -72,18 +74,18 @@ func (r Rect) H() int {
 	return r.Max.Y - r.Min.Y
 }
 
-func (r Rect) Center() TilePosition {
-	return TilePosition{r.Min.X + (r.W()/2), r.Min.Y + (r.H()/2)}
+func (r Rect) Center() Position {
+	return Position{r.Min.X + (r.W()/2), r.Min.Y + (r.H()/2)}
 }
 
-func (r Rect) Moved(v TilePosition) Rect {
+func (r Rect) Moved(v Position) Rect {
 	return Rect{
 		Min: r.Min.Add(v),
 		Max: r.Max.Add(v),
 	}
 }
 
-func (r Rect) Contains(pos TilePosition) bool {
+func (r Rect) Contains(pos Position) bool {
 	return pos.X <= r.Max.X && pos.X >= r.Min.X && pos.Y <= r.Max.Y && pos.Y >= r.Min.Y
 }
 
@@ -127,11 +129,11 @@ func (r Rect) UnpadAll(pad int) Rect {
 }
 
 // TODO! - Replace with actual iterator pattern
-func (r Rect) Iter() []TilePosition {
-	ret := make([]TilePosition, 0)
+func (r Rect) Iter() []Position {
+	ret := make([]Position, 0)
 	for x := r.Min.X; x <= r.Max.X; x++ {
 		for y := r.Min.Y; y <= r.Max.Y; y++ {
-			ret = append(ret, TilePosition{x, y})
+			ret = append(ret, Position{x, y})
 		}
 	}
 	return ret
@@ -173,7 +175,7 @@ func (t *Tilemap) Height() int {
 	return len(t.tiles[0])
 }
 
-func (t *Tilemap) Get(pos TilePosition) (Tile, bool) {
+func (t *Tilemap) Get(pos Position) (Tile, bool) {
 	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
 		return Tile{}, false
 	}
@@ -181,7 +183,7 @@ func (t *Tilemap) Get(pos TilePosition) (Tile, bool) {
 	return t.tiles[pos.X][pos.Y], true
 }
 
-func (t *Tilemap) Set(pos TilePosition, tile Tile) bool {
+func (t *Tilemap) Set(pos Position, tile Tile) bool {
 	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
 		return false
 	}
@@ -190,29 +192,29 @@ func (t *Tilemap) Set(pos TilePosition, tile Tile) bool {
 	return true
 }
 
-func (t *Tilemap) TileToPosition(tilePos TilePosition) (float64, float64) {
+func (t *Tilemap) TileToPosition(tilePos Position) (float64, float64) {
 	x, y := t.math.Position(tilePos.X, tilePos.Y, t.TileSize)
 	return (x + float64(t.Offset.X)), (y + float64(t.Offset.Y))
 }
 
-func (t *Tilemap) PositionToTile(x, y float64) TilePosition {
+func (t *Tilemap) PositionToTile(x, y float64) Position {
 	x -= t.Offset.X
 	y -= t.Offset.Y
 	tX, tY := t.math.PositionToTile(x, y, t.TileSize)
-	return TilePosition{tX, tY}
+	return Position{tX, tY}
 }
 
-func (t *Tilemap) GetEdgeNeighbors(x, y int) []TilePosition {
-	return []TilePosition{
-		TilePosition{x+1, y},
-		TilePosition{x-1, y},
-		TilePosition{x, y+1},
-		TilePosition{x, y-1},
+func (t *Tilemap) GetEdgeNeighbors(x, y int) []Position {
+	return []Position{
+		Position{x+1, y},
+		Position{x-1, y},
+		Position{x, y+1},
+		Position{x, y-1},
 	}
 }
 
 // TODO - this might not work for pointy-top tilemaps
-func (t *Tilemap) BoundsAt(pos TilePosition) (float64, float64, float64, float64) {
+func (t *Tilemap) BoundsAt(pos Position) (float64, float64, float64, float64) {
 	x, y := t.TileToPosition(pos)
 	return float64(x) - float64(t.TileSize[0]/2), float64(y) - float64(t.TileSize[1]/2), float64(x) + float64(t.TileSize[0]/2), float64(y) + float64(t.TileSize[1]/2)
 }
@@ -244,7 +246,7 @@ func (t *Tilemap) ClearEntities() {
 // }
 
 // Returns a list of tiles that are overlapping the collider at a position
-func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollider) []TilePosition {
+func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollider) []Position {
 	minX := x - collider.Radius
 	maxX := x + collider.Radius
 	minY := y - collider.Radius
@@ -253,10 +255,10 @@ func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollide
 	min := t.PositionToTile(minX, minY)
 	max := t.PositionToTile(maxX, maxY)
 
-	ret := make([]TilePosition, 0)
+	ret := make([]Position, 0)
 	for tx := min.X; tx <= max.X; tx++ {
 		for ty := min.Y; ty <= max.Y; ty++ {
-			ret = append(ret, TilePosition{tx, ty})
+			ret = append(ret, Position{tx, ty})
 		}
 	}
 	return ret

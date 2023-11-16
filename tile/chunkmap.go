@@ -386,6 +386,14 @@ func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
 	return offset
 }
 
+//Note: untested
+func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) phy2.Pos {
+	chunkPos := c.TileToChunk(tilePos)
+	offsetPos := c.ToPosition(chunkPos)
+	pos := c.TileToPosition(tilePos)
+	return pos.Sub(phy2.Pos(offsetPos))
+}
+
 func (c *ChunkMath) PositionToChunk(x, y float64) ChunkPosition {
 	return c.TileToChunk(c.PositionToTile(x, y))
 }
