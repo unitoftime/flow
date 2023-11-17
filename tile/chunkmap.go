@@ -1,7 +1,7 @@
 package tile
 
 import (
-	"fmt"
+	// "fmt"
 
 	"github.com/unitoftime/flow/phy2"
 	"github.com/zyedidia/generic/queue"
@@ -54,7 +54,6 @@ func (c *Chunkmap[T]) Bounds() Rect {
 	var bounds Rect
 	i := 0
 	for chunkPos := range c.chunks {
-		fmt.Println(c.GetChunkTileRect(chunkPos))
 		if i == 0 {
 			bounds = c.GetChunkTileRect(chunkPos)
 		} else {
