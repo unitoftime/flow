@@ -30,6 +30,16 @@ func Decode(m map[string]any, v any) error {
 	return nil
 }
 
+func singleTypeConvert[T any](src T, targ decodeTargeter) (any, bool) {
+	value := reflect.ValueOf(src)
+	dstType := targ.Type()
+	if !value.CanConvert(dstType) {
+		return nil, false
+	}
+	retValue := value.Convert(dstType)
+	return retValue.Interface(), true
+}
+
 func registeredMapHookFunc() mapstructure.DecodeHookFunc {
 	return func(f reflect.Type, t reflect.Type,
 		data interface{}) (interface{}, error) {
@@ -50,22 +60,41 @@ func registeredMapHookFunc() mapstructure.DecodeHookFunc {
 				return data, nil
 			}
 			for k, v := range m {
-				fmt.Println("Special: ", k, v)
-				subMap, ok := v.(map[string]any)
-				if !ok { return data, nil }
-
 				targ, ok := registry.Get(k)
 				if !ok {
+					panic(fmt.Sprintf("Couldnt find: %s", k)) // TODO: Dont panic
 					return data, nil // TODO: warn? Unregistered type?
 				}
 
-				ret := targ.New()
-				err := Decode(subMap, ret.Ptr())
-				if err != nil {
-					return data, err // TODO: return nil? or err?
+				var ret any
+				switch t := v.(type) {
+				case map[string]any:
+					newTarg := targ.New()
+					err := Decode(t, newTarg.Ptr())
+					if err != nil {
+						return data, err // TODO: return nil? or err?
+					}
+					ret = newTarg.Get()
+				case string:
+					ret, ok = singleTypeConvert(t, targ)
+					if !ok { return data, nil }
+				case bool:
+					ret, ok = singleTypeConvert(t, targ)
+					if !ok { return data, nil }
+				case int:
+					ret, ok = singleTypeConvert(t, targ)
+					if !ok { return data, nil }
+				case float32:
+					ret, ok = singleTypeConvert(t, targ)
+					if !ok { return data, nil }
+				case float64:
+					ret, ok = singleTypeConvert(t, targ)
+					if !ok { return data, nil }
+				default:
+					return data, nil
 				}
-				fmt.Println("Special Ret: ", k, ret.Get())
-				return ret.Get(), nil
+				// fmt.Println("Special Ret: ", k, ret)
+				return ret, nil
 			}
 			return data, nil
 		}
@@ -76,6 +105,7 @@ type decodeTargeter interface {
 	New() decodeTargeter
 	Get() any
 	Ptr() any
+	Type() reflect.Type
 }
 
 type decodeTarget[T any] struct {
@@ -92,6 +122,9 @@ func (t *decodeTarget[T]) Get() any {
 }
 func (t *decodeTarget[T]) Ptr() any {
 	return &t.Value
+}
+func (t *decodeTarget[T]) Type() reflect.Type {
+	return reflect.TypeOf(t.Value)
 }
 
 //--------------------------------------------------------------------------------
