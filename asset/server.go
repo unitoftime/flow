@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -194,7 +193,7 @@ func (s *Server) ReadRaw(fpath string) ([]byte, time.Time, error) {
 	}
 	defer rc.Close()
 
-	dat, err := ioutil.ReadAll(rc)
+	dat, err := io.ReadAll(rc)
 	return dat, modTime, err
 }
 
