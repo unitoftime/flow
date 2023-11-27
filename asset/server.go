@@ -2,17 +2,17 @@ package asset
 
 import (
 	"fmt"
-	"os"
 	"io"
 	"io/fs"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"strings"
 )
 
 // TODO: if I wanted this to be more "ecs-like" I would make a resource per asset type then use some kind of integer handle (ie `type Handle[T] uint32` or something). Then I use that handle to index into the asset type resource (ie `assets.Get(handle)` and `assets := ecs.GetResource[T](world)`)
@@ -178,7 +178,7 @@ func (s *Server) getModTime(fpath string) (time.Time, error) {
 	// return info.ModTime(), nil
 }
 
-func (s *Server) readRaw(fpath string) ([]byte, time.Time, error) {
+func (s *Server) ReadRaw(fpath string) ([]byte, time.Time, error) {
 	scheme := getScheme(fpath)
 
 	var rc io.ReadCloser
@@ -362,7 +362,7 @@ func Load[T any](server *Server, name string) *Handle[T] {
 			close(handle.doneChan)
 		}()
 
-		data, modTime, err := server.readRaw(name)
+		data, modTime, err := server.ReadRaw(name)
 		if err != nil {
 			handle.err = err
 			return
@@ -412,7 +412,7 @@ func Reload[T any](server *Server, handle *Handle[T]) {
 			return
 		}
 
-		data, modTime, err := server.readRaw(name)
+		data, modTime, err := server.ReadRaw(name)
 		if err != nil {
 			handle.err = err
 			return
