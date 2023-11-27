@@ -191,6 +191,19 @@ func (c *Chunkmap[T]) SetTile(pos TilePosition, tile T) bool {
 	return true
 }
 
+func (c *Chunkmap[T]) GetEightNeighbors(pos TilePosition) (T, T, T, T, T, T, T, T) {
+	t, _ := c.GetTile(Position{pos.X, pos.Y + 1})
+	b, _ := c.GetTile(Position{pos.X, pos.Y - 1})
+	l, _ := c.GetTile(Position{pos.X - 1, pos.Y})
+	r, _ := c.GetTile(Position{pos.X + 1, pos.Y})
+	tl, _ := c.GetTile(Position{pos.X - 1, pos.Y + 1})
+	tr, _ := c.GetTile(Position{pos.X + 1, pos.Y + 1})
+	bl, _ := c.GetTile(Position{pos.X - 1, pos.Y - 1})
+	br, _ := c.GetTile(Position{pos.X + 1, pos.Y - 1})
+
+	return t, b, l, r, tl, tr, bl, br
+}
+
 func (c *Chunkmap[T]) GetNeighborsAtDistance(tilePos TilePosition, dist int) []TilePosition {
 	distance := make(map[TilePosition]int)
 

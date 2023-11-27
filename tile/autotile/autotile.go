@@ -2,6 +2,7 @@ package autotile
 
 import (
 	"math/rand"
+
 	"github.com/unitoftime/flow/tile"
 )
 
@@ -32,6 +33,7 @@ type Tilemap[T any] interface {
 
 type Rule[T any] interface {
 	Execute(Tilemap[T], tile.TilePosition) int
+	ExecuteFull(T, T, T, T, T, T, T, T, T) int
 }
 
 // type RawEightRule[T any] struct {
@@ -44,6 +46,25 @@ type Rule[T any] interface {
 type BlobmapRule[T any] struct {
 	Match func(a, b T) bool
 }
+func (rule BlobmapRule[T]) ExecuteFull(m, t, b, l, r, tl, tr, bl, br T) int {
+	if !rule.Match(m, m) {
+		return -1
+	}
+
+	pattern := PackedBlobmapNumber(
+		rule.Match(m, t),
+		rule.Match(m, b),
+		rule.Match(m, l),
+		rule.Match(m, r),
+		rule.Match(m, tl),
+		rule.Match(m, tr),
+		rule.Match(m, bl),
+		rule.Match(m, br),
+	)
+
+	return int(pattern)
+}
+
 func (rule BlobmapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
 	tile, ok := tilemap.GetTile(pos)
 	if !ok {
@@ -73,6 +94,21 @@ func (rule BlobmapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) in
 type PipemapRule[T any] struct {
 	Match func(a, b T) bool
 }
+func (rule PipemapRule[T]) ExecuteFull(m, t, b, l, r, tl, tr, bl, br T) int {
+	if !rule.Match(m, m) {
+		return -1
+	}
+
+	pattern := PackedPipemapNumber(
+		rule.Match(m, t),
+		rule.Match(m, b),
+		rule.Match(m, l),
+		rule.Match(m, r),
+	)
+
+	return int(pattern)
+
+}
 func (rule PipemapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
 	tile, ok := tilemap.GetTile(pos)
 	if !ok {
@@ -99,6 +135,25 @@ type LambdaRule[T any] struct {
 	Func func(Pattern) int
 	Match func(T, T) bool
 }
+func (rule LambdaRule[T]) ExecuteFull(m, t, b, l, r, tl, tr, bl, br T) int {
+	if !rule.Match(m, m) {
+		return -1
+	}
+
+	pattern := PackedRawEightNumber(
+		rule.Match(m, t),
+		rule.Match(m, b),
+		rule.Match(m, l),
+		rule.Match(m, r),
+		rule.Match(m, tl),
+		rule.Match(m, tr),
+		rule.Match(m, bl),
+		rule.Match(m, br),
+	)
+
+	return rule.Func(Pattern(pattern))
+}
+
 func (rule LambdaRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int {
 	tile, ok := tilemap.GetTile(pos)
 	if !ok {
@@ -153,6 +208,16 @@ type Set[T, S any] struct {
 	// Rule func(Pattern)int
 	Rule Rule[T]
 	Tiles [][]S
+}
+
+func (s *Set[T,S]) GetFull(m, t, b, l, r, tl, tr, bl, br T) (S, bool) {
+	variant := s.Rule.ExecuteFull(m, t, b, l, r, tl, tr, bl, br)
+	if variant < 0 {
+		var ret S
+		return ret, false
+	}
+	idx := rand.Intn(len(s.Tiles[variant]))
+	return s.Tiles[variant][idx], true
 }
 
 func (s *Set[T,S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
