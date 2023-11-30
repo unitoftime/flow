@@ -80,21 +80,21 @@ type Interp interface {
 
 type Lerp struct {
 }
-func (i *Lerp) Float64(a, b float64, t float64) float64 {
+func (i Lerp) Float64(a, b float64, t float64) float64 {
 	m := b - a // Slope = Rise over run | Note: Run = (1 - 0)
 	y := (m * t) + a
 	return y
 }
-func (i *Lerp) Float32(a, b float32, t float64) float32 {
+func (i Lerp) Float32(a, b float32, t float64) float32 {
 	m := b - a // Slope = Rise over run | Note: Run = (1 - 0)
 	y := (m * float32(t)) + a
 	return y
 }
-func (i *Lerp) Uint8(a, b uint8, t float64) uint8 {
+func (i Lerp) Uint8(a, b uint8, t float64) uint8 {
 	return uint8(i.Float64(float64(a), float64(b), t))
 }
 
-func (i *Lerp) Vec2(a, b vec2.T, t float64) vec2.T {
+func (i Lerp) Vec2(a, b vec2.T, t float64) vec2.T {
 	ret := vec2.T{
 		i.Float64(a[0], b[0], t),
 		i.Float64(a[1], b[1], t),

@@ -1,10 +1,10 @@
 package particle
 
 import (
-	"time"
 	"image/color"
 	"math"
 	"math/rand"
+	"time"
 
 	// "github.com/ungerik/go3d/float64/vec2"
 
@@ -215,10 +215,10 @@ type Vec2Positioner interface {
 }
 
 type ConstantPositioner struct {
-	Value phy2.Vec2
+	X, Y float64
 }
-func (p *ConstantPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
-	return p.Value
+func (p ConstantPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
+	return phy2.Vec2{p.X, p.Y}
 }
 
 type GeometricPositioner struct {
