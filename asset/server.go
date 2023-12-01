@@ -384,6 +384,8 @@ func Load[T any](server *Server, name string) *Handle[T] {
 
 // Loads a single file
 func Reload[T any](server *Server, handle *Handle[T]) {
+	if !handle.Done() { return } // If its still loading, then don't try to reload
+
 	name := handle.Name
 
 	// Find a loader for it
