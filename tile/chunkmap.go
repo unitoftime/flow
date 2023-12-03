@@ -4,6 +4,7 @@ import (
 	// "fmt"
 
 	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/intmap"
 	"github.com/zyedidia/generic/queue"
 )
 
@@ -12,20 +13,31 @@ import (
 // 	SaveChunk(chunkmap *Chunkmap[T], chunkPos ChunkPosition) error
 // }
 
+
 type ChunkPosition struct {
-	X, Y int32
+	X, Y int16
+}
+func (c *ChunkPosition) hash() uint32 {
+	return (uint32(uint16(c.X)) << 16) | uint32(uint16(c.Y))
+}
+func fromHash(hash uint32) ChunkPosition {
+	return ChunkPosition{
+		X: int16(uint16((hash >> 16) & 0xFFFF)),
+		Y: int16(uint16(hash & 0xFFFF)),
+	}
 }
 
 type Chunkmap[T any] struct {
 	ChunkMath
-	chunks map[ChunkPosition]*Chunk[T]
-	// loader ChunkLoader[T]
+	// chunks map[ChunkPosition]*Chunk[T]
+	chunks *intmap.Map[uint32, *Chunk[T]]
 }
 
 func NewChunkmap[T any](math ChunkMath) *Chunkmap[T] {
 	return &Chunkmap[T]{
 		ChunkMath: math,
-		chunks: make(map[ChunkPosition]*Chunk[T]),
+		// chunks: make(map[ChunkPosition]*Chunk[T]),
+		chunks: intmap.New[uint32, *Chunk[T]](0),
 	}
 }
 
@@ -37,30 +49,35 @@ func NewChunkmap[T any](math ChunkMath) *Chunkmap[T] {
 // TODO - It might be cool to have a function which returns a rectangle of chunks as a list (To automatically cull out sections we don't want)
 func (c *Chunkmap[T]) GetAllChunks() []*Chunk[T] {
 	ret := make([]*Chunk[T], 0, c.NumChunks())
-	for _, chunk := range c.chunks {
+	// for _, chunk := range c.chunks {
+	c.chunks.ForEach(func(_ uint32, chunk *Chunk[T]) {
 		ret = append(ret, chunk)
-	}
+	})
 	return ret
 }
 func (c *Chunkmap[T]) GetAllChunkPositions() []ChunkPosition {
 	ret := make([]ChunkPosition, 0, c.NumChunks())
-	for chunkPos := range c.chunks {
+	c.chunks.ForEach(func(chunkHash uint32, chunk *Chunk[T]) {
+		chunkPos := fromHash(chunkHash)
+	// for chunkPos := range c.chunks {
 		ret = append(ret, chunkPos)
-	}
+	})
 	return ret
 }
 
 func (c *Chunkmap[T]) Bounds() Rect {
 	var bounds Rect
 	i := 0
-	for chunkPos := range c.chunks {
+	c.chunks.ForEach(func(chunkHash uint32, chunk *Chunk[T]) {
+		chunkPos := fromHash(chunkHash)
+	// for chunkPos := range c.chunks {
 		if i == 0 {
 			bounds = c.GetChunkTileRect(chunkPos)
 		} else {
 			bounds = bounds.Union(c.GetChunkTileRect(chunkPos))
 		}
 		i++
-	}
+	})
 	return bounds
 	// var bounds Rect
 	// i := 0
@@ -76,7 +93,8 @@ func (c *Chunkmap[T]) Bounds() Rect {
 }
 
 func (c *Chunkmap[T]) GetChunk(chunkPos ChunkPosition) (*Chunk[T], bool) {
-	chunk, ok := c.chunks[chunkPos]
+	chunk, ok := c.chunks.Get(chunkPos.hash())
+	// chunk, ok := c.chunks[chunkPos]
 	if ok {
 		return chunk, true
 	}
@@ -137,12 +155,14 @@ func (c *Chunkmap[T]) AddChunk(chunkPos ChunkPosition, tiles [][]T) *Chunk[T] {
 	chunk.Offset.Y = float64(offY)
 
 	// Write back
-	c.chunks[chunkPos] = chunk
+	// c.chunks[chunkPos] = chunk
+	c.chunks.Put(chunkPos.hash(), chunk)
 	return chunk
 }
 
 func (c *Chunkmap[T]) NumChunks() int {
-	return len(c.chunks)
+	return c.chunks.Len()
+	// return len(c.chunks)
 }
 
 func (c *Chunkmap[T]) GetTile(pos TilePosition) (T, bool) {
@@ -276,12 +296,15 @@ func (c *Chunkmap[T]) GetPerimeter() map[ChunkPosition]bool {
 	perimeter := make(map[ChunkPosition]bool) // List of chunkPositions that are the perimeter
 	processed := make(map[ChunkPosition]bool) // List of chunkPositions that we've already processed
 
-	// Just start at some random chunkPosition (whichever is first
+	// Just start at some random chunkPosition (whichever is first)
 	var start ChunkPosition
-	for chunkPos := range c.chunks {
+	// TODO: originally this function would just use the first in the for loop. but we cant break out of a lambda func
+	c.chunks.ForEach(func(chunkHash uint32, chunk *Chunk[T]) {
+		chunkPos := fromHash(chunkHash)
+	// for chunkPos := range c.chunks {
 		start = chunkPos
-		break
-	}
+		// break
+	})
 
 	q := queue.New[ChunkPosition]()
 	q.Enqueue(start)
@@ -420,7 +443,7 @@ func (c *ChunkMath) TileToChunk(tilePos TilePosition) ChunkPosition {
 	chunkX := tilePos.X / c.ChunkSize[0]
 	chunkY := tilePos.Y / c.ChunkSize[1]
 
-	return ChunkPosition{int32(chunkX), int32(chunkY)}
+	return ChunkPosition{int16(chunkX), int16(chunkY)}
 }
 
 // Returns the center tile of a chunk

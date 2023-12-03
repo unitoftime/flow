@@ -1,18 +1,17 @@
 package tile
 
 import (
-	"github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/phy2"
 )
 
-type TileType uint8
+// type TileType uint8
 
-type Tile struct {
-	Type TileType
-	Height float32
-	// TODO - Should entity inclusion be held somewhere else? What if two entities occupy the same tile?
-	Entity ecs.Id // This holds the entity Id of the object that is placed here
-}
+// type Tile struct {
+// 	Type TileType
+// 	Height float32
+// 	// TODO - Should entity inclusion be held somewhere else? What if two entities occupy the same tile?
+// 	Entity ecs.Id // This holds the entity Id of the object that is placed here
+// }
 
 type TilePosition = Position
 
@@ -144,15 +143,15 @@ func (r Rect) Iter() []Position {
 // 	Width, Height int // Size of the collider in terms of tiles
 // }
 
-type Tilemap struct {
+type Tilemap[T any] struct {
 	TileSize [2]int // In pixels
-	tiles [][]Tile
+	tiles [][]T
 	math Math
 	Offset phy2.Vec2 // In world space positioning
 }
 
-func New(tiles [][]Tile, tileSize [2]int, math Math) *Tilemap {
-	return &Tilemap{
+func New[T any](tiles [][]T, tileSize [2]int, math Math) *Tilemap[T] {
+	return &Tilemap[T]{
 		TileSize: tileSize,
 		tiles: tiles,
 		math: math,
@@ -162,28 +161,29 @@ func New(tiles [][]Tile, tileSize [2]int, math Math) *Tilemap {
 
 // This returns the underlying array, not a copy
 // TODO - should I just make tiles public?
-func (t *Tilemap) Tiles() [][]Tile {
+func (t *Tilemap[T]) Tiles() [][]T {
 	return t.tiles
 }
 
-func (t *Tilemap) Width() int {
+func (t *Tilemap[T]) Width() int {
 	return len(t.tiles)
 }
 
-func (t *Tilemap) Height() int {
+func (t *Tilemap[T]) Height() int {
 	// TODO - Assumes the tilemap is a square and is larger than size 0
 	return len(t.tiles[0])
 }
 
-func (t *Tilemap) Get(pos Position) (Tile, bool) {
+func (t *Tilemap[T]) GetTile(pos Position) (T, bool) {
 	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
-		return Tile{}, false
+		var ret T
+		return ret, false
 	}
 
 	return t.tiles[pos.X][pos.Y], true
 }
 
-func (t *Tilemap) Set(pos Position, tile Tile) bool {
+func (t *Tilemap[T]) SetTile(pos Position, tile T) bool {
 	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
 		return false
 	}
@@ -192,19 +192,19 @@ func (t *Tilemap) Set(pos Position, tile Tile) bool {
 	return true
 }
 
-func (t *Tilemap) TileToPosition(tilePos Position) (float64, float64) {
+func (t *Tilemap[T]) TileToPosition(tilePos Position) (float64, float64) {
 	x, y := t.math.Position(tilePos.X, tilePos.Y, t.TileSize)
 	return (x + float64(t.Offset.X)), (y + float64(t.Offset.Y))
 }
 
-func (t *Tilemap) PositionToTile(x, y float64) Position {
+func (t *Tilemap[T]) PositionToTile(x, y float64) Position {
 	x -= t.Offset.X
 	y -= t.Offset.Y
 	tX, tY := t.math.PositionToTile(x, y, t.TileSize)
 	return Position{tX, tY}
 }
 
-func (t *Tilemap) GetEdgeNeighbors(x, y int) []Position {
+func (t *Tilemap[T]) GetEdgeNeighbors(x, y int) []Position {
 	return []Position{
 		Position{x+1, y},
 		Position{x-1, y},
@@ -214,39 +214,13 @@ func (t *Tilemap) GetEdgeNeighbors(x, y int) []Position {
 }
 
 // TODO - this might not work for pointy-top tilemaps
-func (t *Tilemap) BoundsAt(pos Position) (float64, float64, float64, float64) {
+func (t *Tilemap[T]) BoundsAt(pos Position) (float64, float64, float64, float64) {
 	x, y := t.TileToPosition(pos)
 	return float64(x) - float64(t.TileSize[0]/2), float64(y) - float64(t.TileSize[1]/2), float64(x) + float64(t.TileSize[0]/2), float64(y) + float64(t.TileSize[1]/2)
 }
 
-func (t *Tilemap) ClearEntities() {
-	// Clear Entities
-	for x := range t.tiles {
-		for y := range t.tiles[x] {
-			t.tiles[x][y].Entity = ecs.InvalidEntity
-		}
-	}
-}
-
-// // Recalculates all of the entities that are on tiles based on tile colliders
-// func (t *Tilemap) RecalculateEntities(world *ecs.World) {
-// 	t.ClearEntities()
-
-// 	query := ecs.Query2[Collider, phy2.Pos](world)
-// 	// Recompute all entities with TileColliders
-// 	query.MapId(func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
-// 		tilePos := t.PositionToTile(pos.X, pos.Y)
-
-// 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
-// 			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
-// 				t.tiles[x][y].Entity = id // Store the entity
-// 			}
-// 		}
-// 	})
-// }
-
 // Returns a list of tiles that are overlapping the collider at a position
-func (t *Tilemap) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollider) []Position {
+func (t *Tilemap[T]) GetOverlappingTiles(x, y float64, collider *phy2.CircleCollider) []Position {
 	minX := x - collider.Radius
 	maxX := x + collider.Radius
 	minY := y - collider.Radius
