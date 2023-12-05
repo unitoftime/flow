@@ -205,7 +205,7 @@ func (p *ConstFloat64Positioner) Float64(count int, v float64) float64 {
 }
 type RandomFloat64Positioner struct {
 }
-func (p *RandomFloat64Positioner) Float64(count int, v float64) float64 {
+func (p RandomFloat64Positioner) Float64(count int, v float64) float64 {
 	return v + (2 * math.Pi * rand.Float64())
 }
 
@@ -266,7 +266,7 @@ func (p *CirclePositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 type RectPositioner struct {
 	Min, Max phy2.Vec2 // TODO - rectangle passed in
 }
-func (p *RectPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
+func (p RectPositioner) Vec2(count int, A phy2.Vec2) phy2.Vec2 {
 	w := p.Max.X - p.Min.X
 	h := p.Max.Y - p.Min.Y
 
