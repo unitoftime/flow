@@ -1,6 +1,8 @@
 package spatial
 
 import (
+	"slices"
+
 	"github.com/unitoftime/flow/phy2"
 )
 
@@ -50,6 +52,126 @@ import (
 // 	}
 // }
 
+type arrayMap[T any] struct {
+	topRight [][]*T
+	topLeft [][]*T
+	botRight [][]*T
+	botLeft [][]*T
+}
+func newArrayMap[T any]() *arrayMap[T] {
+	return &arrayMap[T]{
+		topRight: make([][]*T, 0),
+		topLeft: make([][]*T, 0),
+		botRight: make([][]*T, 0),
+		botLeft: make([][]*T, 0),
+	}
+}
+
+func (m *arrayMap[T]) safePut(slice [][]*T, x, y int, t *T) [][]*T {
+	if x < len(slice) {
+		if y < len(slice[x]) {
+			slice[x][y] = t
+			return slice
+		} else {
+			slice[x] = slices.Grow(slice[x], y - len(slice[x]) + 1)
+			slice[x] = slice[x][:y+1]
+			slice[x][y] = t
+			return slice
+		}
+	}
+
+	slice = slices.Grow(slice, x - len(slice) + 1)
+	slice = slice[:x+1]
+
+	slice[x] = slices.Grow(slice[x], y - len(slice[x]) + 1)
+	slice[x] = slice[x][:y+1]
+	slice[x][y] = t
+	return slice
+}
+
+func (m *arrayMap[T]) Put(x, y int, t *T) {
+	if x >= 0 {
+		if y >= 0 {
+			m.topRight = m.safePut(m.topRight, x, y, t)
+		} else {
+			m.botRight = m.safePut(m.botRight, x, -y, t)
+			// m.botRight[x][y] = t
+		}
+	} else {
+		if y >= 0 {
+			m.topLeft = m.safePut(m.topLeft, -x, y, t)
+			// m.topLeft[x][y] = t
+		} else {
+			m.botLeft = m.safePut(m.botLeft, -x, -y, t)
+			// m.botLeft[x][y] = t
+		}
+	}
+}
+
+func (m *arrayMap[T]) safeGet(slice [][]*T, x, y int) (*T, bool) {
+	if x >= len(slice) {
+		return nil, false
+	}
+	if y >= len(slice[x]) {
+		return nil, false
+	}
+
+	if slice[x][y] == nil {
+		return nil, false
+	}
+
+	return slice[x][y], true
+}
+
+func (m *arrayMap[T]) Get(x, y int) (*T, bool) {
+	if x >= 0 {
+		if y >= 0 {
+			return m.safeGet(m.topRight, x, y)
+		} else {
+			return m.safeGet(m.botRight, x, -y)
+			// m.botRight[x][y] = t
+		}
+	} else {
+		if y >= 0 {
+			return m.safeGet(m.topLeft, -x, y)
+			// m.topLeft[x][y] = t
+		} else {
+			return m.safeGet(m.botLeft, -x, -y)
+			// m.botLeft[x][y] = t
+		}
+	}
+}
+
+func (m *arrayMap[T]) ForEachValue(lambda func(t *T)) {
+	for x := range m.topRight {
+		for y := range m.topRight[x] {
+			val := m.topRight[x][y]
+			if val == nil { continue }
+			lambda(val)
+		}
+	}
+	for x := range m.topLeft {
+		for y := range m.topLeft[x] {
+			val := m.topLeft[x][y]
+			if val == nil { continue }
+			lambda(val)
+		}
+	}
+	for x := range m.botLeft {
+		for y := range m.botLeft[x] {
+			val := m.botLeft[x][y]
+			if val == nil { continue }
+			lambda(val)
+		}
+	}
+	for x := range m.botRight {
+		for y := range m.botRight[x] {
+			val := m.botRight[x][y]
+			if val == nil { continue }
+			lambda(val)
+		}
+	}
+}
 
 type Index struct {
 	X, Y int
@@ -106,30 +228,47 @@ func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 
 // TODO: rename? ColliderMap?
 type Hashmap[T comparable] struct {
-	Bucket map[Index]*Bucket[T]
+	allBuckets []*Bucket[T]
+	Bucket *arrayMap[Bucket[T]]
+	// Bucket map[Index]*Bucket[T]
 	chunksize [2]int
 }
 
 func NewHashmap[T comparable](chunksize [2]int) *Hashmap[T] {
 	return &Hashmap[T]{
-		Bucket: make(map[Index]*Bucket[T]),
+		allBuckets: make([]*Bucket[T], 0, 1024),
+		// Bucket: make(map[Index]*Bucket[T]),
+		Bucket: newArrayMap[Bucket[T]](),
 		chunksize: chunksize,
 	}
 }
 
 func (h *Hashmap[T]) Clear() {
-	for _, b := range h.Bucket {
+	for _, b := range h.allBuckets {
 		b.Clear()
 	}
+	// h.Bucket.ForEachValue(func(b *Bucket[T]) {
+	// 	b.Clear()
+	// })
+	// for _, b := range h.Bucket {
+	// 	b.Clear()
+	// }
 }
 
 func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
-	bucket, ok := h.Bucket[index]
+	bucket, ok := h.Bucket.Get(index.X, index.Y)
 	if !ok {
 		bucket = NewBucket[T]()
-		h.Bucket[index] = bucket
+		h.allBuckets = append(h.allBuckets, bucket)
+		h.Bucket.Put(index.X, index.Y, bucket)
 	}
 	return bucket
+	// bucket, ok := h.Bucket[index]
+	// if !ok {
+	// 	bucket = NewBucket[T]()
+	// 	h.Bucket[index] = bucket
+	// }
+	// return bucket
 }
 
 func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {

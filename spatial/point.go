@@ -23,30 +23,48 @@ func (b *PointBucket[T]) Clear() {
 
 // TODO: rename? ColliderMap?
 type Pointmap[T comparable] struct {
-	Bucket map[Index]*PointBucket[T]
+	Bucket *arrayMap[PointBucket[T]]
+	// Bucket map[Index]*PointBucket[T]
 	chunksize [2]int
+	allBuckets []*PointBucket[T]
 }
 
 func NewPointmap[T comparable](chunksize [2]int) *Pointmap[T] {
 	return &Pointmap[T]{
-		Bucket: make(map[Index]*PointBucket[T]),
+		allBuckets: make([]*PointBucket[T], 0, 1024),
+		Bucket: newArrayMap[PointBucket[T]](),
+		// Bucket: make(map[Index]*PointBucket[T]),
 		chunksize: chunksize,
 	}
 }
 
 func (h *Pointmap[T]) Clear() {
-	for _, b := range h.Bucket {
+	for _, b := range h.allBuckets {
 		b.Clear()
 	}
+	// h.Bucket.ForEachValue(func(b *PointBucket[T]) {
+	// 	b.Clear()
+	// })
+	// for _, b := range h.Bucket {
+	// 	b.Clear()
+	// }
 }
 
 func (h *Pointmap[T]) GetBucket(index Index) *PointBucket[T] {
-	bucket, ok := h.Bucket[index]
+	bucket, ok := h.Bucket.Get(index.X, index.Y)
 	if !ok {
 		bucket = NewPointBucket[T]()
-		h.Bucket[index] = bucket
+		h.allBuckets = append(h.allBuckets, bucket)
+		h.Bucket.Put(index.X, index.Y, bucket)
 	}
 	return bucket
+
+	// bucket, ok := h.Bucket[index]
+	// if !ok {
+	// 	bucket = NewPointBucket[T]()
+	// 	h.Bucket[index] = bucket
+	// }
+	// return bucket
 }
 
 func (h *Pointmap[T]) Add(pos phy2.Pos, val T) {
