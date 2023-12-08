@@ -7,7 +7,6 @@ package tile
 // chunk.Map?
 
 import (
-	// "github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/phy2"
 )
 

@@ -1,6 +1,7 @@
 package spatial
 
 import (
+	"math"
 	"slices"
 
 	"github.com/unitoftime/flow/phy2"
@@ -178,24 +179,6 @@ type Index struct {
 	X, Y int
 }
 
-func PositionToIndex(chunksize [2]int, pos phy2.Pos) Index {
-	x := pos.X
-	y := pos.Y
-	xPos := (int(x) + (chunksize[0]/2)) / chunksize[0]
-	yPos := (int(y) + (chunksize[1]/2)) / chunksize[1]
-
-	// Adjust for negatives
-	if x < float64(-chunksize[0] / 2) {
-		xPos -= 1
-	}
-	if y < float64(-chunksize[1] / 2) {
-		yPos -= 1
-	}
-
-	return Index{xPos, yPos}
-}
-
-
 type BucketItem[T comparable] struct {
 	shape phy2.Rect
 	item T
@@ -227,20 +210,56 @@ func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 	}
 }
 
+//--------------------------------------------------------------------------------
+type PositionHasher struct {
+	size [2]int
+	sizeOver2 [2]int
+	div [2]int
+}
+func NewPositionHasher(size [2]int) PositionHasher {
+	divX := int(math.Log2(float64(size[0])))
+	divY := int(math.Log2(float64(size[1])))
+	if (1 << divX) != size[0] || (1 << divY) != size[1] {
+		panic("Spatial maps must have a chunksize that is a power of 2!")
+	}
+	return PositionHasher{
+		size: size,
+		sizeOver2: [2]int{size[0]/2, size[1]/2},
+		div: [2]int{divX, divY},
+	}
+}
+
+func (h *PositionHasher) PositionToIndex(pos phy2.Pos) Index {
+	x := pos.X
+	y := pos.Y
+	xPos := (int(x) + h.sizeOver2[0]) >> h.div[0]
+	yPos := (int(y) + h.sizeOver2[1]) >> h.div[1]
+
+	// Adjust for negatives
+	if x < float64(-h.sizeOver2[0]) {
+		xPos -= 1
+	}
+	if y < float64(-h.sizeOver2[1]) {
+		yPos -= 1
+	}
+
+	return Index{xPos, yPos}
+}
+//--------------------------------------------------------------------------------
 // TODO: rename? ColliderMap?
 type Hashmap[T comparable] struct {
+	PositionHasher
+
 	allBuckets []*Bucket[T]
 	Bucket *arrayMap[Bucket[T]]
-	// Bucket map[Index]*Bucket[T]
-	chunksize [2]int
 }
 
 func NewHashmap[T comparable](chunksize [2]int) *Hashmap[T] {
 	return &Hashmap[T]{
+		PositionHasher: NewPositionHasher(chunksize),
+
 		allBuckets: make([]*Bucket[T], 0, 1024),
-		// Bucket: make(map[Index]*Bucket[T]),
 		Bucket: newArrayMap[Bucket[T]](),
-		chunksize: chunksize,
 	}
 }
 
@@ -248,13 +267,8 @@ func (h *Hashmap[T]) Clear() {
 	for _, b := range h.allBuckets {
 		b.Clear()
 	}
-	// h.Bucket.ForEachValue(func(b *Bucket[T]) {
-	// 	b.Clear()
-	// })
-	// for _, b := range h.Bucket {
-	// 	b.Clear()
-	// }
 }
+
 
 func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 	bucket, ok := h.Bucket.Get(index.X, index.Y)
@@ -264,17 +278,11 @@ func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 		h.Bucket.Put(index.X, index.Y, bucket)
 	}
 	return bucket
-	// bucket, ok := h.Bucket[index]
-	// if !ok {
-	// 	bucket = NewBucket[T]()
-	// 	h.Bucket[index] = bucket
-	// }
-	// return bucket
 }
 
 func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {
-	min := PositionToIndex(h.chunksize, phy2.Pos(shape.Min))
-	max := PositionToIndex(h.chunksize, phy2.Pos(shape.Max))
+	min := h.PositionToIndex(phy2.Pos(shape.Min))
+	max := h.PositionToIndex(phy2.Pos(shape.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -286,8 +294,8 @@ func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {
 
 // Finds collisions and adds them directly into your collision set
 func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
-	min := PositionToIndex(h.chunksize, phy2.Pos(shape.Min))
-	max := PositionToIndex(h.chunksize, phy2.Pos(shape.Max))
+	min := h.PositionToIndex(phy2.Pos(shape.Min))
+	max := h.PositionToIndex(phy2.Pos(shape.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -308,8 +316,8 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
 func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape phy2.Rect) {
-	min := PositionToIndex(h.chunksize, phy2.Pos(shape.Min))
-	max := PositionToIndex(h.chunksize, phy2.Pos(shape.Max))
+	min := h.PositionToIndex(phy2.Pos(shape.Min))
+	max := h.PositionToIndex(phy2.Pos(shape.Max))
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
