@@ -232,16 +232,17 @@ func NewPositionHasher(size [2]int) PositionHasher {
 func (h *PositionHasher) PositionToIndex(pos phy2.Pos) Index {
 	x := pos.X
 	y := pos.Y
-	xPos := (int(x) + h.sizeOver2[0]) >> h.div[0]
-	yPos := (int(y) + h.sizeOver2[1]) >> h.div[1]
+	xPos := (int(x)) >> h.div[0]
+	yPos := (int(y)) >> h.div[1]
 
-	// Adjust for negatives
-	if x < float64(-h.sizeOver2[0]) {
-		xPos -= 1
-	}
-	if y < float64(-h.sizeOver2[1]) {
-		yPos -= 1
-	}
+	// TODO: I dont think I need this b/c of how shift right division works (negatives stay negative)
+	// // Adjust for negatives
+	// if x < float64(-h.sizeOver2[0]) {
+	// 	xPos -= 1
+	// }
+	// if y < float64(-h.sizeOver2[1]) {
+	// 	yPos -= 1
+	// }
 
 	return Index{xPos, yPos}
 }
