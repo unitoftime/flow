@@ -116,11 +116,12 @@ func (m *arrayMap[T]) safeGet(slice [][]*T, x, y int) (*T, bool) {
 		return nil, false
 	}
 
-	if slice[x][y] == nil {
-		return nil, false
-	}
+	// if slice[x][y] == nil {
+	// 	return nil, false
+	// }
 
-	return slice[x][y], true
+	isNil := (slice[x][y] == nil)
+	return slice[x][y], !isNil
 }
 
 func (m *arrayMap[T]) Get(x, y int) (*T, bool) {
@@ -181,7 +182,7 @@ func PositionToIndex(chunksize [2]int, pos phy2.Pos) Index {
 	x := pos.X
 	y := pos.Y
 	xPos := (int(x) + (chunksize[0]/2)) / chunksize[0]
-	yPos := (int(y) + (chunksize[1]/2))/ chunksize[1]
+	yPos := (int(y) + (chunksize[1]/2)) / chunksize[1]
 
 	// Adjust for negatives
 	if x < float64(-chunksize[0] / 2) {
