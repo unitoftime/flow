@@ -61,6 +61,11 @@ func (t *Chunk[T]) Get(pos TilePosition) (T, bool) {
 	return t.tiles[pos.X][pos.Y], true
 }
 
+func (t *Chunk[T]) unsafeGet(pos TilePosition) T {
+	return t.tiles[pos.X][pos.Y]
+}
+
+
 func (t *Chunk[T]) Set(pos TilePosition, tile T) bool {
 	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
 		return false
@@ -71,14 +76,14 @@ func (t *Chunk[T]) Set(pos TilePosition, tile T) bool {
 }
 
 func (t *Chunk[T]) TileToPosition(tilePos TilePosition) (float64, float64) {
-	x, y := t.math.Position(tilePos.X, tilePos.Y, t.TileSize)
+	x, y := t.math.Position(tilePos.X, tilePos.Y)
 	return (x + t.Offset.X), (y + t.Offset.Y)
 }
 
 func (t *Chunk[T]) PositionToTile(x, y float64) TilePosition {
 	x -= t.Offset.X
 	y -= t.Offset.Y
-	tX, tY := t.math.PositionToTile(x, y, t.TileSize)
+	tX, tY := t.math.PositionToTile(x, y)
 	return TilePosition{tX, tY}
 }
 

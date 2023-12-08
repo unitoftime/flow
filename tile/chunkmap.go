@@ -94,20 +94,9 @@ func (c *Chunkmap[T]) Bounds() Rect {
 
 func (c *Chunkmap[T]) GetChunk(chunkPos ChunkPosition) (*Chunk[T], bool) {
 	chunk, ok := c.chunks.Get(chunkPos.hash())
-	// chunk, ok := c.chunks[chunkPos]
 	if ok {
 		return chunk, true
 	}
-
-	// // If we couldn't load from map, then load from loader
-	// if c.loader != nil {
-	// 	tiles, err := c.loader.LoadChunk(chunkPos)
-	// 	if err != nil {
-	// 		return nil, false
-	// 	}
-
-	// 	return c.AddChunk(chunkPos, tiles), true
-	// }
 
 	return nil, false
 }
@@ -121,9 +110,9 @@ func (c *Chunkmap[T]) GenerateChunk(chunkPos ChunkPosition, expansionLambda func
 
 	tileOffset := c.ChunkToTile(chunkPos)
 
-	tiles := make([][]T, c.ChunkMath.ChunkSize[0], c.ChunkMath.ChunkSize[1])
+	tiles := make([][]T, c.ChunkMath.chunkmath.size[0], c.ChunkMath.chunkmath.size[1])
 	for x := range tiles {
-		tiles[x] = make([]T, c.ChunkMath.ChunkSize[0], c.ChunkMath.ChunkSize[1])
+		tiles[x] = make([]T, c.ChunkMath.chunkmath.size[0], c.ChunkMath.chunkmath.size[1])
 		for y := range tiles[x] {
 			// fmt.Println(x, y, tileOffset.X, tileOffset.Y)
 			if expansionLambda != nil {
@@ -146,13 +135,13 @@ func (c *Chunkmap[T]) GenerateChunk(chunkPos ChunkPosition, expansionLambda func
 // }
 
 func (c *Chunkmap[T]) AddChunk(chunkPos ChunkPosition, tiles [][]T) *Chunk[T] {
-	chunk := NewChunk[T](tiles, c.ChunkMath.TileSize, c.ChunkMath.Math)
+	chunk := NewChunk[T](tiles, c.ChunkMath.tilemath.size, c.ChunkMath.tilemath)
 
-	offX, offY := c.ChunkMath.Math.Position(int(chunkPos.X), int(chunkPos.Y),
-		[2]int{c.ChunkMath.TileSize[0]*c.ChunkMath.ChunkSize[0], c.ChunkMath.TileSize[1]*c.ChunkMath.ChunkSize[1]})
-
-	chunk.Offset.X = float64(offX)
-	chunk.Offset.Y = float64(offY)
+	// offX, offY := c.ChunkMath.math.Position(int(chunkPos.X), int(chunkPos.Y),
+	// 	[2]int{c.ChunkMath.tileSize[0]*c.ChunkMath.chunkSize[0], c.ChunkMath.tileSize[1]*c.ChunkMath.chunkSize[1]})
+	// chunk.Offset.X = float64(offX)
+	// chunk.Offset.Y = float64(offY)
+	chunk.Offset = c.ChunkMath.ToPosition(chunkPos)
 
 	chunk.TileOffset = c.ChunkToTile(chunkPos)
 
@@ -175,11 +164,8 @@ func (c *Chunkmap[T]) GetTile(pos TilePosition) (T, bool) {
 		return ret, false
 	}
 
-	// tileOffset := c.ChunkToTile(chunkPos)
-	tileOffset := chunk.TileOffset
-	localTilePos := TilePosition{pos.X - tileOffset.X, pos.Y - tileOffset.Y}
-	// fmt.Println("chunk.Get:", chunkPos, pos, localTilePos)
-	return chunk.Get(localTilePos)
+	localTilePos := TilePosition{pos.X - chunk.TileOffset.X, pos.Y - chunk.TileOffset.Y}
+	return chunk.unsafeGet(localTilePos), true
 }
 
 // Adds a tile at the position, if the chunk doesnt exist, then it will be created
@@ -407,19 +393,56 @@ func (c *Chunkmap[T]) CalculateRawEightVariant(pos TilePosition, same func(a T, 
 // --------------------------------------------------------------------------------
 
 type ChunkMath struct {
-	ChunkSize [2]int
-	TileSize [2]int
-	Math FlatRectMath
+	// chunkSize [2]int
+	// chunkSizeOver2 [2]int
+	// chunkDiv [2]int
+	// tileSize [2]int
+	// tileSizeOver2 [2]int
+	// tileDiv [2]int
+	// math FlatRectMath
+
+	globalmath FlatRectMath
+	chunkmath FlatRectMath
+	tilemath FlatRectMath
+}
+func NewChunkmath(chunkSize int, tileSize int) ChunkMath {
+	return ChunkMath{
+		globalmath: NewFlatRectMath([2]int{tileSize * chunkSize, tileSize * chunkSize}),
+		chunkmath: NewFlatRectMath([2]int{chunkSize, chunkSize}),
+		tilemath: NewFlatRectMath([2]int{tileSize, tileSize}),
+	}
+	// chunkDiv := int(math.Log2(float64(chunkSize)))
+	// if (1 << chunkDiv) != chunkSize {
+	// 	panic("Chunk maps must have a chunksize that is a power of 2!")
+	// }
+
+	// tileDiv := int(math.Log2(float64(tileSize)))
+	// if (1 << tileDiv) != tileSize {
+	// 	panic("Chunk maps must have a tileSize that is a power of 2!")
+	// }
+
+	// return ChunkMath{
+	// 	chunkSize: [2]int{chunkSize, chunkSize},
+	// 	chunkDiv: [2]int{chunkDiv, chunkDiv},
+	// 	chunkSizeOver2: [2]int{chunkSize/2, chunkSize/2},
+	// 	tileSize: [2]int{tileSize, tileSize},
+	// 	tileSizeOver2: [2]int{tileSize/2, tileSize/2},
+	// 	tileDiv: [2]int{tileDiv, tileDiv},
+	// 	math: FlatRectMath{},
+	// }
 }
 
 // Returns the worldspace position of a chunk
 func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
-	offX, offY := c.Math.Position(int(chunkPos.X), int(chunkPos.Y),
-		[2]int{c.TileSize[0]*c.ChunkSize[0], c.TileSize[1]*c.ChunkSize[1]})
+	offX, offY := c.globalmath.Position(int(chunkPos.X), int(chunkPos.Y))
+	// offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
+	// 	[2]int{c.tileSize[0]*c.chunkSize[0], c.tileSize[1]*c.chunkSize[1]})
 
 	offset := phy2.Vec2{
-		float64(offX),
-		float64(offY) - (0.5 * float64(c.ChunkSize[1]) * float64(c.TileSize[1])) + float64(c.TileSize[1]/2),
+		X: float64(offX),
+		// Y: float64(offY) - (0.5 * float64(c.chunkSize[1]) * float64(c.tileSize[1])) + float64(c.tileSize[1]/2),
+		// Y: float64(offY) - float64(c.chunkSizeOver2[1] * c.tileSize[1]) + float64(c.tileSizeOver2[1]),
+		Y: float64(offY) - float64(c.chunkmath.sizeOver2[1] * c.tilemath.size[1]) + float64(c.tilemath.sizeOver2[1]),
 	}
 	return offset
 }
@@ -437,22 +460,41 @@ func (c *ChunkMath) PositionToChunk(x, y float64) ChunkPosition {
 }
 
 func (c *ChunkMath) TileToChunk(tilePos TilePosition) ChunkPosition {
-	if tilePos.X < 0 {
-		tilePos.X -= (c.ChunkSize[0] - 1)
-	}
-	if tilePos.Y < 0 {
-		tilePos.Y -= (c.ChunkSize[1] - 1)
-	}
-	chunkX := tilePos.X / c.ChunkSize[0]
-	chunkY := tilePos.Y / c.ChunkSize[1]
+	xPos := tilePos.X >> c.chunkmath.div[0]
+	yPos := tilePos.Y >> c.chunkmath.div[1]
 
-	return ChunkPosition{int16(chunkX), int16(chunkY)}
+	return ChunkPosition{int16(xPos), int16(yPos)}
+
+	// xPos := (int(tilePos.X) + c.chunkmath.sizeOver2[0]) >> c.chunkmath.div[0]
+	// yPos := (int(tilePos.Y) + c.chunkmath.sizeOver2[1]) >> c.chunkmath.div[1]
+
+	// // Adjust for negatives
+	// if tilePos.X < -c.chunkmath.sizeOver2[0] {
+	// 	xPos -= 1
+	// }
+	// if tilePos.Y < -c.chunkmath.sizeOver2[1] {
+	// 	yPos -= 1
+	// }
+	// return ChunkPosition{int16(xPos), int16(yPos)}
+
+	// if tilePos.X < 0 {
+	// 	tilePos.X -= (c.chunkmath.size[0] - 1)
+	// }
+	// if tilePos.Y < 0 {
+	// 	tilePos.Y -= (c.chunkmath.size[1] - 1)
+	// }
+	// chunkX := tilePos.X / c.chunkmath.size[0]
+	// chunkY := tilePos.Y / c.chunkmath.size[1]
+	// // chunkX := tilePos.X >> c.chunkmath.div[0]
+	// // chunkY := tilePos.Y >> c.chunkmath.div[1]
+
+	// return ChunkPosition{int16(chunkX), int16(chunkY)}
 }
 
 // Returns the center tile of a chunk
 func (c *ChunkMath) ChunkToTile(chunkPos ChunkPosition) TilePosition {
-	tileX := int(chunkPos.X) * c.ChunkSize[0]
-	tileY := int(chunkPos.Y) * c.ChunkSize[1]
+	tileX := int(chunkPos.X) * c.chunkmath.size[0]
+	tileY := int(chunkPos.Y) * c.chunkmath.size[1]
 
 	tilePos := TilePosition{tileX, tileY}
 
@@ -460,16 +502,16 @@ func (c *ChunkMath) ChunkToTile(chunkPos ChunkPosition) TilePosition {
 }
 
 func (c *ChunkMath) TileToPosition(tilePos TilePosition) phy2.Pos {
-	x, y := c.Math.Position(tilePos.X, tilePos.Y, c.TileSize)
+	x, y := c.tilemath.Position(tilePos.X, tilePos.Y)
 	return phy2.Pos{x, y}
 }
 
 func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
-	tX, tY := c.Math.PositionToTile(x, y, c.TileSize)
+	tX, tY := c.tilemath.PositionToTile(x, y)
 	return TilePosition{tX, tY}
 }
 func (c *ChunkMath) PositionToTile2(pos phy2.Vec) TilePosition {
-	tX, tY := c.Math.PositionToTile(pos.X, pos.Y, c.TileSize)
+	tX, tY := c.tilemath.PositionToTile(pos.X, pos.Y)
 	return TilePosition{tX, tY}
 }
 
@@ -478,10 +520,83 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 	return R(
 		center.X,
 		center.Y,
-		center.X + (c.ChunkSize[0]) - 1,
-		center.Y + (c.ChunkSize[1]) - 1,
+		center.X + (c.chunkmath.size[0]) - 1,
+		center.Y + (c.chunkmath.size[1]) - 1,
 	)
 }
+
+
+// // Returns the worldspace position of a chunk
+// func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
+// 	offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
+// 		[2]int{c.tileSize[0]*c.chunkSize[0], c.tileSize[1]*c.chunkSize[1]})
+
+// 	offset := phy2.Vec2{
+// 		X: float64(offX),
+// 		// Y: float64(offY) - (0.5 * float64(c.chunkSize[1]) * float64(c.tileSize[1])) + float64(c.tileSize[1]/2),
+// 		Y: float64(offY) - float64(c.chunkSizeOver2[1] * c.tileSize[1]) + float64(c.tileSizeOver2[1]),
+// 	}
+// 	return offset
+// }
+
+// //Note: untested
+// func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) phy2.Pos {
+// 	chunkPos := c.TileToChunk(tilePos)
+// 	offsetPos := c.ToPosition(chunkPos)
+// 	pos := c.TileToPosition(tilePos)
+// 	return pos.Sub(phy2.Pos(offsetPos))
+// }
+
+// func (c *ChunkMath) PositionToChunk(x, y float64) ChunkPosition {
+// 	return c.TileToChunk(c.PositionToTile(x, y))
+// }
+
+// func (c *ChunkMath) TileToChunk(tilePos TilePosition) ChunkPosition {
+// 	if tilePos.X < 0 {
+// 		tilePos.X -= (c.chunkSize[0] - 1)
+// 	}
+// 	if tilePos.Y < 0 {
+// 		tilePos.Y -= (c.chunkSize[1] - 1)
+// 	}
+// 	chunkX := tilePos.X / c.chunkSize[0]
+// 	chunkY := tilePos.Y / c.chunkSize[1]
+
+// 	return ChunkPosition{int16(chunkX), int16(chunkY)}
+// }
+
+// // Returns the center tile of a chunk
+// func (c *ChunkMath) ChunkToTile(chunkPos ChunkPosition) TilePosition {
+// 	tileX := int(chunkPos.X) * c.chunkSize[0]
+// 	tileY := int(chunkPos.Y) * c.chunkSize[1]
+
+// 	tilePos := TilePosition{tileX, tileY}
+
+// 	return tilePos
+// }
+
+// func (c *ChunkMath) TileToPosition(tilePos TilePosition) phy2.Pos {
+// 	x, y := c.math.Position(tilePos.X, tilePos.Y, c.tileSize)
+// 	return phy2.Pos{x, y}
+// }
+
+// func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
+// 	tX, tY := c.math.PositionToTile(x, y, c.tileSize)
+// 	return TilePosition{tX, tY}
+// }
+// func (c *ChunkMath) PositionToTile2(pos phy2.Vec) TilePosition {
+// 	tX, tY := c.math.PositionToTile(pos.X, pos.Y, c.tileSize)
+// 	return TilePosition{tX, tY}
+// }
+
+// func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
+// 	center := c.ChunkToTile(chunkPos)
+// 	return R(
+// 		center.X,
+// 		center.Y,
+// 		center.X + (c.chunkSize[0]) - 1,
+// 		center.Y + (c.chunkSize[1]) - 1,
+// 	)
+// }
 
 // Returns a rect including all of the tiles.
 // Centered on edge tiles
@@ -563,49 +678,3 @@ func (t *ChunkMath) GetOverlappingTiles2(ret []TilePosition, x, y float64, radiu
 	}
 	return ret
 }
-
-// // --------------------------------------------------------------------------------
-// // - ECS function (TODO pull out)
-// // --------------------------------------------------------------------------------
-
-// func (c *Chunkmap[T]) AddEntity(id ecs.Id, pos phy2.Pos, collider Collider) {
-// 	tilePos := c.PositionToTile(float32(pos.X), float32(pos.Y))
-// 	for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
-// 		for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
-// 			chunkPos := c.TileToChunk(TilePosition{x, y})
-// 			// TODO - I feel like adding an entity on a chunk edge shouldn't cause us to reload chunks. This could cause a waterfall effect of chunks triggering more chunks just because entities are placed on edges
-// 			chunk, ok := c.GetChunk(chunkPos)
-// 			if !ok { continue } // Skip: The chunk doesn't exist
-// 			localTilePosition := chunk.PositionToTile(float32(pos.X), float32(pos.Y))
-// 			chunk.tiles[localTilePosition.X][localTilePosition.Y].Entity = id // Store the entity
-// 		}
-// 	}
-// }
-
-// // TODO - optimize in a locality sort of way
-// // Recalculates all of the entities that are on tiles based on tile colliders
-// func (c *Chunkmap[T]) RecalculateEntities(world *ecs.World) {
-// 	for _, chunk := range c.chunks {
-// 		// Clear Entities
-// 		for x := range chunk.tiles {
-// 			for y := range chunk.tiles[x] {
-// 				chunk.tiles[x][y].Entity = ecs.InvalidEntity
-// 			}
-// 		}
-// 	}
-
-// 	// Recompute all entities with TileColliders
-// 	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
-// 		tilePos := c.PositionToTile(float32(pos.X), float32(pos.Y))
-
-// 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
-// 			for y := tilePos.Y; y < tilePos.Y + collider.Height; y++ {
-// 				chunkPos := c.TileToChunk(TilePosition{x, y})
-// 				chunk, ok := c.GetChunk(chunkPos)
-// 				if !ok { panic("Something has been built on a chunk that doesn't exist!") }
-// 				localTilePosition := chunk.PositionToTile(float32(pos.X), float32(pos.Y))
-// 				chunk.tiles[localTilePosition.X][localTilePosition.Y].Entity = id // Store the entity
-// 			}
-// 		}
-// 	})
-// }
