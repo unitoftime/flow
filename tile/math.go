@@ -15,14 +15,16 @@ func (t FlatRectMath) Position(x, y int, size [2]int) (float64, float64) {
 }
 
 func (t FlatRectMath) PositionToTile(x, y float64, size [2]int) (int, int) {
-	xPos := (int(x) + (size[0]/2)) / size[0]
-	yPos := (int(y) + (size[1]/2))/ size[1]
+	so2x := size[0] >> 1 //Note: Same as: / 2
+	so2y := size[1] >> 1 // Note: Same as: / 2
+	xPos := (int(x) + (so2x)) / size[0]
+	yPos := (int(y) + (so2y)) / size[1]
 
 	// Adjust for negatives
-	if x < float64(-size[0] / 2) {
+	if x < float64(-so2x) {
 		xPos -= 1
 	}
-	if y < float64(-size[1] / 2) {
+	if y < float64(-so2y) {
 		yPos -= 1
 	}
 	return xPos, yPos

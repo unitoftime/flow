@@ -154,6 +154,8 @@ func (c *Chunkmap[T]) AddChunk(chunkPos ChunkPosition, tiles [][]T) *Chunk[T] {
 	chunk.Offset.X = float64(offX)
 	chunk.Offset.Y = float64(offY)
 
+	chunk.TileOffset = c.ChunkToTile(chunkPos)
+
 	// Write back
 	// c.chunks[chunkPos] = chunk
 	c.chunks.Put(chunkPos.hash(), chunk)
@@ -173,7 +175,8 @@ func (c *Chunkmap[T]) GetTile(pos TilePosition) (T, bool) {
 		return ret, false
 	}
 
-	tileOffset := c.ChunkToTile(chunkPos)
+	// tileOffset := c.ChunkToTile(chunkPos)
+	tileOffset := chunk.TileOffset
 	localTilePos := TilePosition{pos.X - tileOffset.X, pos.Y - tileOffset.Y}
 	// fmt.Println("chunk.Get:", chunkPos, pos, localTilePos)
 	return chunk.Get(localTilePos)
@@ -406,7 +409,7 @@ func (c *Chunkmap[T]) CalculateRawEightVariant(pos TilePosition, same func(a T, 
 type ChunkMath struct {
 	ChunkSize [2]int
 	TileSize [2]int
-	Math Math
+	Math FlatRectMath
 }
 
 // Returns the worldspace position of a chunk

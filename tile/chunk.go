@@ -14,11 +14,12 @@ import (
 type Chunk[T any] struct {
 	TileSize [2]int // In pixels
 	tiles [][]T
-	math Math
+	math FlatRectMath
 	Offset phy2.Vec2 // In world space positioning
+	TileOffset Position
 }
 
-func NewChunk[T any](tiles [][]T, tileSize [2]int, math Math) *Chunk[T] {
+func NewChunk[T any](tiles [][]T, tileSize [2]int, math FlatRectMath) *Chunk[T] {
 	return &Chunk[T]{
 		TileSize: tileSize,
 		tiles: tiles,
