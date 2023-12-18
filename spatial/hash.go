@@ -96,15 +96,12 @@ func (m *arrayMap[T]) Put(x, y int, t *T) {
 			m.topRight = m.safePut(m.topRight, x, y, t)
 		} else {
 			m.botRight = m.safePut(m.botRight, x, -y, t)
-			// m.botRight[x][y] = t
 		}
 	} else {
 		if y >= 0 {
 			m.topLeft = m.safePut(m.topLeft, -x, y, t)
-			// m.topLeft[x][y] = t
 		} else {
 			m.botLeft = m.safePut(m.botLeft, -x, -y, t)
-			// m.botLeft[x][y] = t
 		}
 	}
 }
@@ -117,10 +114,6 @@ func (m *arrayMap[T]) safeGet(slice [][]*T, x, y int) (*T, bool) {
 		return nil, false
 	}
 
-	// if slice[x][y] == nil {
-	// 	return nil, false
-	// }
-
 	isNil := (slice[x][y] == nil)
 	return slice[x][y], !isNil
 }
@@ -131,15 +124,12 @@ func (m *arrayMap[T]) Get(x, y int) (*T, bool) {
 			return m.safeGet(m.topRight, x, y)
 		} else {
 			return m.safeGet(m.botRight, x, -y)
-			// m.botRight[x][y] = t
 		}
 	} else {
 		if y >= 0 {
 			return m.safeGet(m.topLeft, -x, y)
-			// m.topLeft[x][y] = t
 		} else {
 			return m.safeGet(m.botLeft, -x, -y)
-			// m.botLeft[x][y] = t
 		}
 	}
 }
