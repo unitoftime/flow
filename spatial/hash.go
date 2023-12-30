@@ -291,7 +291,10 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			isBorderChunk := (x == min.X || x == max.X) && (y == min.Y || y == max.Y)
-			bucket := h.GetBucket(Index{x, y})
+			// bucket := h.GetBucket(Index{x, y})
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok { continue }
+
 			if isBorderChunk {
 				// For border chunks, we need to do narrow phase too
 				bucket.Check(colSet, shape)

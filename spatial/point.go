@@ -67,7 +67,9 @@ func (h *Pointmap[T]) Check(list []T, bounds phy2.Rect) []T {
 	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
-			bucket := h.GetBucket(Index{x, y})
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok { continue }
+			// bucket := h.GetBucket(Index{x, y})
 			for i := range bucket.List {
 				list = append(list, bucket.List[i])
 			}
