@@ -38,8 +38,8 @@ func NewPointmap[T comparable](chunksize [2]int) *Pointmap[T] {
 }
 
 func (h *Pointmap[T]) Clear() {
-	for _, b := range h.allBuckets {
-		b.Clear()
+	for i := range h.allBuckets {
+		h.allBuckets[i].Clear()
 	}
 }
 

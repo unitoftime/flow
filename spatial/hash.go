@@ -255,8 +255,8 @@ func NewHashmap[T comparable](chunksize [2]int) *Hashmap[T] {
 }
 
 func (h *Hashmap[T]) Clear() {
-	for _, b := range h.allBuckets {
-		b.Clear()
+	for i := range h.allBuckets {
+		h.allBuckets[i].Clear()
 	}
 }
 
