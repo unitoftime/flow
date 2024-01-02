@@ -1,8 +1,10 @@
 package autotile
 
 import (
+	"math"
 	"math/rand"
 
+	"github.com/unitoftime/flow/pgen"
 	"github.com/unitoftime/flow/tile"
 )
 
@@ -44,11 +46,18 @@ type Rule[T any] interface {
 // }
 
 type BlobmapRule[T any] struct {
+	MatchCenter func(a, b T) bool
 	Match func(a, b T) bool
 }
 func (rule BlobmapRule[T]) ExecuteFull(m, t, b, l, r, tl, tr, bl, br T) int {
-	if !rule.Match(m, m) {
-		return -1
+	if rule.MatchCenter != nil {
+		if !rule.MatchCenter(m, m) {
+			return -1
+		}
+	} else {
+		if !rule.Match(m, m) {
+			return -1
+		}
 	}
 
 	pattern := PackedBlobmapNumber(
@@ -208,15 +217,23 @@ type Set[T, S any] struct {
 	// Rule func(Pattern)int
 	Rule Rule[T]
 	Tiles [][]S
+	VariantNoise *pgen.NoiseMap
 }
 
-func (s *Set[T,S]) GetFull(m, t, b, l, r, tl, tr, bl, br T) (S, bool) {
+func (s *Set[T,S]) GetFull(pos tile.Position, m, t, b, l, r, tl, tr, bl, br T) (S, bool) {
 	variant := s.Rule.ExecuteFull(m, t, b, l, r, tl, tr, bl, br)
 	if variant < 0 {
 		var ret S
 		return ret, false
 	}
-	idx := rand.Intn(len(s.Tiles[variant]))
+	// idx := rand.Intn(len(s.Tiles[variant]))
+	idx := 0
+	if s.VariantNoise == nil {
+		idx = rand.Intn(len(s.Tiles[variant]))
+	} else {
+		noise := s.VariantNoise.Get(pos.X, pos.Y)
+		idx = int(math.Floor(noise * float64(len(s.Tiles[variant]))))
+	}
 	return s.Tiles[variant][idx], true
 }
 
@@ -226,7 +243,13 @@ func (s *Set[T,S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
 		var ret S
 		return ret, false
 	}
-	idx := rand.Intn(len(s.Tiles[variant]))
+	idx := 0
+	if s.VariantNoise == nil {
+		idx = rand.Intn(len(s.Tiles[variant]))
+	} else {
+		noise := s.VariantNoise.Get(pos.X, pos.Y)
+		idx = int(math.Floor(noise * float64(len(s.Tiles[variant]))))
+	}
 	return s.Tiles[variant][idx], true
 }
 

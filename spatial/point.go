@@ -29,10 +29,10 @@ type Pointmap[T comparable] struct {
 	allBuckets []*PointBucket[T]
 }
 
-func NewPointmap[T comparable](chunksize [2]int) *Pointmap[T] {
+func NewPointmap[T comparable](chunksize [2]int, startingSize int) *Pointmap[T] {
 	return &Pointmap[T]{
 		allBuckets: make([]*PointBucket[T], 0, 1024),
-		Bucket: newArrayMap[PointBucket[T]](),
+		Bucket: newArrayMap[PointBucket[T]](startingSize),
 		PositionHasher: NewPositionHasher(chunksize),
 	}
 }

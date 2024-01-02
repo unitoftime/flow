@@ -59,13 +59,29 @@ type arrayMap[T any] struct {
 	botRight [][]*T
 	botLeft [][]*T
 }
-func newArrayMap[T any]() *arrayMap[T] {
-	return &arrayMap[T]{
-		topRight: make([][]*T, 0),
-		topLeft: make([][]*T, 0),
-		botRight: make([][]*T, 0),
-		botLeft: make([][]*T, 0),
+func newArrayMap[T any](size int) *arrayMap[T] {
+	size = size / 2 // Note: We cut in half b/c we use 4 quadrants
+	m := &arrayMap[T]{
+		topRight: make([][]*T, size),
+		topLeft: make([][]*T, size),
+		botRight: make([][]*T, size),
+		botLeft: make([][]*T, size),
 	}
+
+	for i := range m.topRight {
+		m.topRight[i] = make([]*T, size)
+	}
+	for i := range m.topLeft {
+		m.topLeft[i] = make([]*T, size)
+	}
+	for i := range m.botRight {
+		m.botRight[i] = make([]*T, size)
+	}
+	for i := range m.botLeft {
+		m.botLeft[i] = make([]*T, size)
+	}
+
+	return m
 }
 
 func (m *arrayMap[T]) safePut(slice [][]*T, x, y int, t *T) [][]*T {
@@ -245,12 +261,12 @@ type Hashmap[T comparable] struct {
 	Bucket *arrayMap[Bucket[T]]
 }
 
-func NewHashmap[T comparable](chunksize [2]int) *Hashmap[T] {
+func NewHashmap[T comparable](chunksize [2]int, startingSize int) *Hashmap[T] {
 	return &Hashmap[T]{
 		PositionHasher: NewPositionHasher(chunksize),
 
 		allBuckets: make([]*Bucket[T], 0, 1024),
-		Bucket: newArrayMap[Bucket[T]](),
+		Bucket: newArrayMap[Bucket[T]](startingSize),
 	}
 }
 
