@@ -276,7 +276,7 @@ func Register[T any](s *Server, loader Loader[T]) {
 // TODO: Extension filters?
 // TODO: Should this return a single handle that gives us access to subhandles in the directory?
 // Loads a directory that contains the same asset type. Returns a slice filled with all asset handles. Does not search recursively
-func LoadDir[T any](server *Server, fpath string) []*Handle[T] {
+func LoadDir[T any](server *Server, fpath string, recursive bool) []*Handle[T] {
 	fsys, trimmedPath, ok := server.getFilesystem(fpath)
 	if !ok {
 		return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
@@ -291,7 +291,15 @@ func LoadDir[T any](server *Server, fpath string) []*Handle[T] {
 
 	ret := make([]*Handle[T], 0, len(dirEntries))
 	for _, e := range dirEntries {
-		if e.IsDir() { continue } // TODO: Recursive?
+		if e.IsDir() {
+			if !recursive { continue }
+
+			dirPath := filepath.Join(fsys.prefix, fpath, e.Name())
+			fmt.Println("Directory:", dirPath)
+			dirHandles := LoadDir[T](server, dirPath, recursive)
+			ret = append(ret, dirHandles...)
+			continue
+		}
 
 		handle := Load[T](server, filepath.Join(fsys.prefix, fpath, e.Name()))
 		ret = append(ret, handle)
