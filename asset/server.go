@@ -227,7 +227,7 @@ func (s *Server) getHttp(fpath string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (s *Server) writeRaw(fpath string, dat []byte) error {
+func (s *Server) WriteRaw(fpath string, dat []byte) error {
 	fsys, trimmedPath, ok := s.getFilesystem(fpath)
 	if !ok { return fmt.Errorf("Couldnt find file prefix: %s", fpath) }
 
@@ -347,7 +347,7 @@ func Load[T any](server *Server, name string) *Handle[T] {
 
 	anyLoader, ok := server.extToLoader[ext]
 	if !ok {
-		panic(fmt.Sprintf("could not find loader for extension: %s", ext))
+		panic(fmt.Sprintf("could not find loader for extension: %s (%s)", ext, name))
 	}
 	loader, ok := anyLoader.(Loader[T])
 	if !ok {
@@ -459,7 +459,7 @@ func Store[T any](server *Server, handle *Handle[T]) error {
 		return err
 	}
 
-	return server.writeRaw(handle.Name, dat)
+	return server.WriteRaw(handle.Name, dat)
 }
 
 func getExtension(name string) string {
