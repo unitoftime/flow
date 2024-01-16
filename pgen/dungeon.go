@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+
+	"github.com/unitoftime/flow/ds"
 	"github.com/unitoftime/flow/phy2"
 	"github.com/unitoftime/flow/tile"
-	"github.com/unitoftime/flow/ds"
 )
 
 // type RoomDagNode struct {
@@ -127,6 +128,9 @@ func GenerateRandomGridWalkDag(num int, numWalks int) *RoomDag {
 }
 
 func GenerateRandomGridWalkDag2(rng *rand.Rand, num int, numWalks int) (*RoomDag, map[string]tile.TilePosition) {
+	if numWalks <= 0 {
+		numWalks = 1 // This is just a minimum
+	}
 	dag := NewRoomDag()
 	roomPos := make(map[string]tile.TilePosition)
 
