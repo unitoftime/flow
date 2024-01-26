@@ -1,12 +1,13 @@
 package audio
 
 import (
-	"io"
 	"bytes"
 	"errors"
+	"io"
 
 	"github.com/unitoftime/beep"
 	"github.com/unitoftime/beep/vorbis"
+
 	// "github.com/unitoftime/beep/wav"
 
 	"github.com/unitoftime/flow/asset"
@@ -36,6 +37,7 @@ func (s *Source) Buffer() {
 	}
 	buffer := beep.NewBuffer(format)
 	buffer.Append(streamer)
+	s.buffer = buffer
 }
 
 // Returns an audio streamer for the audio source
