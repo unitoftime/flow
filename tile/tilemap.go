@@ -40,6 +40,26 @@ func (t Position) Div(val int) Position {
 	}
 }
 
+func (t Position) Maximum() int {
+	x := t.X
+	y := t.Y
+	if x < 0 { x = -x }
+	if y < 0 { y = -y }
+
+	if x > y {
+		return x
+	}
+	return y
+}
+
+func (t Position) Manhattan() int {
+	x := t.X
+	y := t.Y
+	if x < 0 { x = -x }
+	if y < 0 { y = -y }
+	return x + y
+}
+
 func ManhattanDistance(a, b Position) int {
 	dx := a.X - b.X
 	dy := a.Y - b.Y
