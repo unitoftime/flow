@@ -2,6 +2,7 @@ package pgen
 
 import (
 	"math/rand"
+
 	"golang.org/x/exp/constraints"
 
 	"github.com/unitoftime/flow/phy2"
@@ -68,6 +69,8 @@ type Table[T any] struct {
 func NewTable[T any](items ...Item[T]) *Table[T] {
 	total := 0
 	for i := range items {
+		if items[i].Weight == 0 { continue } // Skip if the weight of this item is 0
+
 		total += items[i].Weight
 	}
 
