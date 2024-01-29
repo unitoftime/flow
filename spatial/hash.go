@@ -215,6 +215,14 @@ func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 		}
 	}
 }
+func (b *Bucket[T]) Collides(shape phy2.Rect) bool {
+	for i := range b.List {
+		if shape.Intersects(b.List[i].shape) {
+			return true
+		}
+	}
+	return false
+}
 
 //--------------------------------------------------------------------------------
 type PositionHasher struct {
@@ -322,6 +330,33 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 			}
 		}
 	}
+}
+
+func (h *Hashmap[T]) Collides(shape phy2.Rect) bool {
+	min := h.PositionToIndex(phy2.Pos(shape.Min))
+	max := h.PositionToIndex(phy2.Pos(shape.Max))
+
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			isBorderChunk := (x == min.X || x == max.X) || (y == min.Y || y == max.Y)
+			// bucket := h.GetBucket(Index{x, y})
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok { continue }
+
+			if isBorderChunk {
+				// For border chunks, we need to do narrow phase too
+				if bucket.Collides(shape) {
+					return true
+				}
+			} else {
+				// For inner chunks, we can just assume everything collides
+				if len(bucket.List) >= 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
