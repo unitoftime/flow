@@ -205,6 +205,12 @@ func (b *Bucket[T]) Add(shape phy2.Rect, val T) {
 		item: val,
 	})
 }
+func (b *Bucket[T]) Remove(val T) {
+	b.List = slices.DeleteFunc(b.List, func(a BucketItem[T]) bool {
+		return (a.item == val)
+	})
+}
+
 func (b *Bucket[T]) Clear() {
 	b.List = b.List[:0]
 }
@@ -307,6 +313,14 @@ func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {
 	}
 }
 
+// Warning: This is a relatively slow operation
+func (h *Hashmap[T]) Remove(val T) {
+	// Just try and remove the id from all buckets
+	for i := range h.allBuckets {
+		h.allBuckets[i].Remove(val)
+	}
+}
+
 // Finds collisions and adds them directly into your collision set
 func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 	min := h.PositionToIndex(phy2.Pos(shape.Min))
@@ -350,7 +364,7 @@ func (h *Hashmap[T]) Collides(shape phy2.Rect) bool {
 				}
 			} else {
 				// For inner chunks, we can just assume everything collides
-				if len(bucket.List) >= 0 {
+				if len(bucket.List) > 0 {
 					return true
 				}
 			}
