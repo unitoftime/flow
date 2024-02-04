@@ -84,13 +84,13 @@ func NewTable[T any](items ...Item[T]) *Table[T] {
 
 // Returns the item if successful, else returns nil
 func (t *Table[T]) Get() T {
-	roll := rand.Intn(t.Total + 1)
+	roll := rand.Intn(t.Total)
 
 	// Essentially we just loop forward incrementing the `current` value. and once we pass it, we know that we are in that current section of the distribution.
 	current := 0
 	for i := range t.Items {
 		current += t.Items[i].Weight
-		if roll <= current {
+		if roll < current {
 			return t.Items[i].Item
 		}
 	}
