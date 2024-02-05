@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -231,10 +231,10 @@ func (s *Server) WriteRaw(fpath string, dat []byte) error {
 	fsys, trimmedPath, ok := s.getFilesystem(fpath)
 	if !ok { return fmt.Errorf("Couldnt find file prefix: %s", fpath) }
 
-	fullFilepath := filepath.Join(fsys.path, trimmedPath)
+	fullFilepath := path.Join(fsys.path, trimmedPath)
 
 	// Build entire filepath
-	err := os.MkdirAll(filepath.Dir(fullFilepath), 0750)
+	err := os.MkdirAll(path.Dir(fullFilepath), 0750)
 	if err != nil {
 		return err
 	}
@@ -282,7 +282,7 @@ func LoadDir[T any](server *Server, fpath string, recursive bool) []*Handle[T] {
 		return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
 	}
 
-	fpath = filepath.Clean(trimmedPath)
+	fpath = path.Clean(trimmedPath)
 
 	dirEntries, err := fs.ReadDir(fsys.fs, fpath)
 	if err != nil {
@@ -294,14 +294,14 @@ func LoadDir[T any](server *Server, fpath string, recursive bool) []*Handle[T] {
 		if e.IsDir() {
 			if !recursive { continue }
 
-			dirPath := filepath.Join(fsys.prefix, fpath, e.Name())
+			dirPath := path.Join(fsys.prefix, fpath, e.Name())
 			fmt.Println("Directory:", dirPath)
 			dirHandles := LoadDir[T](server, dirPath, recursive)
 			ret = append(ret, dirHandles...)
 			continue
 		}
 
-		handle := Load[T](server, filepath.Join(fsys.prefix, fpath, e.Name()))
+		handle := Load[T](server, path.Join(fsys.prefix, fpath, e.Name()))
 		ret = append(ret, handle)
 	}
 
@@ -472,7 +472,8 @@ func Store[T any](server *Server, handle *Handle[T]) error {
 
 func getExtension(name string) string {
 	idx := -1
-	for i := len(name) - 1; i >= 0 && name[i] != '/'; i-- {
+	for i := len(name) - 1; i >= 0; i-- {
+		if name[i] == '/' { break }
 		if name[i] == '.' {
 			idx = i
 		}
