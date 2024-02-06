@@ -1,12 +1,14 @@
 //go:build js || wasm
+
 package storage
 
 import (
-	"fmt"
 	"bytes"
-	"syscall/js"
-	"encoding/gob"
 	"encoding/base64"
+	"encoding/gob"
+	"fmt"
+	"net/url"
+	"syscall/js"
 )
 
 // TODO Maybe: https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API
@@ -62,3 +64,18 @@ func SetItem(key string, val any) error {
 // }
 // func ClearAll[T any]() {
 // }
+
+func GetQueryString(key string) ([]string, error) {
+	href := js.Global().Get("location").Get("href").String()
+	u, err := url.Parse(href)
+	if err != nil {
+		return nil, err
+	}
+	values, err := url.ParseQuery(u.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := values[key]
+	return ret, nil
+}
