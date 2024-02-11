@@ -4,8 +4,8 @@ import (
 	"time"
 	// "image/color"
 
-	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/glitch"
 )
 
 // TODO - it might make more sense to make this like an aseprite wrapper object that has layers, frames, tags, etc
@@ -138,6 +138,8 @@ func (a *Animation) Done() bool {
 }
 
 func (a *Animation) SetFrame(idx int) {
+	if len(a.curAnim) <= 0 { return } // Cant set the frame if the animation is zero length
+
 	if a.Loop {
 		// If the idx is passed the animation, then loop it
 		a.frameIdx = idx % len(a.curAnim)
