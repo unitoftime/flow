@@ -94,38 +94,38 @@ func (d *RoomDag) TopologicalSort(start string) []string {
 	return ret
 }
 
-func GenerateRandomGridWalkDag(num int, numWalks int) *RoomDag {
-	dag := NewRoomDag()
-	pos := make([]tile.TilePosition, numWalks)
-	lastLabel := make([]string, numWalks)
+// func GenerateRandomGridWalkDag(num int, numWalks int) *RoomDag {
+// 	dag := NewRoomDag()
+// 	pos := make([]tile.TilePosition, numWalks)
+// 	lastLabel := make([]string, numWalks)
 
-	for len(dag.Nodes) < num {
-		for i := range pos {
-			label := fmt.Sprintf("%d_%d", pos[i].X, pos[i].Y)
-			_, exists := dag.NodeMap[label]
-			if !exists {
-				dag.AddNode(label)
-			}
+// 	for len(dag.Nodes) < num {
+// 		for i := range pos {
+// 			label := fmt.Sprintf("%d_%d", pos[i].X, pos[i].Y)
+// 			_, exists := dag.NodeMap[label]
+// 			if !exists {
+// 				dag.AddNode(label)
+// 			}
 
-			dir := rand.Intn(4)
-			if dir == 0 {
-				pos[i].X++
-			} else if dir == 1 {
-				pos[i].X--
-			} else if dir == 2 {
-				pos[i].Y++
-			} else {
-				pos[i].Y--
-			}
+// 			dir := rand.Intn(4)
+// 			if dir == 0 {
+// 				pos[i].X++
+// 			} else if dir == 1 {
+// 				pos[i].X--
+// 			} else if dir == 2 {
+// 				pos[i].Y++
+// 			} else {
+// 				pos[i].Y--
+// 			}
 
-			if lastLabel[i] != "" {
-				dag.AddEdge(lastLabel[i], label)
-			}
-			lastLabel[i] = label
-		}
-	}
-	return dag
-}
+// 			if lastLabel[i] != "" {
+// 				dag.AddEdge(lastLabel[i], label)
+// 			}
+// 			lastLabel[i] = label
+// 		}
+// 	}
+// 	return dag
+// }
 
 func GenerateRandomGridWalkDag2(rng *rand.Rand, num int, numWalks int) (*RoomDag, map[string]tile.TilePosition) {
 	if numWalks <= 0 {
