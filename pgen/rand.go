@@ -67,23 +67,30 @@ type Table[T any] struct {
 }
 
 func NewTable[T any](items ...Item[T]) *Table[T] {
-	total := 0
-	for i := range items {
-		if items[i].Weight == 0 { continue } // Skip if the weight of this item is 0
-
-		total += items[i].Weight
-	}
-
 	// TODO - Seeding?
-
-	return &Table[T]{
-		Total: total,
+	t := &Table[T]{
 		Items: items, // TODO - maybe sort this. it might make the search a little faster?
 	}
+	t.regenerate()
+
+	return t
+}
+
+func (t *Table[T]) regenerate() {
+	total := 0
+	for i := range t.Items {
+		if t.Items[i].Weight == 0 { continue } // Skip if the weight of this item is 0
+
+		total += t.Items[i].Weight
+	}
+	t.Total = total
 }
 
 // Returns the item if successful, else returns nil
 func (t *Table[T]) Get() T {
+	if t.Total == 0 {
+		t.regenerate()
+	}
 	roll := rand.Intn(t.Total)
 
 	// Essentially we just loop forward incrementing the `current` value. and once we pass it, we know that we are in that current section of the distribution.
