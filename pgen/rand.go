@@ -40,10 +40,10 @@ func (r Range[T]) SeededGet(rng *rand.Rand) T {
 // 	return T(rand.Intn(int(delta))) + r.Min
 // }
 
-func RandomPositionInRect(r phy2.Rect) phy2.Pos {
+func RandomPositionInRect(r phy2.Rect) phy2.Vec {
 	randX := Range[float64]{r.Min.X, r.Max.X}.Get()
 	randY := Range[float64]{r.Min.Y, r.Max.Y}.Get()
-	return phy2.Pos{randX, randY}
+	return phy2.Vec{randX, randY}
 }
 
 //--------------------------------------------------------------------------------

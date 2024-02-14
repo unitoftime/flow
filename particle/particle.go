@@ -120,43 +120,43 @@ type PrefabBuilder interface {
 	Add(*ecs.Entity)
 }
 
-type RingBuilder struct {
-	AngleRange phy2.Vec2
-	RadiusRange phy2.Vec2
-}
-func (p *RingBuilder) Add(prefab *ecs.Entity) {
-	angle := interp.Linear.Float64(p.AngleRange.X, p.AngleRange.Y, rand.Float64())
-	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
-
-	// vec := vec2.UnitX
-	vec := phy2.Vec2{1, 0}
-	vec.Scaled(radius).Rotated(angle)
-
-	prefab.Add(ecs.C(phy2.Pos{vec.X, vec.Y}))
-}
-
-// type AngleBuilder struct {
-// 	Scale float64
+// type RingBuilder struct {
+// 	AngleRange phy2.Vec2
+// 	RadiusRange phy2.Vec2
 // }
-// func (p *AngleBuilder) Add(prefab ecs.Entity) {
-// 	transform := prefab.Read(phy2.Transform{}).(phy2.Transform)
-// 	pos := vec2.T{transform.X, transform.Y}
-// 	prefab.Write(phy2.Rigidbody{
-// 		Mass: 1,
-// 		Velocity: pos.Normalize().Scaled(p.Scale),
-// 	})
+// func (p *RingBuilder) Add(prefab *ecs.Entity) {
+// 	angle := interp.Linear.Float64(p.AngleRange.X, p.AngleRange.Y, rand.Float64())
+// 	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
+
+// 	// vec := vec2.UnitX
+// 	vec := phy2.Vec2{1, 0}
+// 	vec.Scaled(radius).Rotated(angle)
+
+// 	prefab.Add(ecs.C(phy2.Pos{vec.X, vec.Y}))
 // }
 
-// TODO - Should I just build this into the emitter?
-type LifetimeBuilder struct {
-	Range phy2.Vec2 // Specified in seconds
-}
-func (b *LifetimeBuilder) Add(prefab *ecs.Entity) {
-	seconds := interp.Linear.Float64(b.Range.X, b.Range.Y, rand.Float64())
-	prefab.Add(ecs.C(
-		NewLifetime(time.Duration(seconds * 1000) * time.Millisecond),
-	))
-}
+// // type AngleBuilder struct {
+// // 	Scale float64
+// // }
+// // func (p *AngleBuilder) Add(prefab ecs.Entity) {
+// // 	transform := prefab.Read(phy2.Transform{}).(phy2.Transform)
+// // 	pos := vec2.T{transform.X, transform.Y}
+// // 	prefab.Write(phy2.Rigidbody{
+// // 		Mass: 1,
+// // 		Velocity: pos.Normalize().Scaled(p.Scale),
+// // 	})
+// // }
+
+// // TODO - Should I just build this into the emitter?
+// type LifetimeBuilder struct {
+// 	Range phy2.Vec2 // Specified in seconds
+// }
+// func (b *LifetimeBuilder) Add(prefab *ecs.Entity) {
+// 	seconds := interp.Linear.Float64(b.Range.X, b.Range.Y, rand.Float64())
+// 	prefab.Add(ecs.C(
+// 		NewLifetime(time.Duration(seconds * 1000) * time.Millisecond),
+// 	))
+// }
 
 // type TransformBuilder struct {
 // 	PosPositioner Vec2Positioner
@@ -342,82 +342,82 @@ type Emitter struct {
 	// AlphaPositioner Vec2Positioner
 }
 
-func (e *Emitter) Update(world *ecs.World, position phy2.Vec2, dt time.Duration) {
-	count := 0
-	// if e.OneShot {
-	// 	count = e.Max
-	// } else {
-	// 	particles.EmissionCounter += dt
-	// 	numParticles := math.Floor(particles.EmissionCounter.Seconds() * e.Rate)
-	// 	particles.EmissionCounter -= time.Duration(math.Floor((numParticles / e.Rate) * 1e9)) * time.Nanosecond
+// func (e *Emitter) Update(world *ecs.World, position phy2.Vec2, dt time.Duration) {
+// 	count := 0
+// 	// if e.OneShot {
+// 	// 	count = e.Max
+// 	// } else {
+// 	// 	particles.EmissionCounter += dt
+// 	// 	numParticles := math.Floor(particles.EmissionCounter.Seconds() * e.Rate)
+// 	// 	particles.EmissionCounter -= time.Duration(math.Floor((numParticles / e.Rate) * 1e9)) * time.Nanosecond
 
-	// 	count = int(numParticles)
-	// }
+// 	// 	count = int(numParticles)
+// 	// }
 
-	if e.Rate == 0 {
-		return // Exit early if rate is set to 0
-	}
+// 	if e.Rate == 0 {
+// 		return // Exit early if rate is set to 0
+// 	}
 
-	// 1/rate is the period, scaled to ms and then converted to duration
-	// period := time.Duration(1000 * (1 / e.Rate)) * time.Millisecond
-	period := int(1 / e.Rate)
-	if period < 1.0 {
-		count = int(e.Rate)
-	} else {
-		if e.period < 0 {
-			e.period = period
-			count = 1
-		}
+// 	// 1/rate is the period, scaled to ms and then converted to duration
+// 	// period := time.Duration(1000 * (1 / e.Rate)) * time.Millisecond
+// 	period := int(1 / e.Rate)
+// 	if period < 1.0 {
+// 		count = int(e.Rate)
+// 	} else {
+// 		if e.period < 0 {
+// 			e.period = period
+// 			count = 1
+// 		}
 
-		e.period--
-	}
+// 		e.period--
+// 	}
 
-	for i := 0; i < count; i++ {
-		randP := rand.Float64()
-		if randP < e.Probability {
-			ok := e.Spawn(phy2.Vec2{position.X, position.Y}, world)
-			if !ok { break }
-		}
-	}
+// 	for i := 0; i < count; i++ {
+// 		randP := rand.Float64()
+// 		if randP < e.Probability {
+// 			ok := e.Spawn(phy2.Vec2{position.X, position.Y}, world)
+// 			if !ok { break }
+// 		}
+// 	}
 
-	// TODO - needs to be configurable
-	// particles.Accel = ecs.Accelerator{pixel.V(position.X, position.Y)}
-}
+// 	// TODO - needs to be configurable
+// 	// particles.Accel = ecs.Accelerator{pixel.V(position.X, position.Y)}
+// }
 
-func (e *Emitter) Spawn(entPos phy2.Vec2, world *ecs.World) bool {
-	// If we don't loop, then only emit a Total equal to Max
-	// if !e.Loop {
-	// 	if p.Total > p.Max {
-	// 		return false
-	// 	}
-	// }
+// func (e *Emitter) Spawn(entPos phy2.Vec2, world *ecs.World) bool {
+// 	// If we don't loop, then only emit a Total equal to Max
+// 	// if !e.Loop {
+// 	// 	if p.Total > p.Max {
+// 	// 		return false
+// 	// 	}
+// 	// }
 
-	// Don't spawn if we're already full
-	// if len(p.list) >= e.Max {
-	// 	return false
-	// }
+// 	// Don't spawn if we're already full
+// 	// if len(p.list) >= e.Max {
+// 	// 	return false
+// 	// }
 
-	for i := range e.Builders {
-		e.Builders[i].Add(e.Prefab)
-	}
+// 	for i := range e.Builders {
+// 		e.Builders[i].Add(e.Prefab)
+// 	}
 
-	// transform := e.Prefab.Read(phy2.Transform{}).(phy2.Transform)
-	// transform, _ := ecs.ReadFromEntity[phy2.Transform](e.Prefab)
-	// transform.X += entPos.X
-	// transform.Y += entPos.Y
-	// e.Prefab.Add(ecs.C(transform))
-	pos, _ := ecs.ReadFromEntity[phy2.Pos](e.Prefab)
-	pos.X += entPos.X
-	pos.Y += entPos.Y
-	e.Prefab.Add(ecs.C(pos))
+// 	// transform := e.Prefab.Read(phy2.Transform{}).(phy2.Transform)
+// 	// transform, _ := ecs.ReadFromEntity[phy2.Transform](e.Prefab)
+// 	// transform.X += entPos.X
+// 	// transform.Y += entPos.Y
+// 	// e.Prefab.Add(ecs.C(transform))
+// 	pos, _ := ecs.ReadFromEntity[phy2.Pos](e.Prefab)
+// 	pos.X += entPos.X
+// 	pos.Y += entPos.Y
+// 	e.Prefab.Add(ecs.C(pos))
 
-	// sizes := e.SizePositioner.Vec2(vec2.Zero)
+// 	// sizes := e.SizePositioner.Vec2(vec2.Zero)
 
-	id := world.NewId()
-	e.Prefab.Write(world, id)
+// 	id := world.NewId()
+// 	e.Prefab.Write(world, id)
 
-	return true
-}
+// 	return true
+// }
 
 // type ParticleType uint8
 

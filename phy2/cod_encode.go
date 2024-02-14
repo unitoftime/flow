@@ -4,40 +4,40 @@ import (
 	"github.com/unitoftime/cod/backend"
 )
 
-func (t Pos) EncodeCod(bs []byte) []byte {
+// func (t Pos) EncodeCod(bs []byte) []byte {
 
-	{
-		value0 := Vec2(t)
+// 	{
+// 		value0 := Vec2(t)
 
-		bs = value0.EncodeCod(bs)
+// 		bs = value0.EncodeCod(bs)
 
-	}
-	return bs
-}
+// 	}
+// 	return bs
+// }
 
-func (t *Pos) DecodeCod(bs []byte) (int, error) {
-	var err error
-	var n int
-	var nOff int
+// func (t *Pos) DecodeCod(bs []byte) (int, error) {
+// 	var err error
+// 	var n int
+// 	var nOff int
 
-	{
-		var value0 Vec2
+// 	{
+// 		var value0 Vec2
 
-		{
-			var decoded Vec2
-			nOff, err = decoded.DecodeCod(bs[n:])
-			if err != nil {
-				return 0, err
-			}
-			n += nOff
-			value0 = decoded
-		}
+// 		{
+// 			var decoded Vec2
+// 			nOff, err = decoded.DecodeCod(bs[n:])
+// 			if err != nil {
+// 				return 0, err
+// 			}
+// 			n += nOff
+// 			value0 = decoded
+// 		}
 
-		*t = Pos(value0)
-	}
+// 		*t = Pos(value0)
+// 	}
 
-	return n, err
-}
+// 	return n, err
+// }
 
 func (t Vel) EncodeCod(bs []byte) []byte {
 

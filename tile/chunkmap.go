@@ -433,12 +433,12 @@ func NewChunkmath(chunkSize int, tileSize int) ChunkMath {
 }
 
 // Returns the worldspace position of a chunk
-func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
+func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec {
 	offX, offY := c.globalmath.Position(int(chunkPos.X), int(chunkPos.Y))
 	// offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
 	// 	[2]int{c.tileSize[0]*c.chunkSize[0], c.tileSize[1]*c.chunkSize[1]})
 
-	offset := phy2.Vec2{
+	offset := phy2.Vec{
 		X: float64(offX),
 		// Y: float64(offY) - (0.5 * float64(c.chunkSize[1]) * float64(c.tileSize[1])) + float64(c.tileSize[1]/2),
 		// Y: float64(offY) - float64(c.chunkSizeOver2[1] * c.tileSize[1]) + float64(c.tileSizeOver2[1]),
@@ -448,11 +448,11 @@ func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
 }
 
 //Note: untested
-func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) phy2.Pos {
+func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) phy2.Vec {
 	chunkPos := c.TileToChunk(tilePos)
 	offsetPos := c.ToPosition(chunkPos)
 	pos := c.TileToPosition(tilePos)
-	return pos.Sub(phy2.Pos(offsetPos))
+	return pos.Sub(offsetPos)
 }
 
 func (c *ChunkMath) PositionToChunk(x, y float64) ChunkPosition {
@@ -501,9 +501,9 @@ func (c *ChunkMath) ChunkToTile(chunkPos ChunkPosition) TilePosition {
 	return tilePos
 }
 
-func (c *ChunkMath) TileToPosition(tilePos TilePosition) phy2.Pos {
+func (c *ChunkMath) TileToPosition(tilePos TilePosition) phy2.Vec {
 	x, y := c.tilemath.Position(tilePos.X, tilePos.Y)
-	return phy2.Pos{x, y}
+	return phy2.Vec{x, y}
 }
 
 func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {

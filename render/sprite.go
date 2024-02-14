@@ -1,12 +1,12 @@
 package render
 
 import (
-	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/glitch"
 )
 
 type Pos struct {
-	phy2.Pos
+	phy2.Vec
 	Height float64
 }
 

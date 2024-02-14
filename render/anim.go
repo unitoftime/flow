@@ -13,15 +13,15 @@ import (
 // This is an animation frame
 type Frame struct {
 	Sprite *glitch.Sprite
-	// Origin phy2.Pos
+	// Origin phy2.Vec
 	Dur time.Duration
-	mount map[string]phy2.Pos // TODO - this is just kind of arbitrary data for my mountpoint system
+	mount map[string]phy2.Vec // TODO - this is just kind of arbitrary data for my mountpoint system
 }
 func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
 	return Frame{
 		Sprite: sprite,
 		Dur: dur,
-		mount: make(map[string]phy2.Pos),
+		mount: make(map[string]phy2.Vec),
 	}
 }
 
@@ -29,14 +29,14 @@ func (f *Frame) Bounds() glitch.Rect {
 	return f.Sprite.Bounds()
 }
 
-func (f *Frame) SetMount(name string, point phy2.Pos) {
+func (f *Frame) SetMount(name string, point phy2.Vec) {
 	f.mount[name] = point
 }
 
-func (f *Frame) Mount(name string) phy2.Pos {
+func (f *Frame) Mount(name string) phy2.Vec {
 	pos, ok := f.mount[name]
 	if !ok {
-		return phy2.Pos{}
+		return phy2.Vec{}
 	}
 	return pos
 }

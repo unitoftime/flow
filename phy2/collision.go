@@ -2,6 +2,7 @@ package phy2
 
 import (
 	"math"
+
 	"github.com/unitoftime/ecs"
 )
 
@@ -81,7 +82,7 @@ func (c *CircleCollider) Bounds() Rect {
 	}
 }
 
-func (c *CircleCollider) Contains(yProjection float64, pos Pos) bool {
+func (c *CircleCollider) Contains(yProjection float64, pos Vec) bool {
 	// dx := transform.X - c.CenterX
 	// dy := transform.Y - c.CenterY
 	// dist := math.Hypot(dx, yProjection * dy)

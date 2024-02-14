@@ -53,7 +53,7 @@ func (h *Pointmap[T]) GetBucket(index Index) *PointBucket[T] {
 	return bucket
 }
 
-func (h *Pointmap[T]) Add(pos phy2.Pos, val T) {
+func (h *Pointmap[T]) Add(pos phy2.Vec, val T) {
 	idx := h.PositionToIndex(pos)
 	bucket := h.GetBucket(idx)
 	bucket.Add(val)
@@ -62,8 +62,8 @@ func (h *Pointmap[T]) Add(pos phy2.Pos, val T) {
 // TODO: Right now this does a broad phased check
 // Adds the collisions directly into your collision list. Items are deduplicated by nature of them only existing once in this Pointmap. (ie if you add multiple of the same thing, you might get multiple out)
 func (h *Pointmap[T]) Check(list []T, bounds phy2.Rect) []T {
-	min := h.PositionToIndex(phy2.Pos(bounds.Min))
-	max := h.PositionToIndex(phy2.Pos(bounds.Max))
+	min := h.PositionToIndex(bounds.Min)
+	max := h.PositionToIndex(bounds.Max)
 
 	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
 	for x := min.X; x <= max.X; x++ {
@@ -83,8 +83,8 @@ func (h *Pointmap[T]) Check(list []T, bounds phy2.Rect) []T {
 // TODO: This only does a broadphase check. no narrow phase
 // Returns true if the bounds collides with anything
 func (h *Pointmap[T]) Collides(bounds phy2.Rect) bool {
-	min := h.PositionToIndex(phy2.Pos(bounds.Min))
-	max := h.PositionToIndex(phy2.Pos(bounds.Max))
+	min := h.PositionToIndex(bounds.Min)
+	max := h.PositionToIndex(bounds.Max)
 
 	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
 	for x := min.X; x <= max.X; x++ {

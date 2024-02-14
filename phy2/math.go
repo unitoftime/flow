@@ -3,6 +3,7 @@ package phy2
 import (
 	"math"
 )
+
 // TODO - Maybe make a new package to hold all vector math?
 
 type Vec = Vec2
@@ -40,8 +41,14 @@ func (v Vec2) Dot(u Vec2) float64 {
 	return (v.X * u.X) + (v.Y * u.Y)
 }
 
+// Returns the length of the vector
 func (v Vec2) Len() float64 {
 	return math.Sqrt((v.X * v.X) + (v.Y * v.Y))
+}
+
+// Returns the length of the vector squared. Note this is slightly faster b/c it doesn't take the square root
+func (v Vec2) LenSq() float64 {
+	return (v.X * v.X) + (v.Y * v.Y)
 }
 
 func (v Vec2) Scaled(s float64) Vec2 {
@@ -55,6 +62,10 @@ func (v Vec2) Rotated(radians float64) Vec2 {
 		v.X * cos - v.Y * sin,
 		v.X * sin + v.Y * cos,
 	)
+}
+
+func (v Vec) Angle() float64 {
+	return math.Atan2(v.Y, v.X)
 }
 
 // --------------------------------------------------------------------------------
@@ -112,7 +123,7 @@ func (r Rect) Moved(v Vec2) Rect {
 	}
 }
 
-func (r Rect) Contains(pos Pos) bool {
+func (r Rect) Contains(pos Vec) bool {
 	return pos.X > r.Min.X && pos.X < r.Max.X && pos.Y > r.Min.Y && pos.Y < r.Max.Y
 }
 

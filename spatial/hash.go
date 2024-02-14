@@ -249,7 +249,7 @@ func NewPositionHasher(size [2]int) PositionHasher {
 	}
 }
 
-func (h *PositionHasher) PositionToIndex(pos phy2.Pos) Index {
+func (h *PositionHasher) PositionToIndex(pos phy2.Vec) Index {
 	x := pos.X
 	y := pos.Y
 	xPos := (int(x)) >> h.div[0]
@@ -302,8 +302,8 @@ func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 }
 
 func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {
-	min := h.PositionToIndex(phy2.Pos(shape.Min))
-	max := h.PositionToIndex(phy2.Pos(shape.Max))
+	min := h.PositionToIndex(shape.Min)
+	max := h.PositionToIndex(shape.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -323,8 +323,8 @@ func (h *Hashmap[T]) Remove(val T) {
 
 // Finds collisions and adds them directly into your collision set
 func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
-	min := h.PositionToIndex(phy2.Pos(shape.Min))
-	max := h.PositionToIndex(phy2.Pos(shape.Max))
+	min := h.PositionToIndex(shape.Min)
+	max := h.PositionToIndex(shape.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -347,8 +347,8 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 }
 
 func (h *Hashmap[T]) Collides(shape phy2.Rect) bool {
-	min := h.PositionToIndex(phy2.Pos(shape.Min))
-	max := h.PositionToIndex(phy2.Pos(shape.Max))
+	min := h.PositionToIndex(shape.Min)
+	max := h.PositionToIndex(shape.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -375,8 +375,8 @@ func (h *Hashmap[T]) Collides(shape phy2.Rect) bool {
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
 func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape phy2.Rect) {
-	min := h.PositionToIndex(phy2.Pos(shape.Min))
-	max := h.PositionToIndex(phy2.Pos(shape.Max))
+	min := h.PositionToIndex(shape.Min)
+	max := h.PositionToIndex(shape.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
