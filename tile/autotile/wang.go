@@ -117,13 +117,14 @@ func PackedBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
 	case 223:
 		ret = 29
 
+	case 213:
+		ret = 4
 	case 255:
 		ret = 33
 	}
 
 	return uint8(ret)
 }
-
 
 // This function computes the wang tilenumber of a tile based on the tiles around it
 func WangBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
