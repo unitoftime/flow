@@ -48,9 +48,9 @@ var EaseInOut *Bezier = &Bezier{
 		vec2.T{1.0, 1.0},
 	},
 }
-var Sinusoid *Equation = &Equation{
-	Func: SinFunc{},
-}
+// var Sinusoid *Equation = &Equation{
+// 	Func: SinFunc{},
+// }
 
 //https://cubic-bezier.com/#.22,1,.36,1
 var EaseOutQuint *Bezier = &Bezier{
@@ -146,7 +146,20 @@ type Function interface {
 	Interp(t float64) float64
 }
 
-type SinFunc struct {}
+type SinFunc struct {
+	Radius float64
+	Freq float64
+	ShiftY float64
+}
 func (s SinFunc) Interp(t float64) float64 {
-	return math.Sin(t * math.Pi)
+	return  + s.Radius * (s.ShiftY + math.Sin(t * s.Freq))
+}
+
+type CosFunc struct {
+	Radius float64
+	Freq float64
+	ShiftY float64
+}
+func (s CosFunc) Interp(t float64) float64 {
+	return  + s.Radius * (s.ShiftY + math.Cos(t * s.Freq))
 }
