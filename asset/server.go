@@ -260,7 +260,6 @@ func (s *Server) WriteRaw(fpath string, dat []byte) error {
 	// return os.WriteFile(fullFilepath, dat, 0755)
 }
 
-
 func Register[T any](s *Server, loader Loader[T]) {
 	extensions := loader.Ext()
 	for _, ext := range extensions {
