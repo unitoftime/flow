@@ -152,7 +152,7 @@ type SinFunc struct {
 	ShiftY float64
 }
 func (s SinFunc) Interp(t float64) float64 {
-	return  + s.Radius * (s.ShiftY + math.Sin(t * s.Freq))
+	return s.Radius * (s.ShiftY + math.Sin(t * s.Freq))
 }
 
 type CosFunc struct {
@@ -161,5 +161,23 @@ type CosFunc struct {
 	ShiftY float64
 }
 func (s CosFunc) Interp(t float64) float64 {
-	return  + s.Radius * (s.ShiftY + math.Cos(t * s.Freq))
+	return s.Radius * (s.ShiftY + math.Cos(t * s.Freq))
+}
+
+type BezFunc struct {
+	Radius float64
+	Dur float64
+	Bezier *Bezier
+}
+func (f BezFunc) Interp(t float64) float64 {
+	if f.Dur == 0 {
+		return f.Radius * f.Bezier.Float64(0, 1, t)
+	} else {
+		// else normalize by the dur
+		if t >= f.Dur {
+			return f.Radius
+		}
+		norm := t / f.Dur
+		return f.Radius * f.Bezier.Float64(0, 1, norm)
+	}
 }
