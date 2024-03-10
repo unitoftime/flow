@@ -10,6 +10,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
+	github.com/raszia/gotiny v0.1.1
 	github.com/ungerik/go3d v0.0.0-20220309204530-55ced4bcb334
 	github.com/unitoftime/beep v0.0.0-20230919175050-aed291a2afca
 	github.com/unitoftime/cod v0.0.0-20230626194639-7603fae7c5d2
