@@ -1,6 +1,8 @@
 package serde
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/raszia/gotiny"
@@ -16,15 +18,41 @@ func RegisterName[T any](name string, value T) {
 }
 
 func Marshal[T any](t T) ([]byte, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = extractError(r)
+		}
+	}()
+
 	data := gotiny.Marshal(&t)
-	return data, nil
+	return data, err
 }
 
 func Unmarshal[T any](dat []byte) (T, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = extractError(r)
+		}
+	}()
+
 	var t T
 	gotiny.Unmarshal(dat, &t)
-	return t, nil
+	return t, err
 }
+
+func extractError(r any) error {
+	switch x := r.(type) {
+	case string:
+		return errors.New(x)
+	case error:
+		return x
+	default:
+		return errors.New(fmt.Sprintf("unknown panic type: %t", x))
+	}
+}
+
 
 // func Marshal[T any](t T) ([]byte, error) {
 // 	var dat bytes.Buffer
