@@ -160,6 +160,7 @@ func (s *Server) getModTime(fpath string) (time.Time, error) {
 	}
 	file, err := fsys.fs.Open(trimmedPath)
 	if err != nil { return time.Time{}, err }
+	defer file.Close()
 
 	info, err := file.Stat()
 	if err != nil { return time.Time{}, err }
