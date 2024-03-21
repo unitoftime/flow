@@ -17,27 +17,26 @@ func RegisterName[T any](name string, value T) {
 	gotiny.RegisterName(name, reflect.TypeOf(value))
 }
 
-func Marshal[T any](t T) ([]byte, error) {
-	var err error
+func Marshal[T any](t T) (data []byte, err error) {
 	defer func() {
+		// Warning: Defer can only set named return parameters
 		if r := recover(); r != nil {
 			err = extractError(r)
 		}
 	}()
 
-	data := gotiny.Marshal(&t)
+	data = gotiny.Marshal(&t)
 	return data, err
 }
 
-func Unmarshal[T any](dat []byte) (T, error) {
-	var err error
+func Unmarshal[T any](dat []byte) (t T, err error) {
 	defer func() {
+		// Warning: Defer can only set named return parameters
 		if r := recover(); r != nil {
 			err = extractError(r)
 		}
 	}()
 
-	var t T
 	gotiny.Unmarshal(dat, &t)
 	return t, err
 }
