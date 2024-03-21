@@ -37,6 +37,10 @@ func (v Vec2) Dist(u Vec2) float64 {
 	return v.Sub(u).Len()
 }
 
+func (v Vec2) DistSq(u Vec2) float64 {
+	return v.Sub(u).LenSq()
+}
+
 func (v Vec2) Dot(u Vec2) float64 {
 	return (v.X * u.X) + (v.Y * u.Y)
 }
@@ -66,6 +70,17 @@ func (v Vec2) Rotated(radians float64) Vec2 {
 
 func (v Vec) Angle() float64 {
 	return math.Atan2(v.Y, v.X)
+}
+
+// Finds the angle between two vectors
+func Angle(a, b Vec) float64 {
+	angle := a.Angle() - b.Angle()
+	if angle > math.Pi {
+		angle -= 2 * math.Pi
+	} else if angle <= -math.Pi {
+		angle += 2 * math.Pi
+	}
+	return angle
 }
 
 // --------------------------------------------------------------------------------
