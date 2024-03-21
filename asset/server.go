@@ -415,7 +415,7 @@ func Reload[T any](server *Server, handle *Handle[T]) {
 			handle.err = err
 			return
 		}
-		if handle.modTime == modTime {
+		if handle.modTime.Equal(modTime) {
 			// Same file, don't reload
 			return
 		}
