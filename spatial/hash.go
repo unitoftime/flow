@@ -230,6 +230,24 @@ func (b *Bucket[T]) Collides(shape phy2.Rect) bool {
 	return false
 }
 
+func (b *Bucket[T]) FindClosest(shape phy2.Rect) (BucketItem[T], bool) {
+	center := shape.Center()
+	distSquared := math.MaxFloat64
+	ret := BucketItem[T]{}
+	set := false
+	for i := range b.List {
+		if shape.Intersects(b.List[i].shape) {
+			ds := center.DistSq(b.List[i].shape.Center())
+			if ds < distSquared {
+				distSquared = ds
+				ret = b.List[i]
+				set = true
+			}
+		}
+	}
+	return ret, set
+}
+
 //--------------------------------------------------------------------------------
 type PositionHasher struct {
 	size [2]int
@@ -371,6 +389,36 @@ func (h *Hashmap[T]) Collides(shape phy2.Rect) bool {
 		}
 	}
 	return false
+}
+
+func (h *Hashmap[T]) FindClosest(shape phy2.Rect) (T, bool) {
+	min := h.PositionToIndex(shape.Min)
+	max := h.PositionToIndex(shape.Max)
+
+	center := shape.Center()
+	distSquared := math.MaxFloat64
+	var ret T
+	set := false
+
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok { continue }
+
+			// For border chunks, we need to do narrow phase too
+			closest, ok := bucket.FindClosest(shape)
+			if ok {
+				ds := center.DistSq(closest.shape.Center())
+				if ds < distSquared {
+					distSquared = ds
+					ret = closest.item
+					set = true
+				}
+			}
+		}
+	}
+
+	return ret, set
 }
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
