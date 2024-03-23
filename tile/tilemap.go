@@ -86,6 +86,10 @@ func (r Rect) WithCenter(v Position) Rect {
 	return zRect.Moved(v)
 }
 
+func (r Rect) Area() int {
+	return r.W() * r.H()
+}
+
 func (r Rect) W() int {
 	return r.Max.X - r.Min.X
 }
