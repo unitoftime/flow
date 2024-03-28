@@ -4,17 +4,25 @@ import (
 	"github.com/unitoftime/flow/phy2"
 )
 
+type PointBucketItem[T comparable] struct {
+	point phy2.Vec
+	item T
+}
+
 type PointBucket[T comparable] struct {
-	List []T
+	List []PointBucketItem[T]
 }
 
 func NewPointBucket[T comparable]() *PointBucket[T] {
 	return &PointBucket[T]{
-		List: make([]T, 0),
+		List: make([]PointBucketItem[T], 0),
 	}
 }
-func (b *PointBucket[T]) Add(val T) {
-	b.List = append(b.List, val)
+func (b *PointBucket[T]) Add(point phy2.Vec, val T) {
+	b.List = append(b.List, PointBucketItem[T]{
+		point: point,
+		item: val,
+	})
 }
 func (b *PointBucket[T]) Clear() {
 	b.List = b.List[:0]
@@ -56,12 +64,12 @@ func (h *Pointmap[T]) GetBucket(index Index) *PointBucket[T] {
 func (h *Pointmap[T]) Add(pos phy2.Vec, val T) {
 	idx := h.PositionToIndex(pos)
 	bucket := h.GetBucket(idx)
-	bucket.Add(val)
+	bucket.Add(pos, val)
 }
 
 // TODO: Right now this does a broad phased check
 // Adds the collisions directly into your collision list. Items are deduplicated by nature of them only existing once in this Pointmap. (ie if you add multiple of the same thing, you might get multiple out)
-func (h *Pointmap[T]) Check(list []T, bounds phy2.Rect) []T {
+func (h *Pointmap[T]) BroadCheck(list []T, bounds phy2.Rect) []T {
 	min := h.PositionToIndex(bounds.Min)
 	max := h.PositionToIndex(bounds.Max)
 
@@ -72,7 +80,29 @@ func (h *Pointmap[T]) Check(list []T, bounds phy2.Rect) []T {
 			if !ok { continue }
 			// bucket := h.GetBucket(Index{x, y})
 			for i := range bucket.List {
-				list = append(list, bucket.List[i])
+				list = append(list, bucket.List[i].item)
+			}
+		}
+	}
+
+	return list
+}
+
+// TODO: I think I'd rather the default for this be called "Check" then have the other be called CheckBroad or something
+func (h *Pointmap[T]) NarrowCheck(list []T, bounds phy2.Rect) []T {
+	min := h.PositionToIndex(bounds.Min)
+	max := h.PositionToIndex(bounds.Max)
+
+	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok { continue }
+
+			for i := range bucket.List {
+				if bounds.Contains(bucket.List[i].point) {
+					list = append(list, bucket.List[i].item)
+				}
 			}
 		}
 	}
