@@ -1,6 +1,7 @@
 package asset
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -225,7 +226,12 @@ func (s *Server) getHttp(fpath string) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	return resp.Body, nil
+	httpSuccess := (resp.StatusCode >= 200 && resp.StatusCode <= 299)
+	if httpSuccess || resp.StatusCode == http.StatusNotModified {
+		return resp.Body, nil
+	}
+
+	return nil, errors.New(fmt.Sprintf("unable to fetch http status code: %d", resp.StatusCode))
 }
 
 func (s *Server) WriteRaw(fpath string, dat []byte) error {

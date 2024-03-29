@@ -63,9 +63,17 @@ func (l AssetLoader) Ext() []string {
 	return []string{".ogg"}//, ".wav"} // TODO: //, "opus", "mp3"}
 }
 func (l AssetLoader) Load(server *asset.Server, data []byte) (*Source, error) {
+	source := newSource(data)
+
+	// // Note: This just verifies the data can be turned into a streamer. TODO: maybe wastes some allocations
+	// _, err := source.Streamer()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
 	// TODO: Would be nice to have streaming connections
 	// TODO: Would be nice to support other formats
-	return newSource(data), nil
+	return source, nil
 }
 func (l AssetLoader) Store(server *asset.Server, audio *Source) ([]byte, error) {
 	return nil, errors.New("audio files do not support writeback")
