@@ -25,6 +25,16 @@ func (r Range[T]) SeededGet(rng *rand.Rand) T {
 	return T((rng.Float64() * width) + float64(r.Min))
 }
 
+// Pick a random item out of a list
+func GetList[T any](list []T) (T, bool) {
+	if len(list) <= 0 {
+		var t T
+		return t, false
+	}
+
+	return list[rand.Intn(len(list))], true
+}
+
 // TODO: Should I separate int from float?
 // type RngRange[T constraints.Integer]struct{
 // 	Min, Max T
