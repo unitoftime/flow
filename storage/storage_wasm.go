@@ -8,7 +8,11 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net/url"
+	"runtime"
+	"runtime/pprof"
 	"syscall/js"
+
+	"github.com/unitoftime/flow/browser"
 )
 
 // TODO Maybe: https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API
@@ -78,4 +82,35 @@ func GetQueryString(key string) ([]string, error) {
 
 	ret := values[key]
 	return ret, nil
+}
+
+
+func WriteMemoryProfile(file string) error {
+	buf := bytes.NewBuffer([]byte{})
+
+	runtime.GC() // get up-to-date statistics
+	if err := pprof.WriteHeapProfile(buf); err != nil {
+		return err
+	}
+	dat := buf.Bytes()
+	browser.Open("data:application/octet-stream;charset=utf-16le;base64,"+base64.StdEncoding.EncodeToString(dat), false)
+	return nil
+}
+
+func WriteCpuProfile(file string) (func(), error) {
+	// Note: this code doesn't work. I guess cpu profiling isn't enabled in wasm
+	// buf := bytes.NewBuffer([]byte{})
+
+	// if err := pprof.StartCPUProfile(buf); err != nil {
+	// 	return func(){}, err
+	// }
+
+	// finisher := func() {
+	// 	pprof.StopCPUProfile()
+	// 	dat := buf.Bytes()
+	// 	browser.Open("data:application/octet-stream;charset=utf-16le;base64,"+base64.StdEncoding.EncodeToString(dat), false)
+	// }
+
+	// return finisher, nil
+	return func() {}, nil
 }
