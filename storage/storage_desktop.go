@@ -40,9 +40,13 @@ func WriteCpuProfile(file string) (func(), error) {
 	if err != nil {
 		return func(){}, err
 	}
-	defer f.Close() // error handling omitted for example
 	if err := pprof.StartCPUProfile(f); err != nil {
 		return func(){}, err
 	}
-	return pprof.StopCPUProfile, nil
+
+	finisher := func() {
+		defer f.Close() // error handling omitted for example
+		pprof.StopCPUProfile()
+	}
+	return finisher, nil
 }
