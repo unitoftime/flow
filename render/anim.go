@@ -2,11 +2,15 @@ package render
 
 import (
 	"time"
-	// "image/color"
 
 	"github.com/unitoftime/flow/phy2"
 	"github.com/unitoftime/glitch"
 )
+
+var globalTimer time.Duration
+func UpdateGlobalAnimationTimer(dt time.Duration) {
+	globalTimer += dt
+}
 
 // TODO - it might make more sense to make this like an aseprite wrapper object that has layers, frames, tags, etc
 
@@ -47,6 +51,7 @@ type Animation struct {
 	frames map[string][]Frame // This is the map of all animations and their associated frames
 	animName string
 	curAnim []Frame // This is the current animation frames that we are operating on
+	totalAnimTime time.Duration // This is the total amount of time for the current animation (speed adjusted)
 
 	done bool
 	Loop bool
@@ -54,6 +59,7 @@ type Animation struct {
 
 	// MirrorX bool // TODO
 	MirrorY bool // Mirror around the Y axis
+	AlignAnimation bool
 	hasUpdatedOnce bool
 }
 
@@ -86,13 +92,18 @@ func (a *Animation) randomAnimation() {
 	}
 }
 
-func (a *Animation) SetAnimationWithDuration(name string, dur time.Duration) {
-	a.SetAnimation(name)
+func (a *Animation) calculateTotalAnimTime() {
 	totalAnimTime := 0 * time.Second
 	for _, frame := range a.curAnim {
 		totalAnimTime += frame.Dur
 	}
-	a.speed = totalAnimTime.Seconds() / dur.Seconds()
+	a.totalAnimTime = totalAnimTime
+}
+
+func (a *Animation) SetAnimationWithDuration(name string, dur time.Duration) {
+	a.SetAnimation(name)
+	a.speed = a.totalAnimTime.Seconds() / dur.Seconds()
+	a.totalAnimTime = dur
 }
 
 func (a *Animation) HasAnimation(name string) bool {
@@ -121,6 +132,8 @@ func (a *Animation) SetAnimation(name string) {
 	a.speed = 1.0
 	a.hasUpdatedOnce = false
 	a.done = false
+
+	a.calculateTotalAnimTime()
 }
 
 func (a *Animation) NextFrame() {
@@ -165,6 +178,28 @@ func (a *Animation) GetFrame() Frame {
 // Steps the animation forward by dt amount of time
 // Returns true if the animation frame has changed, else returns false
 func (anim *Animation) Update(dt time.Duration) bool {
+	if anim.AlignAnimation {
+		remainder := (globalTimer % anim.totalAnimTime)
+
+		idx := 0
+		for {
+			frameTime := time.Duration(1_000_000_000 * anim.curAnim[idx].Dur.Seconds() / anim.speed)
+			if remainder < frameTime {
+				ret := (anim.frameIdx != idx) // If the frame changed, return true
+				anim.SetFrame(idx)
+
+				if !anim.hasUpdatedOnce {
+					anim.hasUpdatedOnce = true
+					return true
+				}
+				return ret
+			}
+
+			remainder -= frameTime
+			idx++
+		}
+	}
+
 	adjustedDt := time.Duration(1_000_000_000 * anim.speed * dt.Seconds())
 
 	anim.remainingDur -= adjustedDt
