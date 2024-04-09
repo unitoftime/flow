@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/raszia/gotiny"
+	"github.com/unitoftime/gotiny"
 )
 
 func Register[T any](value T) {

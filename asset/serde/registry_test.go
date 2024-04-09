@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/raszia/gotiny"
+	"github.com/unitoftime/gotiny"
 )
 
 // // {

@@ -10,12 +10,12 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	github.com/raszia/gotiny v0.1.2-0.20240116143231-74c123087dcf
 	github.com/ungerik/go3d v0.0.0-20220309204530-55ced4bcb334
 	github.com/unitoftime/beep v0.0.0-20230919175050-aed291a2afca
 	github.com/unitoftime/cod v0.0.0-20230626194639-7603fae7c5d2
 	github.com/unitoftime/ecs v0.0.1
 	github.com/unitoftime/glitch v0.0.0-20231201130317-fce54a82787e
+	github.com/unitoftime/gotiny v0.0.0-20240409203427-843e62bbcb37
 	github.com/unitoftime/intmap v0.0.0-20231203115433-9505126f7096
 	github.com/unitoftime/packer v0.0.0-20230818221437-1f2c1b1e4275
 	github.com/zergon321/reisen v0.1.9
