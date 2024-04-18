@@ -93,7 +93,7 @@ func WriteMemoryProfile(file string) error {
 		return err
 	}
 	dat := buf.Bytes()
-	browser.Open("data:application/octet-stream;charset=utf-16le;base64,"+base64.StdEncoding.EncodeToString(dat), false)
+	browser.Open("data:application/octet-stream;charset=utf-16le;base64,"+base64.StdEncoding.EncodeToString(dat), browser.OpenSameTab)
 	return nil
 }
 

@@ -103,6 +103,27 @@ func (c *Channel) Play(src *Source) {
 	}()
 }
 
+// func (c *Channel) Paused() bool {
+// 	if c == nil { return false }
+// 	return c.ctrl.Paused
+// }
+
+// func (c *Channel) Pause() {
+// 	if c == nil { return }
+
+// 	speaker.Lock()
+// 	c.ctrl.Paused = true
+// 	speaker.Unlock()
+// }
+
+// func (c *Channel) Unpause() {
+// 	if c == nil { return }
+
+// 	speaker.Lock()
+// 	c.ctrl.Paused = false
+// 	speaker.Unlock()
+// }
+
 func (c *Channel) Mute() {
 	if c == nil { return }
 	speaker.Lock()
