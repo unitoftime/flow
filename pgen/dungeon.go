@@ -441,11 +441,32 @@ func (l *GridLayout) AllEdgesAxisAligned(tolerance int) bool {
 }
 
 func AxisAligned(tol int, a, b tile.Rect) bool {
-	xOverlap := (tol <= b.Max.X-a.Min.X) && (a.Max.X-b.Min.X >= tol)
-	if xOverlap { return true }
-	yOverlap := (tol <= b.Max.Y-a.Min.Y) && (a.Max.Y-b.Min.Y >= tol)
-	if yOverlap { return true }
+	// align from center, adjusted for room width
+	minXRadius := math.Min(float64(a.W()) / 2, float64(b.W()) / 2)
+	tolX := int(minXRadius) - tol
+	xOverlap := int(math.Abs(float64(a.Center().X - b.Center().X)))
+	if xOverlap < tolX { return true }
+
+	minYRadius := math.Min(float64(a.H()) / 2, float64(b.H()) / 2)
+	tolY := int(minYRadius) - tol
+	yOverlap := int(math.Abs(float64(a.Center().Y - b.Center().Y)))
+	if yOverlap < tolY { return true }
 	return false
+
+	// // align from center
+	// xOverlap := int(math.Abs(float64(a.Center().X - b.Center().X)))
+	// if xOverlap < tol { return true }
+
+	// yOverlap := int(math.Abs(float64(a.Center().Y - b.Center().Y)))
+	// if yOverlap < tol { return true }
+	// return false
+
+	// // align with overlap
+	// xOverlap := (tol <= b.Max.X-a.Min.X) && (a.Max.X-b.Min.X >= tol)
+	// if xOverlap { return true }
+	// yOverlap := (tol <= b.Max.Y-a.Min.Y) && (a.Max.Y-b.Min.Y >= tol)
+	// if yOverlap { return true }
+	// return false
 }
 
 func (l *GridLayout) IterateTowardsParent() bool {
