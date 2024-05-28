@@ -50,3 +50,28 @@ func TestRngTable2(t *testing.T) {
 	}
 	compare(samples)
 }
+
+func TestRngTable3(t *testing.T) {
+	nothing := NewTable(
+		NewItem(1, "nothing"),
+	)
+	item := NewTable(
+		NewItem(3, "a"),
+		NewItem(1, "b"),
+		// NewItem(1, "c"),
+		// NewItem(1, "d"),
+	)
+	outerTable := NewTable(
+		NewItem(90, nothing),
+		NewItem(10, item),
+	)
+
+	samples := make(map[string]int, 0)
+
+	for i := 0; i < 1e6; i++ {
+		table := outerTable.Get()
+		s := table.Get()
+		samples[s] += 1
+	}
+	compare(samples)
+}
