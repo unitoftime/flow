@@ -2,6 +2,7 @@ package pgen
 
 import (
 	"math/rand"
+	"slices"
 
 	"golang.org/x/exp/constraints"
 
@@ -89,15 +90,14 @@ func NewTable[T any](items ...Item[T]) *Table[T] {
 func (t *Table[T]) regenerate() {
 	total := 0
 	for i := range t.Items {
-		if t.Items[i].Weight == 0 { continue } // Skip if the weight of this item is 0
+		if t.Items[i].Weight <= 0 { continue } // Skip if the weight of this item is <= 0
 
 		total += t.Items[i].Weight
 	}
 	t.Total = total
 }
 
-// Returns the item if successful, else returns nil
-func (t *Table[T]) Get() T {
+func (t *Table[T]) getIndex() int {
 	if t.Total == 0 {
 		t.regenerate()
 	}
@@ -108,11 +108,94 @@ func (t *Table[T]) Get() T {
 	for i := range t.Items {
 		current += t.Items[i].Weight
 		if roll < current {
-			return t.Items[i].Item
+			return i
 		}
 	}
 
-	// TODO: is there a way to write this so it never fails?
 	// Else just return the first item, something went wrong with the search
-	return t.Items[0].Item
+	// TODO: is this okay? Or should I return a bool and handle it further up?
+	return 0
+}
+
+// Returns the item rolled
+func (t *Table[T]) Get() T {
+	index := t.getIndex()
+
+	// TODO: is there a way to write this so it never fails?
+	return t.Items[index].Item
+}
+
+// TODO: Needs testing
+// // Returns the item rolled and removes it from the table
+// func (t *Table[T]) GetAndRemove() (T, bool) {
+// 	var ret T
+// 	if len(t.Items) <= 0 {
+// 		return ret, false
+// 	}
+
+// 	if t.Total == 0 {
+// 		t.regenerate()
+// 	}
+
+// 	roll := rand.Intn(t.Total)
+
+// 	// Essentially we just loop forward incrementing the `current` value. and once we pass it, we know that we are in that current section of the distribution.
+// 	current := 0
+// 	idx := -1
+// 	for i := range t.Items {
+// 		current += t.Items[i].Weight
+// 		if roll < current {
+// 			idx = i
+// 		}
+// 	}
+
+// 	if idx < 0 {
+// 		// If we couldn't find the index for some reason, then it fails
+// 		return ret, false
+// 	}
+
+// 	// Get Item
+// 	ret = t.Items[idx].Item
+
+// 	// Remove Item and regenerate
+// 	t.Items[idx] = t.Items[len(t.Items)-1]
+// 	t.Items = t.Items[:len(t.Items)-1]
+// 	t.regenerate()
+
+// 	return ret, true
+// }
+
+// Returns returns count unique items, if there are less items in the loot table, only returns what is available to satisfy the uniqueness
+func (t *Table[T]) GetUnique(count int) []T {
+	if count <= 0 {
+		return []T{}
+	}
+	ret := make([]T, 0, count)
+
+	// If there are less items than we are requesting, then just return them all
+	if count >= len(t.Items) {
+		for i := range t.Items {
+			ret = append(ret, t.Items[i].Item)
+		}
+		return ret
+	}
+
+
+	indexes := make([]int, 0, count)
+	for i := 0; i < count; i++ {
+		idx := t.getIndex()
+		if slices.Contains(indexes, idx) {
+			// If we have already found this index, try again
+			i-- // Note: You are guaranteed that count < len(t.Items) so this will exit
+			continue
+		}
+
+		indexes = append(indexes, idx)
+	}
+
+	for _, idx := range indexes {
+		ret = append(ret, t.Items[idx].Item)
+	}
+
+	return ret
 }
