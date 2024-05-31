@@ -14,6 +14,10 @@ func GetItem[T any](key string) (*T, error) {
 	return nil, nil
 }
 
+func GetItemWithDefault[T any](key string, def T) (*T, error) {
+	return nil, nil
+}
+
 func SetItem(key string, val any) error {
 	return nil
 }

@@ -50,6 +50,31 @@ func GetItem[T any](key string) (*T, error) {
 	return &ret, nil
 }
 
+func GetItemWithDefault[T any](key string, def T) (*T, error) {
+	val := localStorage.Call("getItem", key)
+	if val.IsNull() || val.IsUndefined() {
+		return nil, nil
+	}
+	if val.Type() != js.TypeString {
+		return nil, fmt.Errorf("failed to access data, must be a string")
+	}
+
+	baseString := val.String()
+	gobDat, err := base64.StdEncoding.DecodeString(baseString)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := bytes.NewBuffer(gobDat)
+	dec := gob.NewDecoder(buf)
+	err = dec.Decode(&def)
+	if err != nil {
+		return nil, err
+	}
+
+	return &def, nil
+}
+
 func SetItem(key string, val any) error {
 	buf := bytes.Buffer{}
 	enc := gob.NewEncoder(&buf)
