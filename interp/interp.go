@@ -6,9 +6,11 @@ import (
 
 	"github.com/ungerik/go3d/float64/bezier2"
 	"github.com/ungerik/go3d/float64/vec2"
+	"github.com/unitoftime/flow/phy2"
 )
 
 // TODO: use https://easings.net/
+// Note: https://cubic-bezier.com
 
 // This will calculate
 func DynamicValue(val float64, fixedTime, dt time.Duration) float64 {
@@ -48,6 +50,74 @@ var EaseInOut *Bezier = &Bezier{
 		vec2.T{1.0, 1.0},
 	},
 }
+var BezLerp *Bezier = &Bezier{
+	bezier2.T{
+		vec2.T{0.0, 0.0},
+		vec2.T{0.0, 0.0},
+		vec2.T{1.0, 1.0},
+		vec2.T{1.0, 1.0},
+	},
+}
+
+// Note: https://www.w3schools.com/cssref/func_cubic-bezier.php#:~:text=P0%20is%20(0%2C%200),transition%2Dtiming%2Dfunction%20property.
+// Essentially: First point is (0, 0), last point is (1, 1) and you can define the two points in the middle
+func NewCubicBezier(b, c phy2.Vec) *Bezier {
+	return &Bezier{
+		bezier2.T{
+			vec2.T{0, 0},
+			vec2.T{b.X, b.Y},
+			vec2.T{c.X, c.Y},
+			vec2.T{1, 1},
+		},
+	}
+}
+
+func Step(divRatio float64, a, b Interp) StepF {
+	return StepF{
+		a: a,
+		b: b,
+		divRatio: divRatio,
+	}
+}
+
+type StepF struct {
+	a, b Interp
+	divRatio float64
+}
+func (i StepF) get(t float64) (Interp, float64) {
+	if t < i.divRatio {
+		newT := t / (i.divRatio - 0)
+		return i.a, newT
+	}
+
+	newT := t / (1 - i.divRatio)
+	return i.b, newT
+}
+func (i StepF) Float64(a, b float64, t float64) float64 {
+	itrp, val := i.get(t)
+	return itrp.Float64(a, b, val)
+}
+func (i StepF) Float32(a, b float32, t float64) float32 {
+	itrp, val := i.get(t)
+	return itrp.Float32(a, b, val)
+}
+func (i StepF) Uint8(a, b uint8, t float64) uint8 {
+	itrp, val := i.get(t)
+	return itrp.Uint8(a, b, val)
+}
+func (i StepF) Vec2(a, b vec2.T, t float64) vec2.T {
+	itrp, val := i.get(t)
+	return itrp.Vec2(a, b, val)
+}
+
+func Const(val float64) *Bezier {
+	a := vec2.T{0, val}
+	return &Bezier{
+		bezier2.T{a, a, a, a},
+	}
+}
+
+
 // var Sinusoid *Equation = &Equation{
 // 	Func: SinFunc{},
 // }
