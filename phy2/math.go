@@ -158,6 +158,33 @@ func (r Rect) Unpad(pad Rect) Rect {
 	return R(r.Min.X + pad.Min.X, r.Min.Y + pad.Min.Y, r.Max.X - pad.Max.X, r.Max.Y - pad.Max.Y)
 }
 
+func (r *Rect) CutLeft(amount float64) Rect {
+	cutRect := *r
+	cutRect.Max.X = cutRect.Min.X + amount
+	r.Min.X += amount
+	return cutRect
+}
+
+func (r *Rect) CutRight(amount float64) Rect {
+	cutRect := *r
+	cutRect.Min.X = cutRect.Max.X - amount
+	r.Max.X -= amount
+	return cutRect
+}
+
+func (r *Rect) CutBottom(amount float64) Rect {
+	cutRect := *r
+	cutRect.Max.Y = cutRect.Min.Y + amount
+	r.Min.Y += amount
+	return cutRect
+}
+
+func (r *Rect) CutTop(amount float64) Rect {
+	cutRect := *r
+	cutRect.Min.Y = cutRect.Max.Y - amount
+	r.Max.Y -= amount
+	return cutRect
+}
 
 // --------------------------------------------------------------------------------
 // - Circle
