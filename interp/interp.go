@@ -251,3 +251,25 @@ func (f BezFunc) Interp(t float64) float64 {
 		return f.Radius * f.Bezier.Float64(0, 1, norm)
 	}
 }
+
+type LineFunc struct {
+	Slope float64
+	Intercept float64 // The Y intercept
+}
+func (f LineFunc) Interp(t float64) float64 {
+	return f.Slope * t + f.Intercept
+}
+
+type AddFunc struct {
+	A, B Function
+}
+func (f AddFunc) Interp(t float64) float64 {
+	return f.A.Interp(t) + f.B.Interp(t)
+}
+
+type MultFunc struct {
+	A, B Function
+}
+func (f MultFunc) Interp(t float64) float64 {
+	return f.A.Interp(t) * f.B.Interp(t)
+}
