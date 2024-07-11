@@ -101,7 +101,7 @@ func (r *TilemapRender[T]) Draw(tmap *tile.Chunk[T], batch *glitch.Batch) {
 
 
 				mat := glitch.Mat4Ident
-				mat.Translate(pos[0], pos[1], d.Depth)
+				mat.Translate(pos.X, pos.Y, d.Depth)
 				d.Sprite.Draw(batch, mat)
 			}
 		}

@@ -2,7 +2,6 @@ package render
 
 import (
 	"github.com/unitoftime/flow/phy2"
-	"github.com/unitoftime/glitch"
 )
 
 type Pos struct {
@@ -10,49 +9,49 @@ type Pos struct {
 	Height float64
 }
 
-// Represents multiple sprites
-type MultiSprite struct {
-	Sprites []Sprite
-}
-func NewMultiSprite(sprites ...Sprite) MultiSprite {
-	m := MultiSprite{
-		Sprites: make([]Sprite, len(sprites)),
-	}
-	for i := range sprites {
-		m.Sprites[i] = sprites[i]
-	}
-	return m
-}
+// // Represents multiple sprites
+// type MultiSprite struct {
+// 	Sprites []Sprite
+// }
+// func NewMultiSprite(sprites ...Sprite) MultiSprite {
+// 	m := MultiSprite{
+// 		Sprites: make([]Sprite, len(sprites)),
+// 	}
+// 	for i := range sprites {
+// 		m.Sprites[i] = sprites[i]
+// 	}
+// 	return m
+// }
 
-type Sprite struct {
-	*glitch.Sprite
-	// Color color.NRGBA // TODO - performance on interfaces vs structs?
-	Color glitch.RGBA
-	Rotation float64
-	Scale glitch.Vec2
-	Layer int8
-}
-func NewSprite(sprite *glitch.Sprite) Sprite {
-	return Sprite{
-		Sprite: sprite,
-		// Color: color.NRGBA{255, 255, 255, 255},
-		Color: glitch.White,
-		Scale: glitch.Vec2{1, 1},
-		// Layer: glitch.DefaultLayer,
-	}
-}
+// type Sprite struct {
+// 	*glitch.Sprite
+// 	// Color color.NRGBA // TODO - performance on interfaces vs structs?
+// 	Color glitch.RGBA
+// 	Rotation float64
+// 	Scale glitch.Vec2
+// 	Layer int8
+// }
+// func NewSprite(sprite *glitch.Sprite) Sprite {
+// 	return Sprite{
+// 		Sprite: sprite,
+// 		// Color: color.NRGBA{255, 255, 255, 255},
+// 		Color: glitch.White,
+// 		Scale: glitch.Vec2{1, 1},
+// 		// Layer: glitch.DefaultLayer,
+// 	}
+// }
 
-func (sprite *Sprite) Draw(pass *glitch.RenderPass, pos *Pos) {
-	mat := glitch.Mat4Ident
-	mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).
-		Rotate(sprite.Rotation, glitch.Vec3{0, 0, 1}).
-		Translate(pos.X, pos.Y, 0)
+// func (sprite *Sprite) Draw(pass *glitch.RenderPass, pos *Pos) {
+// 	mat := glitch.Mat4Ident
+// 	mat.Scale(sprite.Scale[0], sprite.Scale[1], 1.0).
+// 		Rotate(sprite.Rotation, glitch.Vec3{0, 0, 1}).
+// 		Translate(pos.X, pos.Y, 0)
 
-	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
-	col := glitch.RGBA{sprite.Color.R/255.0, sprite.Color.G/255.0, sprite.Color.B/255.0, sprite.Color.A/255.0}
-	pass.SetLayer(sprite.Layer)
-	sprite.DrawColorMask(pass, mat, col)
-}
+// 	// TODO - I think there's some mistakes here with premultiplied vs non premultiplied alpha
+// 	col := glitch.RGBA{sprite.Color.R/255.0, sprite.Color.G/255.0, sprite.Color.B/255.0, sprite.Color.A/255.0}
+// 	pass.SetLayer(sprite.Layer)
+// 	sprite.DrawColorMask(pass, mat, col)
+// }
 
 // type Keybinds struct {
 // 	Up, Down, Left, Right glitch.Key

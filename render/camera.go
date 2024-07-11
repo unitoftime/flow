@@ -33,9 +33,9 @@ func (c *Camera) Update(bounds glitch.Rect) {
 	screenCenter := bounds.Center()
 
 	c.Camera.SetOrtho2D(bounds)
-	movePos := glitch.Vec2{c.Position[0], c.Position[1]}.Sub(screenCenter)
+	movePos := glitch.Vec2{c.Position.X, c.Position.Y}.Sub(screenCenter)
 
-	c.Camera.SetView2D(movePos[0], movePos[1], c.Zoom, c.Zoom)
+	c.Camera.SetView2D(movePos.X, movePos.Y, c.Zoom, c.Zoom)
 }
 
 func (c *Camera) Project(point glitch.Vec3) glitch.Vec3 {
@@ -51,7 +51,7 @@ func (c *Camera) WorldSpaceRect() glitch.Rect {
 	min := c.Unproject(box.Min)
 	max := c.Unproject(box.Max)
 
-	return glitch.R(min[0], min[1], max[0], max[1])
+	return glitch.R(min.X, min.Y, max.X, max.Y)
 }
 
 // type Camera struct {
