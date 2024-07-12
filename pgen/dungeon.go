@@ -51,7 +51,6 @@ func (d *RoomDag) AddEdge(from, to string) {
 	} else {
 		d.Edges[to] = append(d.Edges[to], from)
 	}
-
 }
 
 func (d *RoomDag) HasEdgeEitherDirection(from, to string) bool {
@@ -94,6 +93,13 @@ func (d *RoomDag) TopologicalSort(start string) []string {
 	return ret
 }
 
+func (d *RoomDag) RandomLabel(rng *rand.Rand) string {
+	if len(d.Nodes) <= 0 { return "" }
+
+	idx := rng.Intn(len(d.Nodes))
+	return d.Nodes[idx]
+}
+
 // func GenerateRandomGridWalkDag(num int, numWalks int) *RoomDag {
 // 	dag := NewRoomDag()
 // 	pos := make([]tile.TilePosition, numWalks)
@@ -127,34 +133,34 @@ func (d *RoomDag) TopologicalSort(start string) []string {
 // 	return dag
 // }
 
-func GenerateRandomGridWalkDag2(rng *rand.Rand, num int, numWalks int) (*RoomDag, map[string]tile.TilePosition) {
+func GenerateRandomGridWalkDag2(rng *rand.Rand, numRooms int, numWalks int) (*RoomDag, map[string]tile.TilePosition) {
 	if numWalks <= 0 {
 		numWalks = 1 // This is just a minimum
 	}
 	dag := NewRoomDag()
 	roomPos := make(map[string]tile.TilePosition)
 
-	pos := make([]tile.TilePosition, numWalks)
+	curWalkPos := make([]tile.TilePosition, numWalks)
 	lastLabel := make([]string, numWalks)
 
-	for len(dag.Nodes) < num {
-		for i := range pos {
-			label := fmt.Sprintf("%d_%d", pos[i].X, pos[i].Y)
+	for len(dag.Nodes) < numRooms {
+		for i := range curWalkPos {
+			label := fmt.Sprintf("%d_%d", curWalkPos[i].X, curWalkPos[i].Y)
 			_, exists := dag.NodeMap[label]
 			if !exists {
 				dag.AddNode(label)
-				roomPos[label] = pos[i]
+				roomPos[label] = curWalkPos[i]
 			}
 
 			dir := rng.Intn(4)
 			if dir == 0 {
-				pos[i].X++
+				curWalkPos[i].X++
 			} else if dir == 1 {
-				pos[i].X--
+				curWalkPos[i].X--
 			} else if dir == 2 {
-				pos[i].Y++
+				curWalkPos[i].Y++
 			} else {
-				pos[i].Y--
+				curWalkPos[i].Y--
 			}
 
 			if lastLabel[i] != "" {
@@ -164,6 +170,109 @@ func GenerateRandomGridWalkDag2(rng *rand.Rand, num int, numWalks int) (*RoomDag
 		}
 	}
 	return dag, roomPos
+}
+
+func GenerateRandomGridWalkDagNoOverlap(rng *rand.Rand, numRooms int, numWalks int) (*RoomDag, map[string]tile.TilePosition) {
+	if numWalks <= 0 {
+		numWalks = 1 // This is just a minimum
+	}
+	dag := NewRoomDag()
+	roomPos := make(map[string]tile.TilePosition)
+
+	curWalkPos := make([]tile.TilePosition, numWalks)
+	lastLabel := make([]string, numWalks)
+
+	for len(dag.Nodes) < numRooms {
+		for i := range curWalkPos {
+			label := fmt.Sprintf("%d_%d", curWalkPos[i].X, curWalkPos[i].Y)
+			_, exists := dag.NodeMap[label]
+			if !exists {
+				dag.AddNode(label)
+				roomPos[label] = curWalkPos[i]
+			}
+
+			nextPos := curWalkPos[i]
+			for jj := 0; jj < 10; jj++ {
+				nextPos = curWalkPos[i]
+				dir := rng.Intn(4)
+				if dir == 0 {
+					nextPos.X++
+				} else if dir == 1 {
+					nextPos.X--
+				} else if dir == 2 {
+					nextPos.Y++
+				} else {
+					nextPos.Y--
+				}
+
+				label := fmt.Sprintf("%d_%d", nextPos.X, nextPos.Y)
+				_, exists := dag.NodeMap[label]
+				if !exists {
+					break
+				}
+			}
+			curWalkPos[i] = nextPos
+
+			if lastLabel[i] != "" {
+				dag.AddEdge(lastLabel[i], label)
+			}
+			lastLabel[i] = label
+		}
+	}
+	return dag, roomPos
+}
+
+func addDagNodeData(dag *RoomDag, roomPos map[string]tile.TilePosition, pos tile.Position, lastLabel string) string {
+	label := fmt.Sprintf("%d_%d", pos.X, pos.Y)
+	_, exists := dag.NodeMap[label]
+	if !exists {
+		dag.AddNode(label)
+		roomPos[label] = pos
+	}
+
+	if lastLabel != "" {
+		dag.AddEdge(lastLabel, label)
+	}
+
+	return label
+}
+
+
+func BlankWalkDag() (*RoomDag, map[string]tile.TilePosition) {
+	dag := NewRoomDag()
+	roomPos := make(map[string]tile.TilePosition)
+	return dag, roomPos
+}
+
+func AddWalk(dag *RoomDag, roomPos map[string]tile.TilePosition, rng *rand.Rand, startPos tile.Position, walkLength int)() {
+	lastLabel := addDagNodeData(dag, roomPos, startPos, "")
+	lastWalkPos := startPos // The last position we added
+
+	for walkCounter := 0; walkCounter < walkLength; walkCounter++ {
+		nextPos := lastWalkPos
+		for i := 0; i < 10; i++ { // TODO: Hardcoded 10 attempts
+			nextPos = lastWalkPos
+			dir := rng.Intn(4)
+			if dir == 0 {
+				nextPos.X++
+			} else if dir == 1 {
+				nextPos.X--
+			} else if dir == 2 {
+				nextPos.Y++
+			} else {
+				nextPos.Y--
+			}
+
+			label := fmt.Sprintf("%d_%d", nextPos.X, nextPos.Y)
+			_, exists := dag.NodeMap[label]
+			if !exists {
+				break
+			}
+		}
+
+		lastLabel = addDagNodeData(dag, roomPos, nextPos, lastLabel)
+		lastWalkPos = nextPos
+	}
 }
 
 func CalculateRoomDepths(dag *RoomDag, placements map[string]RoomPlacement, start string) {
