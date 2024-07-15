@@ -100,6 +100,32 @@ func (d *RoomDag) RandomLabel(rng *rand.Rand) string {
 	return d.Nodes[idx]
 }
 
+func (d *RoomDag) RandomSortedLabel(startLabel string, rng *rand.Rand, topoAfter, topoBeforeEnd int) string {
+	if len(d.Nodes) <= 0 { return "" }
+
+	nodes := d.TopologicalSort(startLabel)
+
+	after := topoAfter
+	if after >= len(nodes) {
+		after = len(nodes)-1
+	}
+
+	before := len(nodes) - topoBeforeEnd
+	if before >= len(nodes) {
+		before = len(nodes)-1
+	}
+
+	rngRange := Range[int]{after, before}
+	idx := rngRange.SeededGet(rng)
+
+	// Fallback
+	if idx < 0 || idx >= len(nodes) {
+		return d.RandomLabel(rng)
+	}
+
+	return nodes[idx]
+}
+
 // func GenerateRandomGridWalkDag(num int, numWalks int) *RoomDag {
 // 	dag := NewRoomDag()
 // 	pos := make([]tile.TilePosition, numWalks)
@@ -244,7 +270,7 @@ func BlankWalkDag() (*RoomDag, map[string]tile.TilePosition) {
 	return dag, roomPos
 }
 
-func AddWalk(dag *RoomDag, roomPos map[string]tile.TilePosition, rng *rand.Rand, startPos tile.Position, walkLength int)() {
+func AddWalk(dag *RoomDag, roomPos map[string]tile.TilePosition, rng *rand.Rand, startPos tile.Position, walkLength int, walkNorthOnly bool)() {
 	lastLabel := addDagNodeData(dag, roomPos, startPos, "")
 	lastWalkPos := startPos // The last position we added
 
@@ -252,15 +278,20 @@ func AddWalk(dag *RoomDag, roomPos map[string]tile.TilePosition, rng *rand.Rand,
 		nextPos := lastWalkPos
 		for i := 0; i < 10; i++ { // TODO: Hardcoded 10 attempts
 			nextPos = lastWalkPos
-			dir := rng.Intn(4)
-			if dir == 0 {
-				nextPos.X++
-			} else if dir == 1 {
-				nextPos.X--
-			} else if dir == 2 {
+
+			if walkNorthOnly {
 				nextPos.Y++
 			} else {
-				nextPos.Y--
+				dir := rng.Intn(4)
+				if dir == 0 {
+					nextPos.X++
+				} else if dir == 1 {
+					nextPos.X--
+				} else if dir == 2 {
+					nextPos.Y++
+				} else {
+					nextPos.Y--
+				}
 			}
 
 			label := fmt.Sprintf("%d_%d", nextPos.X, nextPos.Y)
