@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var cache map[string]*Plugin
+
 // rm -f ../plugin/*.so && VAR=$RANDOM && echo $VAR && rm -rf ./build/* && mkdir ./build/tmp$VAR && cp reloader.go ./build/tmp$VAR && go build -buildmode=plugin -o ../plugin/tmp$VAR.so ./build/tmp$VAR
 
 type Plugin struct {
@@ -18,24 +20,36 @@ type Plugin struct {
 	startOnce sync.Once
 	// gen uint64
 	refresh chan struct{}
+
+	currentPlugin string
 }
 
-func NewPlugin(path string) Plugin {
-	return Plugin{
+func NewPlugin(path string) *Plugin {
+	if cache == nil {
+		cache = make(map[string]*Plugin)
+	}
+	p, ok := cache[path]
+	if ok {
+		return p
+	}
+
+	newPlugin := Plugin{
 		path: path,
 		refresh: make(chan struct{}),
 	}
+	cache[path] = &newPlugin
+	return &newPlugin
 }
 
 // func (p Plugin) Generation() uint64 {
 // 	return p.gen
 // }
 
-func (p Plugin) Refresh() chan struct{} {
-	return p.refresh
-}
+// func (p *Plugin) Refresh() chan struct{} {
+// 	return p.refresh
+// }
 
-func (p Plugin) Lookup(symName string) (any, error) {
+func (p *Plugin) Lookup(symName string) (any, error) {
 	if p.internal == nil {
 		return nil, errors.New("plugin not yet loaded")
 	}
@@ -43,54 +57,130 @@ func (p Plugin) Lookup(symName string) (any, error) {
 	return val, err
 }
 
-func (p *Plugin) Start() {
-	p.startOnce.Do(func() {
-		p.start()
-	})
-}
+// Check to see if there is a new plugin to load
+// Returns true if there is a new one
+func (p *Plugin) Check() bool {
+	entries, err := os.ReadDir(p.path)
+	if err != nil { panic(err) }
 
-func (p *Plugin) start() {
-	path := p.path
-
-	sleepDur := 1 * time.Second
-
-	go func() {
-		currentPlugin := ""
-		nextPlugin := ""
-		for {
-			time.Sleep(sleepDur)
-
-			entries, err := os.ReadDir(path)
-			if err != nil { panic(err) }
-
-			for _, e := range entries {
-				if strings.HasSuffix(e.Name(), ".so") {
-					nextPlugin = path + e.Name()
-					break
-				}
-			}
-
-			reload := nextPlugin != currentPlugin
-			if !reload {
-				fmt.Println(".")
-				continue
-			}
-
-			fmt.Println("Found New Plugin:", nextPlugin)
-			// lastPlugin := currentPlugin
-			currentPlugin = nextPlugin
-
-			iPlugin, err := plugin.Open(currentPlugin)
-			if err != nil {
-				fmt.Println("Error Loading Plugin:", currentPlugin, err)
-				// fmt.Println("Plugin already loaded(last, curr):", lastPlugin, currentPlugin)
-				continue
-			}
-
-			fmt.Println("Successfully Loaded Plugin:", currentPlugin)
-			p.internal = iPlugin
-			// p.gen++
-			p.refresh <- struct{}{}
+	nextPlugin := ""
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".so") {
+			nextPlugin = p.path + e.Name()
+			break
 		}
-	}()
+	}
+
+	if nextPlugin == "" {
+		return false // Nothing new
+	}
+
+	samePlugin := nextPlugin == p.currentPlugin
+	if samePlugin {
+		return false
+	}
+	p.currentPlugin = nextPlugin
+	fmt.Println("Found New Plugin:", nextPlugin)
+
+	// var iPlugin *plugin.Plugin
+	// func() {
+	// 	defer func() {
+	// 		if r := recover(); r != nil {
+	// 			fmt.Println("RECOVERED:", r)
+	// 		}
+	// 	}()
+	// 	time.Sleep(100 * time.Millisecond)
+	// 	// Note: I have to sleep here to ensure that all of the glitch CGO calls have completed for the frame. 100ms is arbitrary, and is unecessary if you dont make CGO calls.
+	// 	var err error
+	// 	iPlugin, err = plugin.Open(p.currentPlugin)
+	// 	if err != nil {
+	// 		fmt.Println("Error Loading Plugin:", err)
+	// 	}
+	// }()
+
+
+	// Note: I have to sleep here to ensure that all of the glitch CGO calls have completed for the frame. 100ms is arbitrary, and is unecessary if you dont make CGO calls.
+	time.Sleep(100 * time.Millisecond)
+	iPlugin, err := plugin.Open(p.currentPlugin)
+	if err != nil {
+		fmt.Println("Error Loading Plugin:", err)
+		return false
+	}
+
+	if iPlugin == nil {
+		fmt.Println("Error Loading Plugin")
+		return false
+	}
+
+	fmt.Println("Successfully Loaded Plugin:", p.currentPlugin)
+	p.internal = iPlugin
+	return true
 }
+
+// Old idea:
+// - Problem - can't synchronize with CGO execution which can cause SIGBUS: bus errors
+// // Starts a watcher process in the background
+// func (p *Plugin) Start() {
+// 	p.startOnce.Do(func() {
+// 		p.start()
+// 	})
+// }
+
+// func (p *Plugin) start() {
+// 	path := p.path
+
+// 	sleepDur := 100 * time.Millisecond
+
+// 	go func() {
+// 		nextPlugin := ""
+// 		for {
+// 			time.Sleep(sleepDur)
+
+// 			entries, err := os.ReadDir(path)
+// 			if err != nil { panic(err) }
+
+// 			for _, e := range entries {
+// 				if strings.HasSuffix(e.Name(), ".so") {
+// 					nextPlugin = path + e.Name()
+// 					break
+// 				}
+// 			}
+
+// 			reload := nextPlugin != p.currentPlugin
+// 			if !reload {
+// 				// fmt.Println(".")
+// 				continue
+// 			}
+
+// 			fmt.Println("Found New Plugin:", nextPlugin)
+// 			// lastPlugin := currentPlugin
+// 			p.currentPlugin = nextPlugin
+
+// 			var iPlugin *plugin.Plugin
+// 			func() {
+// 				defer func() {
+// 					if r := recover(); r != nil {
+// 						fmt.Println("RECOVERED:", r)
+// 					}
+// 				}()
+// 				var err error
+// 				iPlugin, err = plugin.Open(p.currentPlugin)
+// 				if err != nil {
+// 					panic(err)
+// 					// fmt.Println("Error Loading Plugin:", currentPlugin, err)
+// 					// // fmt.Println("Plugin already loaded(last, curr):", lastPlugin, currentPlugin)
+// 					// continue
+// 				}
+// 			}()
+// 			if iPlugin == nil {
+// 				fmt.Println("Error Loading Plugin")
+// 				continue
+// 			}
+
+// 			fmt.Println("Successfully Loaded Plugin:", p.currentPlugin)
+// 			p.internal = iPlugin
+// 			// p.gen++
+// 			p.refresh <- struct{}{}
+// 		}
+// 	}()
+// }

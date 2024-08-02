@@ -124,6 +124,20 @@ func (c *Channel) Play(src *Source) {
 // 	speaker.Unlock()
 // }
 
+func (c *Channel) SetMute(val bool) {
+	if c == nil { return }
+	speaker.Lock()
+	c.volume.Silent = val
+	speaker.Unlock()
+}
+
+func (c *Channel) SetVolume(val float64) {
+	if c == nil { return }
+	speaker.Lock()
+	c.volume.Volume = val
+	speaker.Unlock()
+}
+
 func (c *Channel) Mute() {
 	if c == nil { return }
 	speaker.Lock()
