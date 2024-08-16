@@ -10,6 +10,28 @@ import (
 	"time"
 )
 
+//--------------------------------------------------------------------------------
+// Notes
+//--------------------------------------------------------------------------------
+// 1. https://github.com/golang/go/issues/19004#issuecomment-288923294
+// 2. https://github.com/edwingeng/hotswap/tree/main
+// 3. https://stackoverflow.com/questions/70033200/plugin-already-loaded
+// 4. https://segmentfault.com/a/1190000042104429/en#item-4
+// 5. https://github.com/golang/go/issues/68349#issuecomment-2217718002
+// 6. Helps checking to make sure the plugin and main binary match: `go version -m plugin.so` and `go version -m binary.bin`
+// 7. Maybe helps (never used it): `go clean -cache`
+// 8. Maybe helps (unsure the cases where it helps): `trimpath`
+// 9. Didn't work: `go build -ldflags "-pluginpath=plugin/hot-$(date +%s)" -buildmode=plugin -o hotload.so hotload.go`
+// 10. Might help with checking binary versions: `readelf -aW ../driver/plugin1.so | grep PluginFunc`
+
+//--------------------------------------------------------------------------------
+// Tips
+//--------------------------------------------------------------------------------
+// 1. If you reference to a package outside of the plugin directory: Changing the location of any global def (like a function definition) will break the plugin reloading bc it changes the version of the original package
+// 2. If you split plugin into several small plugins: it makes it hard to have one plugin depend on another
+// 3. If you make one big mega plugin, it would increase compile times (probably), but is easy to reference several things inside the plugin
+//--------------------------------------------------------------------------------
+
 var cache map[string]*Plugin
 
 // rm -f ../plugin/*.so && VAR=$RANDOM && echo $VAR && rm -rf ./build/* && mkdir ./build/tmp$VAR && cp reloader.go ./build/tmp$VAR && go build -buildmode=plugin -o ../plugin/tmp$VAR.so ./build/tmp$VAR
