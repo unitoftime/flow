@@ -186,6 +186,19 @@ func (r *Rect) CutTop(amount float64) Rect {
 	return cutRect
 }
 
+func (r Rect) Norm() Rect {
+	x1, x2 := minMax(r.Min.X, r.Max.X)
+	y1, y2 := minMax(r.Min.Y, r.Max.Y)
+	return R(x1, y1, x2, y2)
+}
+
+func minMax(a, b float64) (float64, float64) {
+	if a > b {
+		return b, a
+	}
+	return a, b
+}
+
 // --------------------------------------------------------------------------------
 // - Circle
 // --------------------------------------------------------------------------------
