@@ -1,6 +1,8 @@
 package tile
 
 import (
+	"iter"
+
 	"github.com/unitoftime/flow/phy2"
 )
 
@@ -151,16 +153,20 @@ func (r Rect) UnpadAll(pad int) Rect {
 	return r.PadAll(-pad)
 }
 
-// TODO! - Replace with actual iterator pattern
-func (r Rect) Iter() []Position {
-	ret := make([]Position, 0)
-	for x := r.Min.X; x <= r.Max.X; x++ {
-		for y := r.Min.Y; y <= r.Max.Y; y++ {
-			ret = append(ret, Position{x, y})
+func (r Rect) Iter() iter.Seq[Position] {
+	return func(yield func(Position) bool) {
+
+		for x := r.Min.X; x <= r.Max.X; x++ {
+			for y := r.Min.Y; y <= r.Max.Y; y++ {
+				if !yield(Position{x, y}) {
+					return // Exit the iteration
+				}
+			}
 		}
+
 	}
-	return ret
 }
+
 
 // //cod:struct
 // type Collider struct {

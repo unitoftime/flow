@@ -3,6 +3,8 @@ package tile
 import (
 	// "fmt"
 
+	"iter"
+
 	"github.com/unitoftime/flow/phy2"
 	"github.com/unitoftime/intmap"
 	"github.com/zyedidia/generic/queue"
@@ -279,6 +281,38 @@ func (c *Chunkmap[T]) BreadthFirstSearch(tilePos TilePosition, valid func(t T) b
 		ret = append(ret, pos)
 	}
 	return ret
+}
+
+func (c *Chunkmap[T]) IterBreadthFirst(tilePos TilePosition, valid func(t T) bool) iter.Seq[Position] {
+	return func(yield func(Position) bool) {
+
+		distance := make(map[TilePosition]int)
+		q := queue.New[TilePosition]()
+		q.Enqueue(tilePos)
+
+		for !q.Empty() {
+			current := q.Dequeue()
+
+			if !yield(current) {
+				break
+			}
+
+			neighbors := c.GetEdgeNeighbors(current.X, current.Y)
+			for _, next := range neighbors {
+				t, ok := c.GetTile(next)
+				if !ok { continue } // Skip as neighbor doesn't actually exist (ie could be OOB)
+
+				if !valid(t) { continue } // Skip if the tile isn't valid
+
+				// If we haven't already walked over this neighbor, then enqueue it and add it to our path
+				_, exists := distance[next]
+				if !exists {
+					q.Enqueue(next)
+					distance[next] = 1 + distance[current]
+				}
+			}
+		}
+	}
 }
 
 func (c *Chunkmap[T]) GetPerimeter() map[ChunkPosition]bool {
