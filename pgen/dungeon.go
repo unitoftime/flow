@@ -53,6 +53,53 @@ func (d *RoomDag) AddEdge(from, to string) {
 	}
 }
 
+// Returns true if the node is a leaf node (ie has no outward facing edges)
+func (d *RoomDag) IsLeafNode(label string) bool {
+	edges, ok := d.Edges[label]
+	if !ok { return true }
+
+	return len(edges) <= 0
+}
+
+// Returns true if the node is a leaf node (ie has no outward facing edges)
+func (d *RoomDag) GetLeafNodes() []string {
+	ret := make([]string, 0)
+	for _, node := range d.Nodes {
+		if d.IsLeafNode(node) {
+			ret = append(ret, node)
+		}
+	}
+
+	return ret
+}
+
+// Counts and returns the number of edges needed to traverse to get from one node to another
+func (d *RoomDag) Distance(from, to string) int {
+	distance := make(map[string]int)
+	queue := ds.NewQueue[string](0) // TODO: dynamically resized
+	queue.Add(from)
+
+	for {
+		currentNode, ok := queue.Remove()
+		if !ok { break }
+
+		currentNodeDistance := distance[currentNode]
+		if currentNode == to {
+			return currentNodeDistance
+		}
+
+		children := d.Edges[currentNode]
+		for _, child := range children {
+			_, exists := distance[child]
+			if !exists {
+				distance[child] = currentNodeDistance + 1
+				queue.Add(child)
+			}
+		}
+	}
+	return -1 // Could not find a path from -> to
+}
+
 func (d *RoomDag) HasEdgeEitherDirection(from, to string) bool {
 	return d.HasEdge(from, to) || d.HasEdge(to, from)
 }
