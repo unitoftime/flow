@@ -128,7 +128,7 @@ func (r Rect) Norm() Rect {
 	return R(x1, y1, x2, y2)
 }
 
-func (r Rect) Union (s Rect) Rect {
+func (r Rect) Union(s Rect) Rect {
 	r = r.Norm()
 	s = s.Norm()
 	x1, _ := minMax(r.Min.X, s.Min.X)
