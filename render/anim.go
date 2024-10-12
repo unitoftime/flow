@@ -29,7 +29,7 @@ func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
 	}
 }
 
-func (f *Frame) Bounds() glitch.Rect {
+func (f Frame) Bounds() glitch.Rect {
 	return f.Sprite.Bounds()
 }
 
