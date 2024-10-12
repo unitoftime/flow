@@ -200,7 +200,7 @@ type Float64Positioner interface {
 type ConstFloat64Positioner struct {
 	Val float64
 }
-func (p *ConstFloat64Positioner) Float64(count int, v float64) float64 {
+func (p ConstFloat64Positioner) Float64(count int, v float64) float64 {
 	return v + p.Val
 }
 type RandomFloat64Positioner struct {
