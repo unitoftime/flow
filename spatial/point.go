@@ -1,6 +1,8 @@
 package spatial
 
 import (
+	"slices"
+
 	"github.com/unitoftime/flow/phy2"
 )
 
@@ -18,12 +20,27 @@ func NewPointBucket[T comparable]() *PointBucket[T] {
 		List: make([]PointBucketItem[T], 0),
 	}
 }
+
 func (b *PointBucket[T]) Add(point phy2.Vec, val T) {
 	b.List = append(b.List, PointBucketItem[T]{
 		point: point,
 		item: val,
 	})
 }
+
+func (b *PointBucket[T]) Remove(point phy2.Vec, val T) {
+	itemToRemove := PointBucketItem[T]{
+		point: point,
+		item: val,
+	}
+	indexToRemove := slices.Index(b.List, itemToRemove)
+	if indexToRemove < 0 { return } // Nothing to remove
+
+	lastIdx := len(b.List) - 1
+	b.List[indexToRemove] = b.List[lastIdx]
+	b.List = b.List[:lastIdx]
+}
+
 func (b *PointBucket[T]) Clear() {
 	b.List = b.List[:0]
 }
@@ -65,6 +82,12 @@ func (h *Pointmap[T]) Add(pos phy2.Vec, val T) {
 	idx := h.PositionToIndex(pos)
 	bucket := h.GetBucket(idx)
 	bucket.Add(pos, val)
+}
+
+func (h *Pointmap[T]) Remove(pos phy2.Vec, val T) {
+	idx := h.PositionToIndex(pos)
+	bucket := h.GetBucket(idx)
+	bucket.Remove(pos, val)
 }
 
 // TODO: Right now this does a broad phased check
