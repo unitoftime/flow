@@ -59,6 +59,26 @@ var BezLerp *Bezier = &Bezier{
 	},
 }
 
+var BezFlash *Bezier = &Bezier{
+	bezier2.T{
+		vec2.T{0.0, 0.0},
+		vec2.T{0.1, 1.0},
+		vec2.T{0.2, 0.5},
+		vec2.T{0.0, 0.0},
+	},
+}
+
+func NewBezier(a, b, c, d phy2.Vec) *Bezier {
+	return &Bezier{
+		bezier2.T{
+			vec2.T{a.X, b.Y},
+			vec2.T{b.X, b.Y},
+			vec2.T{c.X, c.Y},
+			vec2.T{d.X, d.Y},
+		},
+	}
+}
+
 // Note: https://www.w3schools.com/cssref/func_cubic-bezier.php#:~:text=P0%20is%20(0%2C%200),transition%2Dtiming%2Dfunction%20property.
 // Essentially: First point is (0, 0), last point is (1, 1) and you can define the two points in the middle
 func NewCubicBezier(b, c phy2.Vec) *Bezier {
