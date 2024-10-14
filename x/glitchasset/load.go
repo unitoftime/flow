@@ -281,7 +281,7 @@ func (s *Spritesheet) Get(name string) (*glitch.Sprite, error) {
 }
 
 // https://www.aseprite.org/docs/slices/#:~:text=With%20the%20Slice%20tool,some%20extra%20user%20defined%20information.
-func (s *Spritesheet) GetNinePanel(name string, border glitch.Rect) (*glitch.NinePanelSprite, error) {
+func (s *Spritesheet) GetNinePanel(name string, border glm.Rect) (*glitch.NinePanelSprite, error) {
 	sprite, ok := s.lookup[name]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("Invalid sprite name: %s", name))

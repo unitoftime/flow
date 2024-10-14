@@ -9,21 +9,21 @@ import (
 
 type Camera struct {
 	Camera   *glitch.CameraOrtho
-	Position glitch.Vec2
+	Position glm.Vec2
 	Zoom     float64
-	bounds   glitch.Rect
+	bounds   glm.Rect
 }
 
-func NewCamera(bounds glitch.Rect, x, y float64) *Camera {
+func NewCamera(bounds glm.Rect, x, y float64) *Camera {
 	return &Camera{
 		Camera:   glitch.NewCameraOrtho(),
-		Position: glitch.Vec2{x, y},
+		Position: glm.Vec2{x, y},
 		Zoom:     1.0,
 		bounds:   bounds,
 	}
 }
 
-func (c *Camera) Update(bounds glitch.Rect) {
+func (c *Camera) Update(bounds glm.Rect) {
 	// // Snap camera
 	// c.Position[0] = float32(math.Round(float64(c.Position[0])))
 	// c.Position[1] = float32(math.Round(float64(c.Position[1])))
@@ -34,7 +34,7 @@ func (c *Camera) Update(bounds glitch.Rect) {
 	screenCenter := bounds.Center()
 
 	c.Camera.SetOrtho2D(bounds)
-	movePos := glitch.Vec2{c.Position.X, c.Position.Y}.Sub(screenCenter)
+	movePos := glm.Vec2{c.Position.X, c.Position.Y}.Sub(screenCenter)
 
 	c.Camera.SetView2D(movePos.X, movePos.Y, c.Zoom, c.Zoom)
 }
@@ -47,7 +47,7 @@ func (c *Camera) Unproject(point glitch.Vec3) glitch.Vec3 {
 	return c.Camera.Unproject(point)
 }
 
-func (c *Camera) WorldSpaceRect() glitch.Rect {
+func (c *Camera) WorldSpaceRect() glm.Rect {
 	box := c.bounds.ToBox()
 	min := c.Unproject(box.Min)
 	max := c.Unproject(box.Max)

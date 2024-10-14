@@ -10,7 +10,7 @@ require (
 	github.com/ungerik/go3d v0.0.0-20240502073936-1137f6adf7e9
 	github.com/unitoftime/beep v0.0.0-20230919175050-aed291a2afca
 	github.com/unitoftime/ecs v0.0.1
-	github.com/unitoftime/glitch v0.0.0-20241013142148-faeeba66aac2
+	github.com/unitoftime/glitch v0.0.0-20241014190205-a6252a015687
 	github.com/unitoftime/gotiny v0.0.0-20240915162236-e7a35021e769
 	github.com/unitoftime/intmap v0.0.0-20231203115433-9505126f7096
 	github.com/unitoftime/packer v0.0.0-20230818221437-1f2c1b1e4275
