@@ -6,7 +6,7 @@ import (
 
 	"github.com/ungerik/go3d/float64/bezier2"
 	"github.com/ungerik/go3d/float64/vec2"
-	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/flow/glm"
 )
 
 // TODO: use https://easings.net/
@@ -68,7 +68,7 @@ var BezFlash *Bezier = &Bezier{
 	},
 }
 
-func NewBezier(a, b, c, d phy2.Vec) *Bezier {
+func NewBezier(a, b, c, d glm.Vec2) *Bezier {
 	return &Bezier{
 		bezier2.T{
 			vec2.T{a.X, b.Y},
@@ -81,7 +81,7 @@ func NewBezier(a, b, c, d phy2.Vec) *Bezier {
 
 // Note: https://www.w3schools.com/cssref/func_cubic-bezier.php#:~:text=P0%20is%20(0%2C%200),transition%2Dtiming%2Dfunction%20property.
 // Essentially: First point is (0, 0), last point is (1, 1) and you can define the two points in the middle
-func NewCubicBezier(b, c phy2.Vec) *Bezier {
+func NewCubicBezier(b, c glm.Vec2) *Bezier {
 	return &Bezier{
 		bezier2.T{
 			vec2.T{0, 0},

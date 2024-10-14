@@ -3,6 +3,7 @@ package tile
 import (
 	"iter"
 
+	"github.com/unitoftime/flow/glm"
 	"github.com/unitoftime/flow/phy2"
 )
 
@@ -177,7 +178,7 @@ type Tilemap[T any] struct {
 	TileSize [2]int // In pixels
 	tiles [][]T
 	math Math
-	Offset phy2.Vec2 // In world space positioning
+	Offset glm.Vec2 // In world space positioning
 }
 
 func New[T any](tiles [][]T, tileSize [2]int, math Math) *Tilemap[T] {
@@ -185,7 +186,7 @@ func New[T any](tiles [][]T, tileSize [2]int, math Math) *Tilemap[T] {
 		TileSize: tileSize,
 		tiles: tiles,
 		math: math,
-		Offset: phy2.Vec2{},
+		Offset: glm.Vec2{},
 	}
 }
 

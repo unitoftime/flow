@@ -4,9 +4,8 @@ import (
 	"math/rand"
 	"slices"
 
+	"github.com/unitoftime/flow/glm"
 	"golang.org/x/exp/constraints"
-
-	"github.com/unitoftime/flow/phy2"
 )
 
 type castable interface {
@@ -60,10 +59,10 @@ func ListItem[T any](rng *rand.Rand, list []T) (T, bool) {
 // 	return T(rand.Intn(int(delta))) + r.Min
 // }
 
-func RandomPositionInRect(r phy2.Rect) phy2.Vec {
+func RandomPositionInRect(r glm.Rect) glm.Vec2 {
 	randX := Range[float64]{r.Min.X, r.Max.X}.Get()
 	randY := Range[float64]{r.Min.Y, r.Max.Y}.Get()
-	return phy2.Vec{randX, randY}
+	return glm.Vec2{randX, randY}
 }
 
 //--------------------------------------------------------------------------------

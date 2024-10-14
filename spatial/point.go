@@ -3,11 +3,11 @@ package spatial
 import (
 	"slices"
 
-	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/flow/glm"
 )
 
 type PointBucketItem[T comparable] struct {
-	point phy2.Vec
+	point glm.Vec2
 	item T
 }
 
@@ -21,14 +21,14 @@ func NewPointBucket[T comparable]() *PointBucket[T] {
 	}
 }
 
-func (b *PointBucket[T]) Add(point phy2.Vec, val T) {
+func (b *PointBucket[T]) Add(point glm.Vec2, val T) {
 	b.List = append(b.List, PointBucketItem[T]{
 		point: point,
 		item: val,
 	})
 }
 
-func (b *PointBucket[T]) Remove(point phy2.Vec, val T) {
+func (b *PointBucket[T]) Remove(point glm.Vec2, val T) {
 	itemToRemove := PointBucketItem[T]{
 		point: point,
 		item: val,
@@ -78,13 +78,13 @@ func (h *Pointmap[T]) GetBucket(index Index) *PointBucket[T] {
 	return bucket
 }
 
-func (h *Pointmap[T]) Add(pos phy2.Vec, val T) {
+func (h *Pointmap[T]) Add(pos glm.Vec2, val T) {
 	idx := h.PositionToIndex(pos)
 	bucket := h.GetBucket(idx)
 	bucket.Add(pos, val)
 }
 
-func (h *Pointmap[T]) Remove(pos phy2.Vec, val T) {
+func (h *Pointmap[T]) Remove(pos glm.Vec2, val T) {
 	idx := h.PositionToIndex(pos)
 	bucket := h.GetBucket(idx)
 	bucket.Remove(pos, val)
@@ -92,7 +92,7 @@ func (h *Pointmap[T]) Remove(pos phy2.Vec, val T) {
 
 // TODO: Right now this does a broad phased check
 // Adds the collisions directly into your collision list. Items are deduplicated by nature of them only existing once in this Pointmap. (ie if you add multiple of the same thing, you might get multiple out)
-func (h *Pointmap[T]) BroadCheck(list []T, bounds phy2.Rect) []T {
+func (h *Pointmap[T]) BroadCheck(list []T, bounds glm.Rect) []T {
 	min := h.PositionToIndex(bounds.Min)
 	max := h.PositionToIndex(bounds.Max)
 
@@ -112,7 +112,7 @@ func (h *Pointmap[T]) BroadCheck(list []T, bounds phy2.Rect) []T {
 }
 
 // TODO: I think I'd rather the default for this be called "Check" then have the other be called CheckBroad or something
-func (h *Pointmap[T]) NarrowCheck(list []T, bounds phy2.Rect) []T {
+func (h *Pointmap[T]) NarrowCheck(list []T, bounds glm.Rect) []T {
 	min := h.PositionToIndex(bounds.Min)
 	max := h.PositionToIndex(bounds.Max)
 
@@ -135,7 +135,7 @@ func (h *Pointmap[T]) NarrowCheck(list []T, bounds phy2.Rect) []T {
 
 // TODO: This only does a broadphase check. no narrow phase
 // Returns true if the bounds collides with anything
-func (h *Pointmap[T]) Collides(bounds phy2.Rect) bool {
+func (h *Pointmap[T]) Collides(bounds glm.Rect) bool {
 	min := h.PositionToIndex(bounds.Min)
 	max := h.PositionToIndex(bounds.Max)
 

@@ -3,7 +3,7 @@ package render
 import (
 	"time"
 
-	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/flow/glm"
 	"github.com/unitoftime/glitch"
 )
 
@@ -19,13 +19,13 @@ type Frame struct {
 	Sprite *glitch.Sprite
 	// Origin phy2.Vec
 	Dur time.Duration
-	mount map[string]phy2.Vec // TODO - this is just kind of arbitrary data for my mountpoint system
+	mount map[string]glm.Vec2 // TODO - this is just kind of arbitrary data for my mountpoint system
 }
 func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
 	return Frame{
 		Sprite: sprite,
 		Dur: dur,
-		mount: make(map[string]phy2.Vec),
+		mount: make(map[string]glm.Vec2),
 	}
 }
 
@@ -33,14 +33,14 @@ func (f Frame) Bounds() glitch.Rect {
 	return f.Sprite.Bounds()
 }
 
-func (f *Frame) SetMount(name string, point phy2.Vec) {
+func (f *Frame) SetMount(name string, point glm.Vec2) {
 	f.mount[name] = point
 }
 
-func (f *Frame) Mount(name string) phy2.Vec {
+func (f *Frame) Mount(name string) glm.Vec2 {
 	pos, ok := f.mount[name]
 	if !ok {
-		return phy2.Vec{}
+		return glm.Vec2{}
 	}
 	return pos
 }

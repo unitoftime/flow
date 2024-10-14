@@ -1,20 +1,21 @@
 package tile
 
+import (
+	"github.com/unitoftime/flow/glm"
+	"github.com/unitoftime/flow/phy2"
+)
+
 // TODO
 // tile.Chunk?
 // tile.Chunkmap?
 // chunk.Chunk?
 // chunk.Map?
 
-import (
-	"github.com/unitoftime/flow/phy2"
-)
-
 type Chunk[T any] struct {
 	TileSize [2]int // In pixels
 	tiles [][]T
 	math FlatRectMath
-	Offset phy2.Vec2 // In world space positioning
+	Offset glm.Vec2 // In world space positioning
 	TileOffset Position
 }
 
@@ -23,7 +24,7 @@ func NewChunk[T any](tiles [][]T, tileSize [2]int, math FlatRectMath) *Chunk[T] 
 		TileSize: tileSize,
 		tiles: tiles,
 		math: math,
-		Offset: phy2.Vec2{},
+		Offset: glm.Vec2{},
 	}
 }
 
@@ -103,7 +104,7 @@ func (t *Chunk[T]) BoundsAt(pos TilePosition) (float64, float64, float64, float6
 }
 
 // Adds an entity to the chunk
-// func (t *Chunk[T]) AddEntity(id ecs.Id, collider *Collider, pos *phy2.Pos) {
+// func (t *Chunk[T]) AddEntity(id ecs.Id, collider *Collider, pos *glm.Pos) {
 // 	tilePos := t.PositionToTile(float32(pos.X), float32(pos.Y))
 
 // 	for x := tilePos.X; x < tilePos.X + collider.Width; x++ {
@@ -131,7 +132,7 @@ func (t *Chunk[T]) BoundsAt(pos TilePosition) (float64, float64, float64, float6
 // 	t.ClearEntities()
 
 // 	// Recompute all entities with TileColliders
-// 	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *phy2.Pos) {
+// 	ecs.Map2(world, func(id ecs.Id, collider *Collider, pos *glm.Pos) {
 // 		tilePos := t.PositionToTile(float32(pos.X), float32(pos.Y))
 
 // 		for x := tilePos.X; x < tilePos.X + collider.Width; x++ {

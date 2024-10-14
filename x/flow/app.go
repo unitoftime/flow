@@ -41,7 +41,42 @@ func (a *App) Run() {
 	a.scheduler.Run()
 }
 
+func (a *App) GetScheduler() *ecs.Scheduler {
+	return a.scheduler
+}
+
+func (a *App) GetWorld() *ecs.World {
+	return a.world
+}
+
+func (a *App) AddSystems2(stage Stage, systems ...ecs.System) {
+	for _, system := range systems {
+		switch stage {
+		case StageStartup:
+			a.startupSystems = append(a.startupSystems, system)
+		case StageFixedUpdate:
+			a.scheduler.AppendPhysics(system)
+		case StageUpdate:
+			a.scheduler.AppendRender(system)
+		}
+	}
+}
+
 func (a *App) AddSystems(stage Stage, systems ...func(*ecs.World) ecs.System) {
+	for _, sys := range systems {
+		system := sys(a.world)
+		switch stage {
+		case StageStartup:
+			a.startupSystems = append(a.startupSystems, system)
+		case StageFixedUpdate:
+			a.scheduler.AppendPhysics(system)
+		case StageUpdate:
+			a.scheduler.AppendRender(system)
+		}
+	}
+}
+
+func (a *App) SetSystems(stage Stage, systems ...func(*ecs.World) ecs.System) {
 	for _, sys := range systems {
 		system := sys(a.world)
 		switch stage {

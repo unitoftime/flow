@@ -5,6 +5,7 @@ import (
 
 	"iter"
 
+	"github.com/unitoftime/flow/glm"
 	"github.com/unitoftime/flow/phy2"
 	"github.com/unitoftime/intmap"
 	"github.com/zyedidia/generic/queue"
@@ -467,12 +468,12 @@ func NewChunkmath(chunkSize int, tileSize int) ChunkMath {
 }
 
 // Returns the worldspace position of a chunk
-func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec {
+func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) glm.Vec2 {
 	offX, offY := c.globalmath.Position(int(chunkPos.X), int(chunkPos.Y))
 	// offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
 	// 	[2]int{c.tileSize[0]*c.chunkSize[0], c.tileSize[1]*c.chunkSize[1]})
 
-	offset := phy2.Vec{
+	offset := glm.Vec2{
 		X: float64(offX),
 		// Y: float64(offY) - (0.5 * float64(c.chunkSize[1]) * float64(c.tileSize[1])) + float64(c.tileSize[1]/2),
 		// Y: float64(offY) - float64(c.chunkSizeOver2[1] * c.tileSize[1]) + float64(c.tileSizeOver2[1]),
@@ -482,7 +483,7 @@ func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec {
 }
 
 //Note: untested
-func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) phy2.Vec {
+func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) glm.Vec2 {
 	chunkPos := c.TileToChunk(tilePos)
 	offsetPos := c.ToPosition(chunkPos)
 	pos := c.TileToPosition(tilePos)
@@ -535,16 +536,16 @@ func (c *ChunkMath) ChunkToTile(chunkPos ChunkPosition) TilePosition {
 	return tilePos
 }
 
-func (c *ChunkMath) TileToPosition(tilePos TilePosition) phy2.Vec {
+func (c *ChunkMath) TileToPosition(tilePos TilePosition) glm.Vec2 {
 	x, y := c.tilemath.Position(tilePos.X, tilePos.Y)
-	return phy2.Vec{x, y}
+	return glm.Vec2{x, y}
 }
 
 func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
 	tX, tY := c.tilemath.PositionToTile(x, y)
 	return TilePosition{tX, tY}
 }
-func (c *ChunkMath) PositionToTile2(pos phy2.Vec) TilePosition {
+func (c *ChunkMath) PositionToTile2(pos glm.Vec2) TilePosition {
 	tX, tY := c.tilemath.PositionToTile(pos.X, pos.Y)
 	return TilePosition{tX, tY}
 }
@@ -561,11 +562,11 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 
 
 // // Returns the worldspace position of a chunk
-// func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) phy2.Vec2 {
+// func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) glm.Vec22 {
 // 	offX, offY := c.math.Position(int(chunkPos.X), int(chunkPos.Y),
 // 		[2]int{c.tileSize[0]*c.chunkSize[0], c.tileSize[1]*c.chunkSize[1]})
 
-// 	offset := phy2.Vec2{
+// 	offset := glm.Vec22{
 // 		X: float64(offX),
 // 		// Y: float64(offY) - (0.5 * float64(c.chunkSize[1]) * float64(c.tileSize[1])) + float64(c.tileSize[1]/2),
 // 		Y: float64(offY) - float64(c.chunkSizeOver2[1] * c.tileSize[1]) + float64(c.tileSizeOver2[1]),
@@ -574,11 +575,11 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 // }
 
 // //Note: untested
-// func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) phy2.Pos {
+// func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) glm.Pos {
 // 	chunkPos := c.TileToChunk(tilePos)
 // 	offsetPos := c.ToPosition(chunkPos)
 // 	pos := c.TileToPosition(tilePos)
-// 	return pos.Sub(phy2.Pos(offsetPos))
+// 	return pos.Sub(glm.Pos(offsetPos))
 // }
 
 // func (c *ChunkMath) PositionToChunk(x, y float64) ChunkPosition {
@@ -608,16 +609,16 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 // 	return tilePos
 // }
 
-// func (c *ChunkMath) TileToPosition(tilePos TilePosition) phy2.Pos {
+// func (c *ChunkMath) TileToPosition(tilePos TilePosition) glm.Pos {
 // 	x, y := c.math.Position(tilePos.X, tilePos.Y, c.tileSize)
-// 	return phy2.Pos{x, y}
+// 	return glm.Pos{x, y}
 // }
 
 // func (c *ChunkMath) PositionToTile(x, y float64) TilePosition {
 // 	tX, tY := c.math.PositionToTile(x, y, c.tileSize)
 // 	return TilePosition{tX, tY}
 // }
-// func (c *ChunkMath) PositionToTile2(pos phy2.Vec) TilePosition {
+// func (c *ChunkMath) PositionToTile2(pos glm.Vec2) TilePosition {
 // 	tX, tY := c.math.PositionToTile(pos.X, pos.Y, c.tileSize)
 // 	return TilePosition{tX, tY}
 // }
@@ -634,10 +635,10 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 
 // Returns a rect including all of the tiles.
 // Centered on edge tiles
-func (c *ChunkMath) RectToWorldRect(r Rect) phy2.Rect {
+func (c *ChunkMath) RectToWorldRect(r Rect) glm.Rect {
 	min := c.TileToPosition(r.Min)
 	max := c.TileToPosition(r.Max)
-	return phy2.Rect{phy2.Vec(min), phy2.Vec(max)}
+	return glm.Rect{glm.Vec2(min), glm.Vec2(max)}
 }
 
 func (c *ChunkMath) GetEdgeNeighbors(x, y int) []TilePosition {

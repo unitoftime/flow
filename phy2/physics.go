@@ -2,6 +2,8 @@ package phy2
 
 import (
 	"math"
+
+	"github.com/unitoftime/flow/glm"
 )
 
 // //cod:struct
@@ -44,51 +46,51 @@ import (
 // }
 
 //cod:struct
-type Vel Vec2
+type Vel glm.Vec2
 
 func (v Vel) Add(v2 Vel) Vel {
-	return Vel(Vec2(v).Add(Vec2(v2)))
+	return Vel(glm.Vec2(v).Add(glm.Vec2(v2)))
 }
 
 func (v Vel) Sub(v2 Vel) Vel {
-	return Vel(Vec2(v).Sub(Vec2(v2)))
+	return Vel(glm.Vec2(v).Sub(glm.Vec2(v2)))
 }
 
 func (v Vel) Norm() Vel {
-	return Vel(Vec2(v).Norm())
+	return Vel(glm.Vec2(v).Norm())
 }
 
 func (v Vel) Dot(u Vel) float64 {
-	return Vec2(v).Dot(Vec2(u))
+	return glm.Vec2(v).Dot(glm.Vec2(u))
 }
 
 func (v Vel) Len() float64 {
-	return Vec2(v).Len()
+	return glm.Vec2(v).Len()
 }
 
 func (v Vel) Scaled(s float64) Vel {
-	return Vel(Vec2(v).Scaled(s))
+	return Vel(glm.Vec2(v).Scaled(s))
 }
 
 func (v Vel) Rotated(radians float64) Vel {
-	return Vel(Vec2(v).Rotated(radians))
+	return Vel(glm.Vec2(v).Rotated(radians))
 }
 
 func (v Vel) Angle() float64 {
 	return math.Atan2(v.Y, v.X)
 }
 
-//cod:struct
-type Scale Vec2
+// //cod:struct
+// type Scale glm.Vec2
 
-//cod:struct
-type Rotation float64
+// //cod:struct
+// type Rotation float64
 
-//cod:struct
-type Rigidbody struct {
-	Mass float64
-	Velocity Vec2
-}
+// //cod:struct
+// type Rigidbody struct {
+// 	Mass float64
+// 	Velocity glm.Vec2
+// }
 
 // // Applies rigidbody physics
 // func RigidbodyPhysics(world *ecs.World, dt time.Duration) {

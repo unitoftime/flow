@@ -3,6 +3,7 @@ package render
 import (
 	// "math"
 
+	"github.com/unitoftime/flow/glm"
 	"github.com/unitoftime/glitch"
 )
 
@@ -51,7 +52,7 @@ func (c *Camera) WorldSpaceRect() glitch.Rect {
 	min := c.Unproject(box.Min)
 	max := c.Unproject(box.Max)
 
-	return glitch.R(min.X, min.Y, max.X, max.Y)
+	return glm.R(min.X, min.Y, max.X, max.Y)
 }
 
 // type Camera struct {

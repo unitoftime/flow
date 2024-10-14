@@ -6,7 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/unitoftime/flow/ds"
-	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/flow/glm"
 	"github.com/unitoftime/flow/tile"
 )
 
@@ -1246,7 +1246,7 @@ func Untangle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gra
 
 func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravityConstant float64, iterations int) bool {
 	// TODO: everything inside of here probably needs to be fixed point, or integer based
-	forces := make(map[string]phy2.Vec)
+	forces := make(map[string]glm.Vec2)
 
 	// repelMultiplier = 100.0
 	// repelConstant := 50000.0
@@ -1264,14 +1264,14 @@ func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravi
 			if placement.Static { continue } // Dont add forces to static placements
 			if !placement.Placed { continue } // Skip if not yet placed
 
-			force := phy2.Vec{}
+			force := glm.Vec2{}
 			for key2, placement2 := range rooms {
 				if key == key2 { continue } // Skip if same
 				if !placement2.Placed { continue } // Skip if not yet placed
 
 				deltaTile := placement2.Rect.Center().Sub(placement.Rect.Center())
 
-				delta := phy2.Vec{float64(deltaTile.X), float64(deltaTile.Y)}
+				delta := glm.Vec2{float64(deltaTile.X), float64(deltaTile.Y)}
 
 				// dist := float64(tile.ManhattanDistance(placement.Rect.Center(), placement2.Rect.Center()))
 				dist := delta.Len()
@@ -1298,7 +1298,7 @@ func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravi
 			}
 
 			// Add a gravity
-			pos := phy2.Vec{
+			pos := glm.Vec2{
 				float64(placement.Rect.Center().X),
 				float64(placement.Rect.Center().Y),
 			}
@@ -1316,7 +1316,7 @@ func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravi
 
 			// // Add a upward Y force
 			// {
-			// 	vec := phy2.Vec{
+			// 	vec := glm.Vec{
 			// 		0.0,
 			// 		-100.0,
 			// 	}

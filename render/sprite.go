@@ -1,11 +1,9 @@
 package render
 
-import (
-	"github.com/unitoftime/flow/phy2"
-)
+import "github.com/unitoftime/flow/glm"
 
 type Pos struct {
-	phy2.Vec
+	glm.Vec2
 	Height float64
 }
 

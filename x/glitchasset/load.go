@@ -1,20 +1,22 @@
 package glitchasset
 
 import (
-	"fmt"
+	"encoding/json"
 	"errors"
-	"io/fs"
+	"fmt"
 	"image"
 	_ "image/png"
-	"encoding/json"
-	"gopkg.in/yaml.v3"
+	"io/fs"
 	"io/ioutil"
 	"path"
 	"time"
 
-	"golang.org/x/image/font"
-	"github.com/golang/freetype/truetype"
+	"gopkg.in/yaml.v3"
 
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
+
+	"github.com/unitoftime/flow/glm"
 	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/packer"
 )
@@ -239,7 +241,7 @@ func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error
 	// bounds := texture.Bounds()
 	lookup := make(map[string]*glitch.Sprite)
 	for k, v := range serializedSpritesheet.Frames {
-		rect := glitch.R(
+		rect := glm.R(
 			v.Frame.X,
 			v.Frame.Y,
 			v.Frame.X + v.Frame.W,

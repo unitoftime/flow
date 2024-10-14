@@ -4,7 +4,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/unitoftime/flow/phy2"
+	"github.com/unitoftime/flow/glm"
 )
 
 // TODO: eventually use shapes
@@ -16,25 +16,25 @@ import (
 
 // type Shape struct {
 // 	Type ShapeType
-// 	Bounds phy2.Rect
+// 	Bounds glm.Rect
 // }
-// func Rect(rect phy2.Rect) Shape {
+// func Rect(rect glm.Rect) Shape {
 // 	return Shape{
 // 		Type: ShapeRect,
 // 		Bounds: rect,
 // 	}
 // }
-// func Circle(rect phy2.Rect) Shape {
+// func Circle(rect glm.Rect) Shape {
 // 	return Shape{
 // 		Type: ShapeCircle,
 // 		Bounds: rect,
 // 	}
 // }
-// func (s Shape) Rect() phy2.Rect {
+// func (s Shape) Rect() glm.Rect {
 // 	return s.Bounds
 // }
-// func (s Shape) Circle() phy2.Circle {
-// 	phy2.NewCircle(s.Bounds.Center())
+// func (s Shape) Circle() glm.Circle {
+// 	glm.NewCircle(s.Bounds.Center())
 // }
 
 // func (s Shape) Intersects(s2 Shape) bool {
@@ -186,7 +186,7 @@ type Index struct {
 }
 
 type BucketItem[T comparable] struct {
-	shape phy2.Rect
+	shape glm.Rect
 	item T
 }
 
@@ -199,7 +199,7 @@ func NewBucket[T comparable]() *Bucket[T] {
 		List: make([]BucketItem[T], 0),
 	}
 }
-func (b *Bucket[T]) Add(shape phy2.Rect, val T) {
+func (b *Bucket[T]) Add(shape glm.Rect, val T) {
 	b.List = append(b.List, BucketItem[T]{
 		shape: shape,
 		item: val,
@@ -214,14 +214,14 @@ func (b *Bucket[T]) Remove(val T) {
 func (b *Bucket[T]) Clear() {
 	b.List = b.List[:0]
 }
-func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
+func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape glm.Rect) {
 	for i := range b.List {
 		if shape.Intersects(b.List[i].shape) {
 			colSet.Add(b.List[i].item)
 		}
 	}
 }
-func (b *Bucket[T]) Collides(shape phy2.Rect) bool {
+func (b *Bucket[T]) Collides(shape glm.Rect) bool {
 	for i := range b.List {
 		if shape.Intersects(b.List[i].shape) {
 			return true
@@ -230,7 +230,7 @@ func (b *Bucket[T]) Collides(shape phy2.Rect) bool {
 	return false
 }
 
-func (b *Bucket[T]) FindClosest(shape phy2.Rect) (BucketItem[T], bool) {
+func (b *Bucket[T]) FindClosest(shape glm.Rect) (BucketItem[T], bool) {
 	center := shape.Center()
 	distSquared := math.MaxFloat64
 	ret := BucketItem[T]{}
@@ -267,7 +267,7 @@ func NewPositionHasher(size [2]int) PositionHasher {
 	}
 }
 
-func (h *PositionHasher) PositionToIndex(pos phy2.Vec) Index {
+func (h *PositionHasher) PositionToIndex(pos glm.Vec2) Index {
 	x := pos.X
 	y := pos.Y
 	xPos := (int(x)) >> h.div[0]
@@ -319,7 +319,7 @@ func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 	return bucket
 }
 
-func (h *Hashmap[T]) Add(shape phy2.Rect, val T) {
+func (h *Hashmap[T]) Add(shape glm.Rect, val T) {
 	min := h.PositionToIndex(shape.Min)
 	max := h.PositionToIndex(shape.Max)
 
@@ -340,7 +340,7 @@ func (h *Hashmap[T]) Remove(val T) {
 }
 
 // Finds collisions and adds them directly into your collision set
-func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
+func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape glm.Rect) {
 	min := h.PositionToIndex(shape.Min)
 	max := h.PositionToIndex(shape.Max)
 
@@ -364,7 +364,7 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape phy2.Rect) {
 	}
 }
 
-func (h *Hashmap[T]) Collides(shape phy2.Rect) bool {
+func (h *Hashmap[T]) Collides(shape glm.Rect) bool {
 	min := h.PositionToIndex(shape.Min)
 	max := h.PositionToIndex(shape.Max)
 
@@ -391,7 +391,7 @@ func (h *Hashmap[T]) Collides(shape phy2.Rect) bool {
 	return false
 }
 
-func (h *Hashmap[T]) FindClosest(shape phy2.Rect) (T, bool) {
+func (h *Hashmap[T]) FindClosest(shape glm.Rect) (T, bool) {
 	min := h.PositionToIndex(shape.Min)
 	max := h.PositionToIndex(shape.Max)
 
@@ -422,7 +422,7 @@ func (h *Hashmap[T]) FindClosest(shape phy2.Rect) (T, bool) {
 }
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
-func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape phy2.Rect) {
+func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape glm.Rect) {
 	min := h.PositionToIndex(shape.Min)
 	max := h.PositionToIndex(shape.Max)
 

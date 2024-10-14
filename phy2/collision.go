@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/unitoftime/ecs"
+	"github.com/unitoftime/flow/glm"
 )
 
 type CollisionLayer uint8
@@ -75,14 +76,14 @@ func (c *CircleCollider) LayerMask(layer CollisionLayer) bool {
 // 	c.CenterY = pos.Y
 // }
 
-func (c *CircleCollider) Bounds() Rect {
-	return Rect{
-		Min: Vec{c.CenterX - c.Radius, c.CenterY - c.Radius},
-		Max: Vec{c.CenterX + c.Radius, c.CenterY + c.Radius},
+func (c *CircleCollider) Bounds() glm.Rect {
+	return glm.Rect{
+		Min: glm.Vec2{c.CenterX - c.Radius, c.CenterY - c.Radius},
+		Max: glm.Vec2{c.CenterX + c.Radius, c.CenterY + c.Radius},
 	}
 }
 
-func (c *CircleCollider) Contains(yProjection float64, pos Vec) bool {
+func (c *CircleCollider) Contains(yProjection float64, pos glm.Vec2) bool {
 	// dx := transform.X - c.CenterX
 	// dy := transform.Y - c.CenterY
 	// dist := math.Hypot(dx, yProjection * dy)

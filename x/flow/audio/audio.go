@@ -91,6 +91,13 @@ func (c *Channel) PlayOnly(src *Source, loop bool) {
 	}()
 }
 
+// func (c *Channel) PlayStreamer(streamer beep.Streamer) {
+// 	if c == nil { return }
+// 	go func() {
+// 		c.add(streamer)
+// 	}()
+// }
+
 func (c *Channel) Play(src *Source) {
 	if c == nil { return }
 	if src == nil { return }
