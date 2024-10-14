@@ -15,11 +15,11 @@ func (v Vec2) Vec3() Vec3 {
 }
 
 func (v Vec2) Add(v2 Vec2) Vec2 {
-	return V2(v.X + v2.X, v.Y + v2.Y)
+	return V2(v.X+v2.X, v.Y+v2.Y)
 }
 
 func (v Vec2) Sub(v2 Vec2) Vec2 {
-	return V2(v.X - v2.X, v.Y - v2.Y)
+	return V2(v.X-v2.X, v.Y-v2.Y)
 }
 
 func (v Vec2) Norm() Vec2 {
@@ -53,7 +53,7 @@ func (v Vec2) LenSq() float64 {
 }
 
 func (v Vec2) Scaled(s float64) Vec2 {
-	return V2(s * v.X, s * v.Y)
+	return V2(s*v.X, s*v.Y)
 }
 
 func (v Vec2) ScaledXY(s Vec2) Vec2 {
@@ -64,8 +64,8 @@ func (v Vec2) Rotated(radians float64) Vec2 {
 	sin := math.Sin(radians)
 	cos := math.Cos(radians)
 	return V2(
-		v.X * cos - v.Y * sin,
-		v.X * sin + v.Y * cos,
+		v.X*cos-v.Y*sin,
+		v.X*sin+v.Y*cos,
 	)
 }
 

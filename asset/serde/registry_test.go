@@ -312,7 +312,7 @@ import (
 
 // }
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 type inter interface {
 	Int() int
 }
@@ -324,6 +324,7 @@ type MyData struct {
 	D any
 	E []inter
 }
+
 func (d MyData) Int() int {
 	return 1
 }
@@ -331,6 +332,7 @@ func (d MyData) Int() int {
 type MyData2 struct {
 	Name string
 }
+
 func (d MyData2) Int() int {
 	return 2
 }
@@ -338,15 +340,16 @@ func (d MyData2) Int() int {
 type MyData3 struct {
 	Number int
 }
+
 func (d MyData3) Int() int {
 	return 3
 }
 
 func TestGotiny(t *testing.T) {
-// A : 555
-// B : 6666
-// C : [1 2 a b {MyData2Struct}]
-// D : {0 MyData - D [] {12345}}
+	// A : 555
+	// B : 6666
+	// C : [1 2 a b {MyData2Struct}]
+	// D : {0 MyData - D [] {12345}}
 
 	// registry.Clear()
 	gotiny.Register(MyData{})
@@ -387,7 +390,9 @@ func TestGotiny(t *testing.T) {
 	gotiny.Unmarshal(data, &myDataRet)
 	{
 		data, err := json.Marshal(myDataRet)
-		if err != nil { panic(err) }
+		if err != nil {
+			panic(err)
+		}
 		fmt.Println(string(data))
 	}
 

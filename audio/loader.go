@@ -18,8 +18,9 @@ func newSource(data []byte) *Source {
 		data: data,
 	}
 }
+
 type Source struct {
-	data []byte
+	data   []byte
 	buffer *beep.Buffer // TODO: Would be nice to buffer short sound effects
 }
 
@@ -27,8 +28,12 @@ type Source struct {
 // Useful for short sound effects where you play them frequently and they dont take much memory.
 // This will reduce CPU usage and increase memory usage
 func (s *Source) Buffer() {
-	if s == nil { return }
-	if s.buffer != nil { return } // Skip if we've already buffered
+	if s == nil {
+		return
+	}
+	if s.buffer != nil {
+		return
+	} // Skip if we've already buffered
 
 	reader := bytes.NewReader(s.data)
 	streamer, format, err := vorbis.Decode(fakeCloser{reader})
@@ -59,8 +64,9 @@ func (s *Source) Streamer() (beep.StreamSeeker, error) {
 type AssetLoader struct {
 	// TODO: Target Sample Rate
 }
+
 func (l AssetLoader) Ext() []string {
-	return []string{".ogg"}//, ".wav"} // TODO: //, "opus", "mp3"}
+	return []string{".ogg"} //, ".wav"} // TODO: //, "opus", "mp3"}
 }
 func (l AssetLoader) Load(server *asset.Server, data []byte) (*Source, error) {
 	source := newSource(data)
@@ -83,6 +89,7 @@ type fakeCloser struct {
 	// stop bool // TODO: Do I need closing functionality? Maybe to block reading if I individually close a streamer?
 	io.ReadSeeker // Note: This must be an io.ReadSeeker because decoders require the Seeker to be implemented for `Seek` operations to work
 }
+
 func (c fakeCloser) Close() error {
 	// stop = true
 	return nil

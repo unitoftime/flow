@@ -16,21 +16,24 @@ import (
 
 // TODO: Dump string labels and use int labels?
 type RoomDag struct {
-	Nodes []string // Holds the nodes in the order that they were added
-	NodeMap map[string]int // holds the rank of the node (to prevent cycles)
-	Edges map[string][]string // This is the dag
-	rank int
+	Nodes   []string            // Holds the nodes in the order that they were added
+	NodeMap map[string]int      // holds the rank of the node (to prevent cycles)
+	Edges   map[string][]string // This is the dag
+	rank    int
 }
+
 func NewRoomDag() *RoomDag {
 	return &RoomDag{
-		Nodes: make([]string, 0),
+		Nodes:   make([]string, 0),
 		NodeMap: make(map[string]int),
-		Edges: make(map[string][]string),
+		Edges:   make(map[string][]string),
 	}
 }
 func (d *RoomDag) AddNode(label string) bool {
 	_, ok := d.NodeMap[label]
-	if ok { return false } // already exists
+	if ok {
+		return false
+	} // already exists
 
 	d.NodeMap[label] = d.rank
 	d.Nodes = append(d.Nodes, label)
@@ -41,9 +44,13 @@ func (d *RoomDag) AddNode(label string) bool {
 
 func (d *RoomDag) AddEdge(from, to string) {
 	fromNode, ok := d.NodeMap[from]
-	if !ok { return } // TODO: false?
+	if !ok {
+		return
+	} // TODO: false?
 	toNode, ok := d.NodeMap[to]
-	if !ok { return } // TODO: false?
+	if !ok {
+		return
+	} // TODO: false?
 
 	// Only add edges from lower to higher ranks
 	if fromNode < toNode {
@@ -56,7 +63,9 @@ func (d *RoomDag) AddEdge(from, to string) {
 // Returns true if the node is a leaf node (ie has no outward facing edges)
 func (d *RoomDag) IsLeafNode(label string) bool {
 	edges, ok := d.Edges[label]
-	if !ok { return true }
+	if !ok {
+		return true
+	}
 
 	return len(edges) <= 0
 }
@@ -81,7 +90,9 @@ func (d *RoomDag) Distance(from, to string) int {
 
 	for {
 		currentNode, ok := queue.Remove()
-		if !ok { break }
+		if !ok {
+			break
+		}
 
 		currentNodeDistance := distance[currentNode]
 		if currentNode == to {
@@ -124,10 +135,14 @@ func (d *RoomDag) TopologicalSort(start string) []string {
 
 	for {
 		currentNode, ok := queue.Remove()
-		if !ok { break }
+		if !ok {
+			break
+		}
 
 		visited := visit[currentNode]
-		if visited { continue }
+		if visited {
+			continue
+		}
 		visit[currentNode] = true
 
 		ret = append(ret, currentNode)
@@ -141,25 +156,29 @@ func (d *RoomDag) TopologicalSort(start string) []string {
 }
 
 func (d *RoomDag) RandomLabel(rng *rand.Rand) string {
-	if len(d.Nodes) <= 0 { return "" }
+	if len(d.Nodes) <= 0 {
+		return ""
+	}
 
 	idx := rng.Intn(len(d.Nodes))
 	return d.Nodes[idx]
 }
 
 func (d *RoomDag) RandomSortedLabel(startLabel string, rng *rand.Rand, topoAfter, topoBeforeEnd int) string {
-	if len(d.Nodes) <= 0 { return "" }
+	if len(d.Nodes) <= 0 {
+		return ""
+	}
 
 	nodes := d.TopologicalSort(startLabel)
 
 	after := topoAfter
 	if after >= len(nodes) {
-		after = len(nodes)-1
+		after = len(nodes) - 1
 	}
 
 	before := len(nodes) - topoBeforeEnd
 	if before >= len(nodes) {
-		before = len(nodes)-1
+		before = len(nodes) - 1
 	}
 
 	rngRange := Range[int]{after, before}
@@ -310,14 +329,13 @@ func addDagNodeData(dag *RoomDag, roomPos map[string]tile.TilePosition, pos tile
 	return label
 }
 
-
 func BlankWalkDag() (*RoomDag, map[string]tile.TilePosition) {
 	dag := NewRoomDag()
 	roomPos := make(map[string]tile.TilePosition)
 	return dag, roomPos
 }
 
-func AddWalk(dag *RoomDag, roomPos map[string]tile.TilePosition, rng *rand.Rand, startPos tile.Position, walkLength int, walkNorthOnly bool)() {
+func AddWalk(dag *RoomDag, roomPos map[string]tile.TilePosition, rng *rand.Rand, startPos tile.Position, walkLength int, walkNorthOnly bool) {
 	lastLabel := addDagNodeData(dag, roomPos, startPos, "")
 	lastWalkPos := startPos // The last position we added
 
@@ -361,15 +379,21 @@ func CalculateRoomDepths(dag *RoomDag, placements map[string]RoomPlacement, star
 
 	for {
 		currentNode, ok := queue.Remove()
-		if !ok { return } // Done when there's nothing in the queue
+		if !ok {
+			return
+		} // Done when there's nothing in the queue
 		currentPlacement, ok := placements[currentNode]
-		if !ok { panic("MUST BE SET") }
+		if !ok {
+			panic("MUST BE SET")
+		}
 		currentDepth := currentPlacement.Depth
 
 		children := dag.Edges[currentNode]
 		for _, child := range children {
 			visited := visit[child]
-			if visited { continue }
+			if visited {
+				continue
+			}
 			visit[child] = true
 
 			childPlacement := placements[child]
@@ -404,32 +428,32 @@ func CalculateRoomDepths(dag *RoomDag, placements map[string]RoomPlacement, star
 
 type RoomPlacement struct {
 	// MapDef *MapDefinition // TODO: generic
-	Rect tile.Rect
+	Rect    tile.Rect
 	GoalGap float64
-	Static bool
-	Repel float64
+	Static  bool
+	Repel   float64
 	Attract float64
-	Depth int
-	Mass float64
-	Placed bool
+	Depth   int
+	Mass    float64
+	Placed  bool
 }
 
 type ForceBasedRelaxer struct {
 	// targetGap int
-	rng *rand.Rand
-	dag *RoomDag
+	rng        *rand.Rand
+	dag        *RoomDag
 	placements map[string]RoomPlacement
-	repel float64
-	grav float64
+	repel      float64
+	grav       float64
 }
 
 func NewForceBasedRelaxer(rng *rand.Rand, dag *RoomDag, placements map[string]RoomPlacement, startingRepel float64, startingGrav float64) *ForceBasedRelaxer {
 	return &ForceBasedRelaxer{
-		rng: rng,
-		dag: dag,
+		rng:        rng,
+		dag:        dag,
 		placements: placements,
-		repel: startingRepel,
-		grav: startingGrav,
+		repel:      startingRepel,
+		grav:       startingGrav,
 	}
 }
 
@@ -473,11 +497,17 @@ func PSLDStep(rng *rand.Rand, dag *RoomDag, place map[string]RoomPlacement) bool
 			if HasEdgeIntersections(dag, place, node, e) {
 				// Move
 				p1, ok := place[node]
-				if !ok { panic("AAA") }
-				if p1.Static { continue }
+				if !ok {
+					panic("AAA")
+				}
+				if p1.Static {
+					continue
+				}
 
 				p2, ok := place[e]
-				if !ok { panic("AAA") }
+				if !ok {
+					panic("AAA")
+				}
 
 				// We will find the vector from p1 to p2, then move both of them by that amount
 				delta := p2.Rect.Center().Sub(p1.Rect.Center())
@@ -498,29 +528,32 @@ func PSLD(rng *rand.Rand, dag *RoomDag, place map[string]RoomPlacement) {
 	for {
 		noIntersections := PSLDStep(rng, dag, place)
 
-		if noIntersections { break }
+		if noIntersections {
+			break
+		}
 	}
 }
 
 type GridLayout struct {
-	rng *rand.Rand
-	queue *ds.Queue[string]
-	dag *RoomDag
-	place map[string]RoomPlacement
-	nodeList []string
-	topoIdx int
+	rng       *rand.Rand
+	queue     *ds.Queue[string]
+	dag       *RoomDag
+	place     map[string]RoomPlacement
+	nodeList  []string
+	topoIdx   int
 	topoMoved map[string]bool
 	tolerance int
 }
+
 func NewGridLayout(rng *rand.Rand, dag *RoomDag, place map[string]RoomPlacement, start string, tolerance int) *GridLayout {
 	queue := ds.NewQueue[string](len(place)) // TODO: dynamically resized
 	queue.Add(start)
 
 	return &GridLayout{
-		rng: rng,
-		queue: queue,
-		dag: dag,
-		place: place,
+		rng:      rng,
+		queue:    queue,
+		dag:      dag,
+		place:    place,
 		nodeList: dag.TopologicalSort(start),
 
 		topoMoved: make(map[string]bool),
@@ -533,7 +566,9 @@ func (l *GridLayout) LayoutGrid(roomPos map[string]tile.TilePosition) {
 	for {
 		for k, room := range l.place {
 			pos, ok := roomPos[k]
-			if !ok { panic("AAA") }
+			if !ok {
+				panic("AAA")
+			}
 
 			rect := room.Rect.WithCenter(tile.TilePosition{pos.X * gridSize, pos.Y * gridSize})
 			room.Rect = rect
@@ -558,7 +593,9 @@ func (l *GridLayout) Expand() bool {
 		}
 
 		parent, ok := l.place[parentNode]
-		if !ok { panic("AAA") }
+		if !ok {
+			panic("AAA")
+		}
 
 		pos := parent.Rect.Center()
 		pos.X = -pos.X
@@ -581,14 +618,20 @@ func (l *GridLayout) IterateGravity() bool {
 		// if !ok { panic("AAA") }
 
 		edges, ok := l.dag.Edges[parentNode]
-		if !ok { panic("AAA") }
+		if !ok {
+			panic("AAA")
+		}
 		for _, child := range edges {
 			alreadyMoved := moved[child]
-			if alreadyMoved { continue }
+			if alreadyMoved {
+				continue
+			}
 			moved[child] = true
 
 			p, ok := l.place[child]
-			if !ok { panic("AAA") }
+			if !ok {
+				panic("AAA")
+			}
 
 			origCenter := p.Rect.Center()
 			// pos := parent.Rect.Center()
@@ -607,11 +650,13 @@ func (l *GridLayout) IterateGravity() bool {
 	return done
 }
 
-//TODO: tolerance?
+// TODO: tolerance?
 func (l *GridLayout) AllEdgesAxisAligned(tolerance int) bool {
 	for _, n := range l.nodeList {
 		edges, ok := l.dag.Edges[n]
-		if !ok { panic("AAA") }
+		if !ok {
+			panic("AAA")
+		}
 
 		a := l.place[n]
 		r1 := a.Rect
@@ -629,15 +674,19 @@ func (l *GridLayout) AllEdgesAxisAligned(tolerance int) bool {
 
 func AxisAligned(tol int, a, b tile.Rect) bool {
 	// align from center, adjusted for room width
-	minXRadius := math.Min(float64(a.W()) / 2, float64(b.W()) / 2)
+	minXRadius := math.Min(float64(a.W())/2, float64(b.W())/2)
 	tolX := int(minXRadius) - tol
 	xOverlap := int(math.Abs(float64(a.Center().X - b.Center().X)))
-	if xOverlap < tolX { return true }
+	if xOverlap < tolX {
+		return true
+	}
 
-	minYRadius := math.Min(float64(a.H()) / 2, float64(b.H()) / 2)
+	minYRadius := math.Min(float64(a.H())/2, float64(b.H())/2)
 	tolY := int(minYRadius) - tol
 	yOverlap := int(math.Abs(float64(a.Center().Y - b.Center().Y)))
-	if yOverlap < tolY { return true }
+	if yOverlap < tolY {
+		return true
+	}
 	return false
 
 	// // align from center
@@ -666,20 +715,28 @@ func (l *GridLayout) IterateTowardsParent() bool {
 	done := true
 	for _, parentNode := range l.nodeList {
 		parent, ok := l.place[parentNode]
-		if !ok { panic("AAA") }
+		if !ok {
+			panic("AAA")
+		}
 
 		// parentMove, ok := movedAmount[parentNode]
 		// if !ok { panic("AAA") }
 
 		edges, ok := l.dag.Edges[parentNode]
-		if !ok { panic("AAA") }
+		if !ok {
+			panic("AAA")
+		}
 		for _, child := range edges {
 			alreadyMoved := moved[child]
-			if alreadyMoved { continue }
+			if alreadyMoved {
+				continue
+			}
 			moved[child] = true
 
 			p, ok := l.place[child]
-			if !ok { panic("AAA") }
+			if !ok {
+				panic("AAA")
+			}
 
 			origCenter := p.Rect.Center()
 			// p.Rect = l.MoveTowards(p.Rect, tile.TilePosition{}, 1)
@@ -688,7 +745,6 @@ func (l *GridLayout) IterateTowardsParent() bool {
 			// 	p.Rect = p.Rect.WithCenter(origCenter)
 			// 	l.place[child] = p
 			// }
-
 
 			// Move x direction
 			{
@@ -741,16 +797,24 @@ func (l *GridLayout) Iterate() bool {
 	// rngIndex := l.rng.Intn(len(l.nodeList))
 	parentNode := l.nodeList[l.topoIdx]
 	parent, ok := l.place[parentNode]
-	if !ok { panic("AAA") }
+	if !ok {
+		panic("AAA")
+	}
 
 	edges, ok := l.dag.Edges[parentNode]
-	if !ok { panic("AAA") }
+	if !ok {
+		panic("AAA")
+	}
 	for _, child := range edges {
 		alreadyMoved := l.topoMoved[child]
-		if alreadyMoved { continue }
+		if alreadyMoved {
+			continue
+		}
 
 		p, ok := l.place[child]
-		if !ok { panic("AAA") }
+		if !ok {
+			panic("AAA")
+		}
 
 		for {
 			l.topoMoved[child] = true
@@ -778,9 +842,13 @@ func (l *GridLayout) Iterate() bool {
 func (l *GridLayout) MoveTowards(rect tile.Rect, pos tile.TilePosition, dist int) tile.Rect {
 	move := tile.TilePosition{}
 	magX := pos.X
-	if magX < 0 { magX = -magX }
+	if magX < 0 {
+		magX = -magX
+	}
 	magY := pos.Y
-	if magY < 0 { magY = -magY }
+	if magY < 0 {
+		magY = -magY
+	}
 
 	if magX > magY {
 		if pos.X > 0 {
@@ -857,27 +925,28 @@ func (l *GridLayout) MoveTowards(rect tile.Rect, pos tile.TilePosition, dist int
 
 // func (l *HeirarchicalLayout) Iterate() bool {
 // 	for _, label := range l.depthGroup {
-		
+
 // 	}
 // }
 
 type DepthFirstLayout struct {
-	rng *rand.Rand
+	rng   *rand.Rand
 	stack *ds.Stack[string]
-	dag *RoomDag
+	dag   *RoomDag
 	place map[string]RoomPlacement
-	dist float64
+	dist  float64
 }
+
 func NewDepthFirstLayout(rng *rand.Rand, dag *RoomDag, place map[string]RoomPlacement, start string, distance float64) *DepthFirstLayout {
 	stack := ds.NewStack[string]()
 	stack.Add(start)
 
 	return &DepthFirstLayout{
-		rng: rng,
+		rng:   rng,
 		stack: stack,
-		dag: dag,
+		dag:   dag,
 		place: place,
-		dist: distance,
+		dist:  distance,
 	}
 }
 func (d *DepthFirstLayout) Reset() {
@@ -892,7 +961,7 @@ func (d *DepthFirstLayout) CutCrossed() bool {
 	cutList := make([]string, 0)
 	for k, _ := range d.place {
 		if NodeHasEdgeIntersections(d.dag, d.place, k) {
-		// if NodeHasEdgeIntersectionsWithMoreShallowEdge(d.dag, d.place, k) {
+			// if NodeHasEdgeIntersectionsWithMoreShallowEdge(d.dag, d.place, k) {
 			cutList = append(cutList, k)
 		}
 	}
@@ -917,7 +986,9 @@ func (d *DepthFirstLayout) CutCrossed() bool {
 
 func (d *DepthFirstLayout) Cut(label string) {
 	p, ok := d.place[label]
-	if !ok { return }
+	if !ok {
+		return
+	}
 
 	// fmt.Println("Cut: ", label)
 	p.Placed = false
@@ -933,16 +1004,22 @@ func (d *DepthFirstLayout) CutBelow(label string) {
 	stack.Add(label)
 	for {
 		curr, ok := stack.Remove()
-		if !ok { break }
+		if !ok {
+			break
+		}
 		visited := visit[curr]
-		if visited { continue }
+		if visited {
+			continue
+		}
 		visit[curr] = true
 
 		children := d.dag.Edges[curr]
 		for _, child := range children {
 			// fmt.Println("Cut: ", curr)
 			p, ok := d.place[child]
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 			p.Placed = false
 			d.place[child] = p
 
@@ -954,15 +1031,21 @@ func (d *DepthFirstLayout) CutBelow(label string) {
 // Returns true to indicate it hasn't finished
 func (d *DepthFirstLayout) Iterate() bool {
 	currentNode, ok := d.stack.Remove()
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 
 	children := d.dag.Edges[currentNode]
 	for _, child := range children {
 		room := d.place[child]
-		if room.Placed { continue }
+		if room.Placed {
+			continue
+		}
 
 		currentPlacement, ok := d.place[currentNode]
-		if !ok { panic("MUST BE SET") }
+		if !ok {
+			panic("MUST BE SET")
+		}
 		currentRect := currentPlacement.Rect
 		currentDepth := currentPlacement.Depth
 
@@ -977,8 +1060,8 @@ func (d *DepthFirstLayout) Iterate() bool {
 
 			// Random square placement
 			squareRadius := int(d.dist)
-			moveX := currentRect.Center().X + d.rng.Intn(2 * squareRadius) - squareRadius
-			moveY := currentRect.Center().Y + d.rng.Intn(2 * squareRadius) - squareRadius
+			moveX := currentRect.Center().X + d.rng.Intn(2*squareRadius) - squareRadius
+			moveY := currentRect.Center().Y + d.rng.Intn(2*squareRadius) - squareRadius
 			room.Rect = room.Rect.WithCenter(tile.TilePosition{moveX, moveY})
 			room.Depth = currentDepth + 1
 
@@ -1000,22 +1083,23 @@ func (d *DepthFirstLayout) Iterate() bool {
 }
 
 type BreadthFirstLayout struct {
-	rng *rand.Rand
+	rng   *rand.Rand
 	queue *ds.Queue[string]
-	dag *RoomDag
+	dag   *RoomDag
 	place map[string]RoomPlacement
-	dist float64
+	dist  float64
 }
+
 func NewBreadthFirstLayout(rng *rand.Rand, dag *RoomDag, place map[string]RoomPlacement, start string, distance float64) *BreadthFirstLayout {
 	queue := ds.NewQueue[string](len(place)) // TODO: dynamically resized
 	queue.Add(start)
 
 	return &BreadthFirstLayout{
-		rng: rng,
+		rng:   rng,
 		queue: queue,
-		dag: dag,
+		dag:   dag,
 		place: place,
-		dist: distance,
+		dist:  distance,
 	}
 }
 
@@ -1031,23 +1115,29 @@ func (d *BreadthFirstLayout) Reset() {
 // Returns true to indicate it hasn't finished
 func (d *BreadthFirstLayout) Iterate() bool {
 	currentNode, ok := d.queue.Remove()
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 
 	children := d.dag.Edges[currentNode]
 	for _, child := range children {
 		room := d.place[child]
-		if room.Placed { continue }
+		if room.Placed {
+			continue
+		}
 
 		currentPlacement, ok := d.place[currentNode]
-		if !ok { panic("MUST BE SET") }
+		if !ok {
+			panic("MUST BE SET")
+		}
 		currentRect := currentPlacement.Rect
 		currentDepth := currentPlacement.Depth
 
 		for i := 0; i < 50; i++ {
 			// Random square placement
 			squareRadius := int(d.dist)
-			moveX := currentRect.Center().X + d.rng.Intn(2 * squareRadius) - squareRadius
-			moveY := currentRect.Center().Y + d.rng.Intn(2 * squareRadius) - squareRadius
+			moveX := currentRect.Center().X + d.rng.Intn(2*squareRadius) - squareRadius
+			moveY := currentRect.Center().Y + d.rng.Intn(2*squareRadius) - squareRadius
 			room.Rect = room.Rect.WithCenter(tile.TilePosition{moveX, moveY})
 			room.Depth = currentDepth + 1
 
@@ -1069,7 +1159,6 @@ func (d *BreadthFirstLayout) Iterate() bool {
 	return true
 }
 
-
 func PlaceDepthFirst(rng *rand.Rand, dag *RoomDag, rooms map[string]RoomPlacement, start string, distance float64) {
 	stack := ds.NewStack[string]()
 	stack.Add(start)
@@ -1080,15 +1169,21 @@ func PlaceDepthFirst(rng *rand.Rand, dag *RoomDag, rooms map[string]RoomPlacemen
 	placed := make(map[string]bool)
 	for {
 		currentNode, ok := stack.Remove()
-		if !ok { break }
+		if !ok {
+			break
+		}
 
 		children := dag.Edges[currentNode]
 		for _, child := range children {
 			_, alreadyPlaced := placed[child]
-			if alreadyPlaced { continue }
+			if alreadyPlaced {
+				continue
+			}
 
 			currentPlacement, ok := rooms[currentNode]
-			if !ok { panic("MUST BE SET") }
+			if !ok {
+				panic("MUST BE SET")
+			}
 			currentRect := currentPlacement.Rect
 			currentDepth := currentPlacement.Depth
 
@@ -1153,7 +1248,9 @@ func PlaceBreadthFirst(rng *rand.Rand, dag *RoomDag, rooms map[string]RoomPlacem
 	placed := make(map[string]bool)
 	for {
 		currentNode, ok := childQueue.Remove()
-		if !ok { break }
+		if !ok {
+			break
+		}
 		// currentPlacement, ok := rooms[currentNode]
 		// if !ok { panic("MUST BE SET") }
 		// currentRect := currentPlacement.Rect
@@ -1162,10 +1259,14 @@ func PlaceBreadthFirst(rng *rand.Rand, dag *RoomDag, rooms map[string]RoomPlacem
 		children := dag.Edges[currentNode]
 		for _, child := range children {
 			_, alreadyPlaced := placed[child]
-			if alreadyPlaced { continue }
+			if alreadyPlaced {
+				continue
+			}
 
 			currentPlacement, ok := rooms[currentNode]
-			if !ok { panic("MUST BE SET") }
+			if !ok {
+				panic("MUST BE SET")
+			}
 			currentRect := currentPlacement.Rect
 			currentDepth := currentPlacement.Depth
 
@@ -1261,13 +1362,21 @@ func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravi
 	for i := 0; i < iterations; i++ {
 		// Calculate Forces
 		for key, placement := range rooms {
-			if placement.Static { continue } // Dont add forces to static placements
-			if !placement.Placed { continue } // Skip if not yet placed
+			if placement.Static {
+				continue
+			} // Dont add forces to static placements
+			if !placement.Placed {
+				continue
+			} // Skip if not yet placed
 
 			force := glm.Vec2{}
 			for key2, placement2 := range rooms {
-				if key == key2 { continue } // Skip if same
-				if !placement2.Placed { continue } // Skip if not yet placed
+				if key == key2 {
+					continue
+				} // Skip if same
+				if !placement2.Placed {
+					continue
+				} // Skip if not yet placed
 
 				deltaTile := placement2.Rect.Center().Sub(placement.Rect.Center())
 
@@ -1280,13 +1389,17 @@ func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravi
 				if dag.HasEdgeEitherDirection(key2, key) {
 					attractVal := attractConstant * placement.Attract * placement2.Attract
 					mag := attractVal * (dist - (placement.GoalGap + placement2.GoalGap))
-					if mag > 100 { mag = 100 }
+					if mag > 100 {
+						mag = 100
+					}
 					vec := delta.Norm().Scaled(mag)
 					vec.X *= 4
 					force = force.Add(vec)
 					// fmt.Println("Conn: ", vec)
 				} else {
-					if dist < 100 { dist = 100 }
+					if dist < 100 {
+						dist = 100
+					}
 					// Repulsions
 					// mag := -1 * repelConstant / (dist * dist)
 					repelVal := repelMultiplier * placement.Repel * placement2.Repel
@@ -1329,14 +1442,18 @@ func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravi
 		// Apply Forces
 		for k, f := range forces {
 			placement, ok := rooms[k]
-			if !ok { panic("AAAA") }
+			if !ok {
+				panic("AAAA")
+			}
 
 			tileMove := tile.TilePosition{
 				int(math.Round(f.X / mass)),
 				int(math.Round(f.Y / mass)),
 			}
 
-			if (tileMove == tile.TilePosition{}) { continue } // Skip if there is no movement
+			if (tileMove == tile.TilePosition{}) {
+				continue
+			} // Skip if there is no movement
 
 			stable = false
 			placement.Rect = placement.Rect.Moved(tileMove)
@@ -1409,16 +1526,24 @@ func Wiggle(dag *RoomDag, rooms map[string]RoomPlacement, repelMultiplier, gravi
 
 func NodeHasEdgeIntersectionsWithMoreShallowEdge(dag *RoomDag, placements map[string]RoomPlacement, label string) bool {
 	edges, ok := dag.Edges[label]
-	if !ok { panic("AAA") }
+	if !ok {
+		panic("AAA")
+	}
 
 	p1, ok := placements[label]
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 
 	for _, e := range edges {
 		p2, ok := placements[e]
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 
-		if p1.Depth < p2.Depth { continue } // skip if we are more shallow
+		if p1.Depth < p2.Depth {
+			continue
+		} // skip if we are more shallow
 
 		if HasEdgeIntersections(dag, placements, label, e) {
 			return true
@@ -1441,7 +1566,9 @@ func AnyEdgesIntersect(dag *RoomDag, rects map[string]RoomPlacement) bool {
 
 func NodeHasEdgeIntersections(dag *RoomDag, rects map[string]RoomPlacement, label string) bool {
 	edges, ok := dag.Edges[label]
-	if !ok { panic("AAA") }
+	if !ok {
+		panic("AAA")
+	}
 
 	for _, e := range edges {
 		if HasEdgeIntersections(dag, rects, label, e) {
@@ -1457,46 +1584,71 @@ func NodeHasEdgeIntersections(dag *RoomDag, rects map[string]RoomPlacement, labe
 
 // # Return true if line segments AB and CD intersect
 // def intersect(A,B,C,D):
-//     return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+//
+//	return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+//
 // https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
 func ccw(a, b, c tile.TilePosition) bool {
-	return (c.Y - a.Y) * (b.X - a.X) >= (b.Y - a.Y) * (c.X - a.X)
+	return (c.Y-a.Y)*(b.X-a.X) >= (b.Y-a.Y)*(c.X-a.X)
 }
 
 // Returns true if line ab intersects line cd
 func intersect(a, b, c, d tile.TilePosition) bool {
-	return (ccw(a,c,d) != ccw(b,c,d)) && (ccw(a,b,c) != ccw(a,b,d))
+	return (ccw(a, c, d) != ccw(b, c, d)) && (ccw(a, b, c) != ccw(a, b, d))
 }
 
 func HasEdgeIntersections(dag *RoomDag, rects map[string]RoomPlacement, label1, label2 string) bool {
 	// Line ab is going to go from label1 to label2
 	rA, ok := rects[label1]
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 	rB, ok := rects[label2]
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 
-	if !rA.Placed { return false } // Skip if not placed
-	if !rB.Placed { return false } // Skip if not placed
-
+	if !rA.Placed {
+		return false
+	} // Skip if not placed
+	if !rB.Placed {
+		return false
+	} // Skip if not placed
 
 	a := rA.Rect.Center()
 	b := rB.Rect.Center()
 
 	// We will skip all edges that are connect to labels that are the same as ours
 	for k, edges := range dag.Edges {
-		if k == label1 { continue }
-		if k == label2 { continue }
+		if k == label1 {
+			continue
+		}
+		if k == label2 {
+			continue
+		}
 
 		for _, e := range edges {
-			if e == label1 { continue }
-			if e == label2 { continue }
+			if e == label1 {
+				continue
+			}
+			if e == label2 {
+				continue
+			}
 
 			rC, ok := rects[k]
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 			rD, ok := rects[e]
-			if !ok { continue }
-			if !rC.Placed { continue } // Skip if not placed
-			if !rD.Placed { continue } // Skip if not placed
+			if !ok {
+				continue
+			}
+			if !rC.Placed {
+				continue
+			} // Skip if not placed
+			if !rD.Placed {
+				continue
+			} // Skip if not placed
 
 			c := rC.Rect.Center()
 			d := rD.Rect.Center()
@@ -1519,11 +1671,17 @@ func HasAnyRectIntersections(rects map[string]RoomPlacement) bool {
 
 func HasRectIntersections(rects map[string]RoomPlacement, label string) bool {
 	src, ok := rects[label]
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 
 	for key, r := range rects {
-		if key == label { continue } // skip self
-		if !r.Placed { continue } // skip if not placed
+		if key == label {
+			continue
+		} // skip self
+		if !r.Placed {
+			continue
+		} // skip if not placed
 
 		if r.Rect.Intersects(src.Rect) {
 			return true
@@ -1537,8 +1695,12 @@ func FindNodeNeighborAveragePosition(dag *RoomDag, place map[string]RoomPlacemen
 	count := 0
 
 	for key, p := range place {
-		if key == label { continue } // Skip self
-		if !p.Placed { continue } // skip unplaced rooms
+		if key == label {
+			continue
+		} // Skip self
+		if !p.Placed {
+			continue
+		} // skip unplaced rooms
 
 		if dag.HasEdgeEitherDirection(key, label) {
 			total = total.Add(p.Rect.Center())

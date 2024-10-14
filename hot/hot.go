@@ -37,8 +37,8 @@ var cache map[string]*Plugin
 // rm -f ../plugin/*.so && VAR=$RANDOM && echo $VAR && rm -rf ./build/* && mkdir ./build/tmp$VAR && cp reloader.go ./build/tmp$VAR && go build -buildmode=plugin -o ../plugin/tmp$VAR.so ./build/tmp$VAR
 
 type Plugin struct {
-	path string
-	internal *plugin.Plugin
+	path      string
+	internal  *plugin.Plugin
 	startOnce sync.Once
 	// gen uint64
 	refresh chan struct{}
@@ -56,7 +56,7 @@ func NewPlugin(path string) *Plugin {
 	}
 
 	newPlugin := Plugin{
-		path: path,
+		path:    path,
 		refresh: make(chan struct{}),
 	}
 	cache[path] = &newPlugin
@@ -83,7 +83,9 @@ func (p *Plugin) Lookup(symName string) (any, error) {
 // Returns true if there is a new one
 func (p *Plugin) Check() bool {
 	entries, err := os.ReadDir(p.path)
-	if err != nil { panic(err) }
+	if err != nil {
+		panic(err)
+	}
 
 	nextPlugin := ""
 	for _, e := range entries {
@@ -119,7 +121,6 @@ func (p *Plugin) Check() bool {
 	// 		fmt.Println("Error Loading Plugin:", err)
 	// 	}
 	// }()
-
 
 	// Note: I have to sleep here to ensure that all of the glitch CGO calls have completed for the frame. 100ms is arbitrary, and is unecessary if you dont make CGO calls.
 	time.Sleep(100 * time.Millisecond)

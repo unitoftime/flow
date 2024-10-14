@@ -129,30 +129,62 @@ func PackedBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
 // This function computes the wang tilenumber of a tile based on the tiles around it
 func WangBlobmapNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
 	// If surrounding edges aren't set, then corners must be false
-	if !(t && l) { tl = false }
-	if !(t && r) { tr = false }
-	if !(b && l) { bl = false }
-	if !(b && r) { br = false }
+	if !(t && l) {
+		tl = false
+	}
+	if !(t && r) {
+		tr = false
+	}
+	if !(b && l) {
+		bl = false
+	}
+	if !(b && r) {
+		br = false
+	}
 
 	total := uint8(0)
-	if t	{ total	+= (1 << 0) }
-	if tr { total += (1 << 1) }
-	if r	{ total	+= (1 << 2) }
-	if br { total += (1 << 3) }
-	if b	{ total	+= (1 << 4) }
-	if bl { total += (1 << 5) }
-	if l	{ total	+= (1 << 6) }
-	if tl { total += (1 << 7) }
+	if t {
+		total += (1 << 0)
+	}
+	if tr {
+		total += (1 << 1)
+	}
+	if r {
+		total += (1 << 2)
+	}
+	if br {
+		total += (1 << 3)
+	}
+	if b {
+		total += (1 << 4)
+	}
+	if bl {
+		total += (1 << 5)
+	}
+	if l {
+		total += (1 << 6)
+	}
+	if tl {
+		total += (1 << 7)
+	}
 
 	return total
 }
 
 func PackedPipemapNumber(t, b, l, r bool) uint8 {
 	total := uint8(0)
-	if t	{ total	+= (1 << 0) }
-	if r	{ total	+= (1 << 1) }
-	if b	{ total	+= (1 << 2) }
-	if l	{ total	+= (1 << 3) }
+	if t {
+		total += (1 << 0)
+	}
+	if r {
+		total += (1 << 1)
+	}
+	if b {
+		total += (1 << 2)
+	}
+	if l {
+		total += (1 << 3)
+	}
 
 	return total
 }

@@ -9,7 +9,7 @@ import (
 var rad2Deg = 180.0 / math.Pi
 
 func angleTest(a, b Vec2) {
-	fmt.Println(a, b, Angle(a, b) * rad2Deg)
+	fmt.Println(a, b, Angle(a, b)*rad2Deg)
 }
 
 func TestAngle(t *testing.T) {
@@ -42,7 +42,7 @@ func TestDotProduct(t *testing.T) {
 
 func TestRotate(t *testing.T) {
 	a := Vec3{1, 0, 0}
-	b := a.Rotate2D(3.14159/2)
+	b := a.Rotate2D(3.14159 / 2)
 	fmt.Println(b)
 }
 

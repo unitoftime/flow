@@ -1,9 +1,9 @@
 package pgen
 
 import (
-	"sort"
-	"math/rand"
 	"github.com/ungerik/go3d/float64/vec2"
+	"math/rand"
+	"sort"
 )
 
 func Path(start, end vec2.T, n int, variation float64) []vec2.T {

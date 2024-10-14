@@ -109,7 +109,6 @@ func GetQueryString(key string) ([]string, error) {
 	return ret, nil
 }
 
-
 func WriteMemoryProfile(file string) error {
 	buf := bytes.NewBuffer([]byte{})
 

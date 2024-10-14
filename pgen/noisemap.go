@@ -11,18 +11,18 @@ type Octave struct {
 }
 
 type NoiseMap struct {
-	seed int64
-	noise opensimplex.Noise
-	octaves []Octave
+	seed     int64
+	noise    opensimplex.Noise
+	octaves  []Octave
 	exponent float64
 }
 
 func NewNoiseMap(seed int64, octaves []Octave, exponent float64) *NoiseMap {
 	// TODO - ensure that sum of all octave amplitudes equals 1!
 	return &NoiseMap{
-		seed: seed,
-		noise: opensimplex.NewNormalized(seed),
-		octaves: octaves,
+		seed:     seed,
+		noise:    opensimplex.NewNormalized(seed),
+		octaves:  octaves,
 		exponent: exponent,
 	}
 }

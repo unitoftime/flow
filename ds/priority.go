@@ -4,27 +4,28 @@ import (
 	"container/heap"
 )
 
-type mapData[K comparable,T any] struct {
+type mapData[K comparable, T any] struct {
 	key K
 	val T
 }
-func newMapData[K comparable, T any](key K, val T) mapData[K,T] {
-	return mapData[K,T]{
+
+func newMapData[K comparable, T any](key K, val T) mapData[K, T] {
+	return mapData[K, T]{
 		key: key,
 		val: val,
 	}
 }
 
-
 // Note: Higher value is pulled out first
 type PriorityMap[K comparable, T any] struct {
-	lookup map[K]*Item[mapData[K,T]]
-	queue *PriorityQueue[mapData[K,T]]
+	lookup map[K]*Item[mapData[K, T]]
+	queue  *PriorityQueue[mapData[K, T]]
 }
+
 func NewPriorityMap[K comparable, T any]() *PriorityMap[K, T] {
-	return &PriorityMap[K,T]{
-		lookup: make(map[K]*Item[mapData[K,T]]),
-		queue: NewPriorityQueue[mapData[K,T]](),
+	return &PriorityMap[K, T]{
+		lookup: make(map[K]*Item[mapData[K, T]]),
+		queue:  NewPriorityQueue[mapData[K, T]](),
 	}
 }
 
@@ -136,15 +137,15 @@ type Item[T any] struct {
 	index    int // The index of the item in the heap.
 	Priority int // The priority of the item in the queue.
 
-	Value    T   // The value of the item; arbitrary.
+	Value T // The value of the item; arbitrary.
 }
+
 func NewItem[T any](value T, priority int) *Item[T] {
 	return &Item[T]{
-		Value: value,
+		Value:    value,
 		Priority: priority,
 	}
 }
-
 
 // TODO: You could make this faster by replacing this with something hand-made
 

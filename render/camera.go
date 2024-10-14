@@ -8,18 +8,18 @@ import (
 )
 
 type Camera struct {
-	Camera *glitch.CameraOrtho
+	Camera   *glitch.CameraOrtho
 	Position glitch.Vec2
-	Zoom float64
-	bounds glitch.Rect
+	Zoom     float64
+	bounds   glitch.Rect
 }
 
 func NewCamera(bounds glitch.Rect, x, y float64) *Camera {
 	return &Camera{
-		Camera: glitch.NewCameraOrtho(),
+		Camera:   glitch.NewCameraOrtho(),
 		Position: glitch.Vec2{x, y},
-		Zoom: 1.0,
-		bounds: bounds,
+		Zoom:     1.0,
+		bounds:   bounds,
 	}
 }
 

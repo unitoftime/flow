@@ -1,10 +1,10 @@
 package ds
 
 type Queue[T any] struct {
-	Buffer []T
-	ReadIdx int
+	Buffer   []T
+	ReadIdx  int
 	WriteIdx int
-	fixed bool
+	fixed    bool
 }
 
 func NewQueue[T any](length int) *Queue[T] {
@@ -12,8 +12,8 @@ func NewQueue[T any](length int) *Queue[T] {
 		length = 1
 	}
 	return &Queue[T]{
-		Buffer: make([]T, length),
-		ReadIdx: 0,
+		Buffer:   make([]T, length),
+		ReadIdx:  0,
 		WriteIdx: 0,
 	}
 }
@@ -23,7 +23,9 @@ func (q *Queue[T]) GrowDouble() {
 	for {
 		// TODO: Probably faster ways to do this with copy()
 		v, ok := q.Remove()
-		if !ok { break }
+		if !ok {
+			break
+		}
 		newQueue.Add(v)
 	}
 
@@ -50,7 +52,7 @@ func (q *Queue[T]) Len() int {
 }
 
 func (q *Queue[T]) Add(t T) {
-	if (q.WriteIdx + 1) % len(q.Buffer) == q.ReadIdx {
+	if (q.WriteIdx+1)%len(q.Buffer) == q.ReadIdx {
 		if q.fixed {
 			panic("QUEUE IS FULL!")
 		}

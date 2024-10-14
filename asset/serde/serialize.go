@@ -52,7 +52,6 @@ func extractError(r any) error {
 	}
 }
 
-
 // func Marshal[T any](t T) ([]byte, error) {
 // 	var dat bytes.Buffer
 // 	// enc := gob.NewEncoder(&dat)
@@ -75,8 +74,6 @@ func extractError(r any) error {
 // 	}
 // 	return t, err
 // }
-
-
 
 // func Register[T any](value T) {
 // 	register(value)

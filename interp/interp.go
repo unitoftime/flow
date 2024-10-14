@@ -15,7 +15,7 @@ import (
 // This will calculate
 func DynamicValue(val float64, fixedTime, dt time.Duration) float64 {
 	// interpVal := val * dt.Seconds() / (16 * time.Millisecond).Seconds()
-	interpVal := (val  / fixedTime.Seconds()) * dt.Seconds()
+	interpVal := (val / fixedTime.Seconds()) * dt.Seconds()
 	if interpVal > 1.0 {
 		return 1.0
 	} else if interpVal < 0 {
@@ -94,16 +94,17 @@ func NewCubicBezier(b, c glm.Vec2) *Bezier {
 
 func Step(divRatio float64, a, b Interp) StepF {
 	return StepF{
-		a: a,
-		b: b,
+		a:        a,
+		b:        b,
 		divRatio: divRatio,
 	}
 }
 
 type StepF struct {
-	a, b Interp
+	a, b     Interp
 	divRatio float64
 }
+
 func (i StepF) get(t float64) (Interp, float64) {
 	if t < i.divRatio {
 		newT := t / (i.divRatio - 0)
@@ -137,12 +138,11 @@ func Const(val float64) *Bezier {
 	}
 }
 
-
 // var Sinusoid *Equation = &Equation{
 // 	Func: SinFunc{},
 // }
 
-//https://cubic-bezier.com/#.22,1,.36,1
+// https://cubic-bezier.com/#.22,1,.36,1
 var EaseOutQuint *Bezier = &Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
@@ -170,6 +170,7 @@ type Interp interface {
 
 type Lerp struct {
 }
+
 func (i Lerp) Float64(a, b float64, t float64) float64 {
 	m := b - a // Slope = Rise over run | Note: Run = (1 - 0)
 	y := (m * t) + a
@@ -195,6 +196,7 @@ func (i Lerp) Vec2(a, b vec2.T, t float64) vec2.T {
 type Bezier struct {
 	bezier2.T
 }
+
 func (i *Bezier) Float64(a, b float64, t float64) float64 {
 	iValue := i.T.Point(t)
 	return Linear.Float64(a, b, iValue[1])
@@ -215,6 +217,7 @@ func (i *Bezier) Vec2(a, b vec2.T, t float64) vec2.T {
 type Equation struct {
 	Func Function
 }
+
 func (i *Equation) Float64(a, b float64, t float64) float64 {
 	iValue := i.Func.Interp(t)
 	return Linear.Float64(a, b, iValue)
@@ -238,27 +241,30 @@ type Function interface {
 
 type SinFunc struct {
 	Radius float64
-	Freq float64
+	Freq   float64
 	ShiftY float64
 }
+
 func (s SinFunc) Interp(t float64) float64 {
-	return s.Radius * (s.ShiftY + math.Sin(t * s.Freq))
+	return s.Radius * (s.ShiftY + math.Sin(t*s.Freq))
 }
 
 type CosFunc struct {
 	Radius float64
-	Freq float64
+	Freq   float64
 	ShiftY float64
 }
+
 func (s CosFunc) Interp(t float64) float64 {
-	return s.Radius * (s.ShiftY + math.Cos(t * s.Freq))
+	return s.Radius * (s.ShiftY + math.Cos(t*s.Freq))
 }
 
 type BezFunc struct {
 	Radius float64
-	Dur float64
+	Dur    float64
 	Bezier *Bezier
 }
+
 func (f BezFunc) Interp(t float64) float64 {
 	if f.Dur == 0 {
 		return f.Radius * f.Bezier.Float64(0, 1, t)
@@ -273,16 +279,18 @@ func (f BezFunc) Interp(t float64) float64 {
 }
 
 type LineFunc struct {
-	Slope float64
+	Slope     float64
 	Intercept float64 // The Y intercept
 }
+
 func (f LineFunc) Interp(t float64) float64 {
-	return f.Slope * t + f.Intercept
+	return f.Slope*t + f.Intercept
 }
 
 type AddFunc struct {
 	A, B Function
 }
+
 func (f AddFunc) Interp(t float64) float64 {
 	return f.A.Interp(t) + f.B.Interp(t)
 }
@@ -290,6 +298,7 @@ func (f AddFunc) Interp(t float64) float64 {
 type MultFunc struct {
 	A, B Function
 }
+
 func (f MultFunc) Interp(t float64) float64 {
 	return f.A.Interp(t) * f.B.Interp(t)
 }

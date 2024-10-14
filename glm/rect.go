@@ -5,6 +5,7 @@ import "math"
 type Rect struct {
 	Min, Max Vec2
 }
+
 func R(minX, minY, maxX, maxY float64) Rect {
 	// TODO - guarantee min is less than max
 	return Rect{
@@ -42,16 +43,16 @@ func (r Rect) H() float64 {
 }
 
 func (r Rect) Center() Vec2 {
-	return Vec2{r.Min.X + (r.W()/2), r.Min.Y + (r.H()/2)}
+	return Vec2{r.Min.X + (r.W() / 2), r.Min.Y + (r.H() / 2)}
 }
 
-// func (r Rect) CenterAt(v Vec2) Rect {
-// 	return r.Moved(r.Center().Scaled(-1)).Moved(v)
-// }
+//	func (r Rect) CenterAt(v Vec2) Rect {
+//		return r.Moved(r.Center().Scaled(-1)).Moved(v)
+//	}
 func (r Rect) WithCenter(v Vec2) Rect {
-	w := r.W()/2
-	h := r.H()/2
-	return R(v.X - w, v.Y - h, v.X + w, v.Y + h)
+	w := r.W() / 2
+	h := r.H() / 2
+	return R(v.X-w, v.Y-h, v.X+w, v.Y+h)
 }
 
 // TODO: Should I make a pointer version of this that handles the nil case too?
@@ -99,7 +100,7 @@ func (r Rect) SubSquare() Rect {
 	w := r.W()
 	h := r.H()
 	min := min(w, h)
-	m2 := min/2
+	m2 := min / 2
 	return R(-m2, -m2, m2, m2).Moved(r.Center())
 }
 
@@ -107,14 +108,14 @@ func (r Rect) CenterScaled(scale float64) Rect {
 	c := r.Center()
 	w := r.W() * scale / 2.0
 	h := r.H() * scale / 2.0
-	return R(c.X - w, c.Y - h, c.X + w, c.Y + h)
+	return R(c.X-w, c.Y-h, c.X+w, c.Y+h)
 }
 
 func (r Rect) CenterScaledXY(scaleX, scaleY float64) Rect {
 	c := r.Center()
 	w := r.W() * scaleX / 2.0
 	h := r.H() * scaleY / 2.0
-	return R(c.X - w, c.Y - h, c.X + w, c.Y + h)
+	return R(c.X-w, c.Y-h, c.X+w, c.Y+h)
 }
 
 // Note: This scales around the center
@@ -154,16 +155,16 @@ func (r Rect) Norm() Rect {
 func (r Rect) Contains(pos Vec2) bool {
 	return pos.X > r.Min.X && pos.X < r.Max.X && pos.Y > r.Min.Y && pos.Y < r.Max.Y
 }
+
 // func (r Rect) Contains(x, y float64) bool {
 // 	return x > r.Min.X && x < r.Max.X && y > r.Min.Y && y < r.Max.Y
 // }
 
 func (r Rect) Intersects(r2 Rect) bool {
-	return (
-		r.Min.X <= r2.Max.X &&
-			r.Max.X >= r2.Min.X &&
-			r.Min.Y <= r2.Max.Y &&
-			r.Max.Y >= r2.Min.Y)
+	return (r.Min.X <= r2.Max.X &&
+		r.Max.X >= r2.Min.X &&
+		r.Min.Y <= r2.Max.Y &&
+		r.Max.Y >= r2.Min.Y)
 }
 
 // Layous out 'n' rectangles horizontally with specified padding between them and returns that rect
@@ -172,7 +173,7 @@ func (r Rect) LayoutHorizontal(n int, padding float64) Rect {
 	return R(
 		0,
 		0,
-		float64(n) * r.W() + float64(n-1) * padding,
+		float64(n)*r.W()+float64(n-1)*padding,
 		r.H(),
 	)
 }
@@ -230,7 +231,7 @@ func (r Rect) PadAll(padding float64) Rect {
 
 // Adds padding to a rectangle (pads inward if padding is negative)
 func (r Rect) Pad(pad Rect) Rect {
-	return R(r.Min.X - pad.Min.X, r.Min.Y - pad.Min.Y, r.Max.X + pad.Max.X, r.Max.Y + pad.Max.Y)
+	return R(r.Min.X-pad.Min.X, r.Min.Y-pad.Min.Y, r.Max.X+pad.Max.X, r.Max.Y+pad.Max.Y)
 }
 
 // Removes padding from a rectangle (pads outward if padding is negative). Essentially calls pad but with negative values
@@ -242,24 +243,24 @@ func (r Rect) Unpad(pad Rect) Rect {
 // TODO - rename to InnerAnchor?
 func (r Rect) Anchor(r2 Rect, anchor Vec2) Rect {
 	// Anchor point is the position in r that we are anchoring to
-	anchorPoint := Vec2{r.Min.X + (anchor.X * r.W()) , r.Min.Y + (anchor.Y * r.H())}
-	pivotPoint := Vec2{r2.Min.X + (anchor.X * r2.W()) , r2.Min.Y + (anchor.Y * r2.H())}
+	anchorPoint := Vec2{r.Min.X + (anchor.X * r.W()), r.Min.Y + (anchor.Y * r.H())}
+	pivotPoint := Vec2{r2.Min.X + (anchor.X * r2.W()), r2.Min.Y + (anchor.Y * r2.H())}
 
 	// fmt.Println("Anchor:", anchorPoint)
 	// fmt.Println("Pivot:", pivotPoint)
 
 	a := Vec2{anchorPoint.X - pivotPoint.X, anchorPoint.Y - pivotPoint.Y}
-	return R(a.X, a.Y, a.X + r2.W(), a.Y + r2.H()).Norm()
+	return R(a.X, a.Y, a.X+r2.W(), a.Y+r2.H()).Norm()
 }
 
 // Anchors r2 to r1 based on two anchors, one for r and one for r2
 // TODO - rename to Anchor?
 func (r Rect) FullAnchor(r2 Rect, anchor, pivot Vec2) Rect {
 	anchorPoint := Vec2{r.Min.X + (anchor.X * r.W()), r.Min.Y + (anchor.Y * r.H())}
-	pivotPoint := Vec2{r2.Min.X + (pivot.X * r2.W()) , r2.Min.Y + (pivot.Y * r2.H())}
+	pivotPoint := Vec2{r2.Min.X + (pivot.X * r2.W()), r2.Min.Y + (pivot.Y * r2.H())}
 
 	a := Vec2{anchorPoint.X - pivotPoint.X, anchorPoint.Y - pivotPoint.Y}
-	return R(a.X, a.Y, a.X + r2.W(), a.Y + r2.H()).Norm()
+	return R(a.X, a.Y, a.X+r2.W(), a.Y+r2.H()).Norm()
 }
 
 // Move the min point of the rect to a certain position
@@ -267,7 +268,6 @@ func (r Rect) MoveMin(pos Vec2) Rect {
 	dv := r.Min.Sub(pos)
 	return r.Moved(dv)
 }
-
 
 func lerp(a, b float64, t float64) float64 {
 	m := b - a // Slope = Rise over run | Note: Run = (1 - 0)
@@ -289,7 +289,7 @@ func (r Rect) RectDraw(r2 Rect) Mat4 {
 	mat := Mat4Ident
 	mat.
 		Translate(-srcCenter.X, -srcCenter.Y, 0).
-		Scale(r2.W() / r.W(), r2.H() / r.H(), 1).
+		Scale(r2.W()/r.W(), r2.H()/r.H(), 1).
 		Translate(dstCenter.X, dstCenter.Y, 0)
 	return mat
 }

@@ -32,7 +32,7 @@ func WriteMemoryProfile(file string) error {
 		return err
 	}
 	defer f.Close() // error handling omitted for example
-	runtime.GC() // get up-to-date statistics
+	runtime.GC()    // get up-to-date statistics
 	if err := pprof.WriteHeapProfile(f); err != nil {
 		return err
 	}
@@ -42,10 +42,10 @@ func WriteMemoryProfile(file string) error {
 func WriteCpuProfile(file string) (func(), error) {
 	f, err := os.Create(file)
 	if err != nil {
-		return func(){}, err
+		return func() {}, err
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
-		return func(){}, err
+		return func() {}, err
 	}
 
 	finisher := func() {

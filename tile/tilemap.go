@@ -46,8 +46,12 @@ func (t Position) Div(val int) Position {
 func (t Position) Maximum() int {
 	x := t.X
 	y := t.Y
-	if x < 0 { x = -x }
-	if y < 0 { y = -y }
+	if x < 0 {
+		x = -x
+	}
+	if y < 0 {
+		y = -y
+	}
 
 	if x > y {
 		return x
@@ -58,22 +62,31 @@ func (t Position) Maximum() int {
 func (t Position) Manhattan() int {
 	x := t.X
 	y := t.Y
-	if x < 0 { x = -x }
-	if y < 0 { y = -y }
+	if x < 0 {
+		x = -x
+	}
+	if y < 0 {
+		y = -y
+	}
 	return x + y
 }
 
 func ManhattanDistance(a, b Position) int {
 	dx := a.X - b.X
 	dy := a.Y - b.Y
-	if dx < 0 { dx = -dx }
-	if dy < 0 { dy = -dy }
+	if dx < 0 {
+		dx = -dx
+	}
+	if dy < 0 {
+		dy = -dy
+	}
 	return dx + dy
 }
 
 type Rect struct {
 	Min, Max Position
 }
+
 func R(minX, minY, maxX, maxY int) Rect {
 	return Rect{
 		Position{minX, minY},
@@ -101,7 +114,7 @@ func (r Rect) H() int {
 }
 
 func (r Rect) Center() Position {
-	return Position{r.Min.X + (r.W()/2), r.Min.Y + (r.H()/2)}
+	return Position{r.Min.X + (r.W() / 2), r.Min.Y + (r.H() / 2)}
 }
 
 func (r Rect) Moved(v Position) Rect {
@@ -116,11 +129,10 @@ func (r Rect) Contains(pos Position) bool {
 }
 
 func (r Rect) Intersects(r2 Rect) bool {
-	return (
-		r.Min.X <= r2.Max.X &&
-			r.Max.X >= r2.Min.X &&
-			r.Min.Y <= r2.Max.Y &&
-			r.Max.Y >= r2.Min.Y)
+	return (r.Min.X <= r2.Max.X &&
+		r.Max.X >= r2.Min.X &&
+		r.Min.Y <= r2.Max.Y &&
+		r.Max.Y >= r2.Min.Y)
 }
 
 func (r Rect) Norm() Rect {
@@ -147,7 +159,7 @@ func minMax(a, b int) (int, int) {
 }
 
 func (r Rect) PadAll(pad int) Rect {
-	return R(r.Min.X - pad, r.Min.Y - pad, r.Max.X + pad, r.Max.Y + pad)
+	return R(r.Min.X-pad, r.Min.Y-pad, r.Max.X+pad, r.Max.Y+pad)
 }
 
 func (r Rect) UnpadAll(pad int) Rect {
@@ -168,7 +180,6 @@ func (r Rect) Iter() iter.Seq[Position] {
 	}
 }
 
-
 // //cod:struct
 // type Collider struct {
 // 	Width, Height int // Size of the collider in terms of tiles
@@ -176,17 +187,17 @@ func (r Rect) Iter() iter.Seq[Position] {
 
 type Tilemap[T any] struct {
 	TileSize [2]int // In pixels
-	tiles [][]T
-	math Math
-	Offset glm.Vec2 // In world space positioning
+	tiles    [][]T
+	math     Math
+	Offset   glm.Vec2 // In world space positioning
 }
 
 func New[T any](tiles [][]T, tileSize [2]int, math Math) *Tilemap[T] {
 	return &Tilemap[T]{
 		TileSize: tileSize,
-		tiles: tiles,
-		math: math,
-		Offset: glm.Vec2{},
+		tiles:    tiles,
+		math:     math,
+		Offset:   glm.Vec2{},
 	}
 }
 
@@ -237,10 +248,10 @@ func (t *Tilemap[T]) PositionToTile(x, y float64) Position {
 
 func (t *Tilemap[T]) GetEdgeNeighbors(x, y int) []Position {
 	return []Position{
-		Position{x+1, y},
-		Position{x-1, y},
-		Position{x, y+1},
-		Position{x, y-1},
+		Position{x + 1, y},
+		Position{x - 1, y},
+		Position{x, y + 1},
+		Position{x, y - 1},
 	}
 }
 

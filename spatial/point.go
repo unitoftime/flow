@@ -8,7 +8,7 @@ import (
 
 type PointBucketItem[T comparable] struct {
 	point glm.Vec2
-	item T
+	item  T
 }
 
 type PointBucket[T comparable] struct {
@@ -24,17 +24,19 @@ func NewPointBucket[T comparable]() *PointBucket[T] {
 func (b *PointBucket[T]) Add(point glm.Vec2, val T) {
 	b.List = append(b.List, PointBucketItem[T]{
 		point: point,
-		item: val,
+		item:  val,
 	})
 }
 
 func (b *PointBucket[T]) Remove(point glm.Vec2, val T) {
 	itemToRemove := PointBucketItem[T]{
 		point: point,
-		item: val,
+		item:  val,
 	}
 	indexToRemove := slices.Index(b.List, itemToRemove)
-	if indexToRemove < 0 { return } // Nothing to remove
+	if indexToRemove < 0 {
+		return
+	} // Nothing to remove
 
 	lastIdx := len(b.List) - 1
 	b.List[indexToRemove] = b.List[lastIdx]
@@ -45,19 +47,18 @@ func (b *PointBucket[T]) Clear() {
 	b.List = b.List[:0]
 }
 
-
 // TODO: rename? ColliderMap?
 type Pointmap[T comparable] struct {
 	PositionHasher
 
-	Bucket *arrayMap[PointBucket[T]]
+	Bucket     *arrayMap[PointBucket[T]]
 	allBuckets []*PointBucket[T]
 }
 
 func NewPointmap[T comparable](chunksize [2]int, startingSize int) *Pointmap[T] {
 	return &Pointmap[T]{
-		allBuckets: make([]*PointBucket[T], 0, 1024),
-		Bucket: newArrayMap[PointBucket[T]](startingSize),
+		allBuckets:     make([]*PointBucket[T], 0, 1024),
+		Bucket:         newArrayMap[PointBucket[T]](startingSize),
 		PositionHasher: NewPositionHasher(chunksize),
 	}
 }
@@ -100,7 +101,9 @@ func (h *Pointmap[T]) BroadCheck(list []T, bounds glm.Rect) []T {
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket, ok := h.Bucket.Get(x, y)
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 			// bucket := h.GetBucket(Index{x, y})
 			for i := range bucket.List {
 				list = append(list, bucket.List[i].item)
@@ -120,7 +123,9 @@ func (h *Pointmap[T]) NarrowCheck(list []T, bounds glm.Rect) []T {
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket, ok := h.Bucket.Get(x, y)
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 
 			for i := range bucket.List {
 				if bounds.Contains(bucket.List[i].point) {
@@ -143,7 +148,9 @@ func (h *Pointmap[T]) Collides(bounds glm.Rect) bool {
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket, ok := h.Bucket.Get(x, y)
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 			if len(bucket.List) > 0 {
 				return true
 			}

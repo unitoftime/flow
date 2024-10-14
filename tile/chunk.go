@@ -12,19 +12,19 @@ import (
 // chunk.Map?
 
 type Chunk[T any] struct {
-	TileSize [2]int // In pixels
-	tiles [][]T
-	math FlatRectMath
-	Offset glm.Vec2 // In world space positioning
+	TileSize   [2]int // In pixels
+	tiles      [][]T
+	math       FlatRectMath
+	Offset     glm.Vec2 // In world space positioning
 	TileOffset Position
 }
 
 func NewChunk[T any](tiles [][]T, tileSize [2]int, math FlatRectMath) *Chunk[T] {
 	return &Chunk[T]{
 		TileSize: tileSize,
-		tiles: tiles,
-		math: math,
-		Offset: glm.Vec2{},
+		tiles:    tiles,
+		math:     math,
+		Offset:   glm.Vec2{},
 	}
 }
 
@@ -66,7 +66,6 @@ func (t *Chunk[T]) unsafeGet(pos TilePosition) T {
 	return t.tiles[pos.X][pos.Y]
 }
 
-
 func (t *Chunk[T]) Set(pos TilePosition, tile T) bool {
 	if pos.X < 0 || pos.X >= len(t.tiles) || pos.Y < 0 || pos.Y >= len(t.tiles[pos.X]) {
 		return false
@@ -90,10 +89,10 @@ func (t *Chunk[T]) PositionToTile(x, y float64) TilePosition {
 
 func (t *Chunk[T]) GetEdgeNeighbors(x, y int) []TilePosition {
 	return []TilePosition{
-		TilePosition{x+1, y},
-		TilePosition{x-1, y},
-		TilePosition{x, y+1},
-		TilePosition{x, y-1},
+		TilePosition{x + 1, y},
+		TilePosition{x - 1, y},
+		TilePosition{x, y + 1},
+		TilePosition{x, y - 1},
 	}
 }
 

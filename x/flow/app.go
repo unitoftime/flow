@@ -6,6 +6,7 @@ import (
 )
 
 type Stage uint8
+
 const (
 	StageStartup Stage = iota
 	StageFixedUpdate
@@ -13,7 +14,7 @@ const (
 )
 
 type App struct {
-	world *ecs.World
+	world     *ecs.World
 	scheduler *ecs.Scheduler
 
 	startupSystems []ecs.System
@@ -23,8 +24,8 @@ func NewApp() *App {
 	scheduler := ecs.NewScheduler()
 	// scheduler.SetFixedTimeStep(4 * time.Millisecond)
 	app := &App{
-		world: ecs.NewWorld(),
-		scheduler: scheduler,
+		world:          ecs.NewWorld(),
+		scheduler:      scheduler,
 		startupSystems: make([]ecs.System, 0),
 	}
 

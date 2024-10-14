@@ -55,17 +55,18 @@ import (
 
 type arrayMap[T any] struct {
 	topRight [][]*T
-	topLeft [][]*T
+	topLeft  [][]*T
 	botRight [][]*T
-	botLeft [][]*T
+	botLeft  [][]*T
 }
+
 func newArrayMap[T any](size int) *arrayMap[T] {
 	size = size / 2 // Note: We cut in half b/c we use 4 quadrants
 	m := &arrayMap[T]{
 		topRight: make([][]*T, size),
-		topLeft: make([][]*T, size),
+		topLeft:  make([][]*T, size),
 		botRight: make([][]*T, size),
-		botLeft: make([][]*T, size),
+		botLeft:  make([][]*T, size),
 	}
 
 	for i := range m.topRight {
@@ -90,17 +91,17 @@ func (m *arrayMap[T]) safePut(slice [][]*T, x, y int, t *T) [][]*T {
 			slice[x][y] = t
 			return slice
 		} else {
-			slice[x] = slices.Grow(slice[x], y - len(slice[x]) + 1)
+			slice[x] = slices.Grow(slice[x], y-len(slice[x])+1)
 			slice[x] = slice[x][:y+1]
 			slice[x][y] = t
 			return slice
 		}
 	}
 
-	slice = slices.Grow(slice, x - len(slice) + 1)
+	slice = slices.Grow(slice, x-len(slice)+1)
 	slice = slice[:x+1]
 
-	slice[x] = slices.Grow(slice[x], y - len(slice[x]) + 1)
+	slice[x] = slices.Grow(slice[x], y-len(slice[x])+1)
 	slice[x] = slice[x][:y+1]
 	slice[x][y] = t
 	return slice
@@ -154,28 +155,36 @@ func (m *arrayMap[T]) ForEachValue(lambda func(t *T)) {
 	for x := range m.topRight {
 		for y := range m.topRight[x] {
 			val := m.topRight[x][y]
-			if val == nil { continue }
+			if val == nil {
+				continue
+			}
 			lambda(val)
 		}
 	}
 	for x := range m.topLeft {
 		for y := range m.topLeft[x] {
 			val := m.topLeft[x][y]
-			if val == nil { continue }
+			if val == nil {
+				continue
+			}
 			lambda(val)
 		}
 	}
 	for x := range m.botLeft {
 		for y := range m.botLeft[x] {
 			val := m.botLeft[x][y]
-			if val == nil { continue }
+			if val == nil {
+				continue
+			}
 			lambda(val)
 		}
 	}
 	for x := range m.botRight {
 		for y := range m.botRight[x] {
 			val := m.botRight[x][y]
-			if val == nil { continue }
+			if val == nil {
+				continue
+			}
 			lambda(val)
 		}
 	}
@@ -187,7 +196,7 @@ type Index struct {
 
 type BucketItem[T comparable] struct {
 	shape glm.Rect
-	item T
+	item  T
 }
 
 type Bucket[T comparable] struct {
@@ -202,7 +211,7 @@ func NewBucket[T comparable]() *Bucket[T] {
 func (b *Bucket[T]) Add(shape glm.Rect, val T) {
 	b.List = append(b.List, BucketItem[T]{
 		shape: shape,
-		item: val,
+		item:  val,
 	})
 }
 func (b *Bucket[T]) Remove(val T) {
@@ -248,22 +257,23 @@ func (b *Bucket[T]) FindClosest(shape glm.Rect) (BucketItem[T], bool) {
 	return ret, set
 }
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 type PositionHasher struct {
-	size [2]int
+	size      [2]int
 	sizeOver2 [2]int
-	div [2]int
+	div       [2]int
 }
+
 func NewPositionHasher(size [2]int) PositionHasher {
 	divX := int(math.Log2(float64(size[0])))
 	divY := int(math.Log2(float64(size[1])))
-	if (1 << divX) != size[0] || (1 << divY) != size[1] {
+	if (1<<divX) != size[0] || (1<<divY) != size[1] {
 		panic("Spatial maps must have a chunksize that is a power of 2!")
 	}
 	return PositionHasher{
-		size: size,
-		sizeOver2: [2]int{size[0]/2, size[1]/2},
-		div: [2]int{divX, divY},
+		size:      size,
+		sizeOver2: [2]int{size[0] / 2, size[1] / 2},
+		div:       [2]int{divX, divY},
 	}
 }
 
@@ -284,13 +294,14 @@ func (h *PositionHasher) PositionToIndex(pos glm.Vec2) Index {
 
 	return Index{xPos, yPos}
 }
-//--------------------------------------------------------------------------------
+
+// --------------------------------------------------------------------------------
 // TODO: rename? ColliderMap?
 type Hashmap[T comparable] struct {
 	PositionHasher
 
 	allBuckets []*Bucket[T]
-	Bucket *arrayMap[Bucket[T]]
+	Bucket     *arrayMap[Bucket[T]]
 }
 
 func NewHashmap[T comparable](chunksize [2]int, startingSize int) *Hashmap[T] {
@@ -298,7 +309,7 @@ func NewHashmap[T comparable](chunksize [2]int, startingSize int) *Hashmap[T] {
 		PositionHasher: NewPositionHasher(chunksize),
 
 		allBuckets: make([]*Bucket[T], 0, 1024),
-		Bucket: newArrayMap[Bucket[T]](startingSize),
+		Bucket:     newArrayMap[Bucket[T]](startingSize),
 	}
 }
 
@@ -307,7 +318,6 @@ func (h *Hashmap[T]) Clear() {
 		h.allBuckets[i].Clear()
 	}
 }
-
 
 func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 	bucket, ok := h.Bucket.Get(index.X, index.Y)
@@ -349,7 +359,9 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape glm.Rect) {
 			isBorderChunk := (x == min.X || x == max.X) || (y == min.Y || y == max.Y)
 			// bucket := h.GetBucket(Index{x, y})
 			bucket, ok := h.Bucket.Get(x, y)
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 
 			if isBorderChunk {
 				// For border chunks, we need to do narrow phase too
@@ -373,7 +385,9 @@ func (h *Hashmap[T]) Collides(shape glm.Rect) bool {
 			isBorderChunk := (x == min.X || x == max.X) || (y == min.Y || y == max.Y)
 			// bucket := h.GetBucket(Index{x, y})
 			bucket, ok := h.Bucket.Get(x, y)
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 
 			if isBorderChunk {
 				// For border chunks, we need to do narrow phase too
@@ -403,7 +417,9 @@ func (h *Hashmap[T]) FindClosest(shape glm.Rect) (T, bool) {
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
 			bucket, ok := h.Bucket.Get(x, y)
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 
 			// For border chunks, we need to do narrow phase too
 			closest, ok := bucket.FindClosest(shape)
@@ -452,9 +468,10 @@ func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape glm.Rect) {
 // 	}
 // }
 
-type CollisionSet[T comparable] struct{
+type CollisionSet[T comparable] struct {
 	List []T
 }
+
 func NewCollisionSet[T comparable](cap int) *CollisionSet[T] {
 	return &CollisionSet[T]{
 		List: make([]T, cap),

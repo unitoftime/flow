@@ -5,7 +5,7 @@ import (
 )
 
 type Cursor struct {
-	Dragging bool
+	Dragging  bool
 	DragStart glitch.Vec2
 }
 

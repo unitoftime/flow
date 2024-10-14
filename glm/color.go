@@ -12,7 +12,7 @@ var (
 
 // Premultipled RGBA value scaled from [0, 1.0]
 type RGBA struct {
-	R,G,B,A float64
+	R, G, B, A float64
 }
 
 // TODO - conversion from golang colors
@@ -95,5 +95,3 @@ func (c RGBA) Desaturate(val float64) RGBA {
 		c.A,
 	}
 }
-
-

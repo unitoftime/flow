@@ -127,10 +127,10 @@ func (load *Load) Yaml(filepath string, dat interface{}) error {
 	return yaml.Unmarshal(yamlData, dat)
 }
 
-//TODO - move Aseprite stuff to another package?
+// TODO - move Aseprite stuff to another package?
 type AseSheet struct {
 	Frames []AseFrame `json:frames`
-	Meta AseMeta
+	Meta   AseMeta
 }
 type AseFrame struct {
 	Filename string `json:filename`
@@ -141,9 +141,9 @@ type AseMeta struct {
 	FrameTags []AseFrameTag `json:frameTags`
 }
 type AseFrameTag struct {
-	Name string `json:name`
-	From int `json:from`
-	To int `json:to`
+	Name      string `json:name`
+	From      int    `json:from`
+	To        int    `json:to`
 	Direction string `json:direction`
 }
 
@@ -160,14 +160,15 @@ func (load *Load) AseSheet(filepath string) (*AseSheet, error) {
 // TODO - Assumes that all animations share the same spritesheet
 type Animation struct {
 	spritesheet *Spritesheet
-	Frames map[string][]AnimationFrame
+	Frames      map[string][]AnimationFrame
 }
 type AnimationFrame struct {
-	Name string
-	Sprite *glitch.Sprite
+	Name     string
+	Sprite   *glitch.Sprite
 	Duration time.Duration
-	MirrorY bool
+	MirrorY  bool
 }
+
 // TODO - Assumptions: frame name is <filename>-<framenumber>.png (Aseprite doesn't export the file name. But you could maybe repack their spritesheet into your own)
 func (load *Load) AseAnimation(spritesheet *Spritesheet, filepath string) (*Animation, error) {
 	base := path.Base(filepath)
@@ -180,7 +181,7 @@ func (load *Load) AseAnimation(spritesheet *Spritesheet, filepath string) (*Anim
 
 	anim := Animation{
 		spritesheet: spritesheet,
-		Frames: make(map[string][]AnimationFrame),
+		Frames:      make(map[string][]AnimationFrame),
 	}
 
 	for _, frameTag := range aseSheet.Meta.FrameTags {
@@ -197,10 +198,10 @@ func (load *Load) AseAnimation(spritesheet *Spritesheet, filepath string) (*Anim
 				return nil, err
 			}
 			frames = append(frames, AnimationFrame{
-				Name: spriteName,
-				Sprite: sprite,
+				Name:     spriteName,
+				Sprite:   sprite,
 				Duration: time.Duration(aseSheet.Frames[i].Duration) * time.Millisecond,
-				MirrorY: false,
+				MirrorY:  false,
 			})
 		}
 		anim.Frames[frameTag.Name] = frames
@@ -244,8 +245,8 @@ func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error
 		rect := glm.R(
 			v.Frame.X,
 			v.Frame.Y,
-			v.Frame.X + v.Frame.W,
-			v.Frame.Y + v.Frame.H).Norm()
+			v.Frame.X+v.Frame.W,
+			v.Frame.Y+v.Frame.H).Norm()
 
 		// rect := glitch.R(
 		// 	float32(v.Frame.X),
@@ -261,13 +262,13 @@ func (load *Load) Spritesheet(filepath string, smooth bool) (*Spritesheet, error
 
 type Spritesheet struct {
 	texture *glitch.Texture
-	lookup map[string]*glitch.Sprite
+	lookup  map[string]*glitch.Sprite
 }
 
 func NewSpritesheet(tex *glitch.Texture, lookup map[string]*glitch.Sprite) *Spritesheet {
 	return &Spritesheet{
 		texture: tex,
-		lookup: lookup,
+		lookup:  lookup,
 	}
 }
 

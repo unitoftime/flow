@@ -18,7 +18,7 @@ func (v Vec3) Dot(u Vec3) float64 {
 // Finds the angle between two vectors
 // TODO: Is this correct?
 func (v Vec3) Angle(u Vec3) float64 {
-	return  math.Acos(v.Dot(u) / (v.Len() * u.Len()))
+	return math.Acos(v.Dot(u) / (v.Len() * u.Len()))
 }
 
 func (v Vec3) Theta() float64 {
@@ -30,8 +30,8 @@ func (v Vec3) Rotate2D(theta float64) Vec3 {
 	t := theta
 	x := v.X
 	y := v.Y
-	x1 := x * math.Cos(t) - y * math.Sin(t)
-	y1 := x * math.Sin(t) + y * math.Cos(t)
+	x1 := x*math.Cos(t) - y*math.Sin(t)
+	y1 := x*math.Sin(t) + y*math.Cos(t)
 	return Vec3{x1, y1, v.Z}
 }
 
@@ -49,7 +49,7 @@ func (v Vec3) Vec2() Vec2 {
 
 func (v Vec3) Unit() Vec3 {
 	len := v.Len()
-	return Vec3{v.X/len, v.Y/len, v.Z/len}
+	return Vec3{v.X / len, v.Y / len, v.Z / len}
 }
 
 func (v Vec3) Scaled(x, y, z float64) Vec3 {

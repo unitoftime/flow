@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"flag"
+	"log"
 	"net/http"
 )
 

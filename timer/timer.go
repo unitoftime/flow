@@ -1,14 +1,14 @@
 package timer
 
 import (
-	"time"
 	"math/rand"
+	"time"
 )
 
 type Timer struct {
-	Interval time.Duration // How long the interval is
-	Remaining time.Duration // Remaining time
-	Probability float64 // From [0 to 1]
+	Interval    time.Duration // How long the interval is
+	Remaining   time.Duration // Remaining time
+	Probability float64       // From [0 to 1]
 	// Func func()					// Anonymous function to execute
 }
 
@@ -19,8 +19,8 @@ func New(interval time.Duration, probability float64) Timer {
 		probability = 0.0
 	}
 	return Timer{
-		Interval: interval,
-		Remaining: interval,
+		Interval:    interval,
+		Remaining:   interval,
 		Probability: probability,
 	}
 }

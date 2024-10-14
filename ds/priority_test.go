@@ -28,7 +28,6 @@ func TestPriorityQueue(t *testing.T) {
 		pq.Update(item)
 	}
 
-
 	// Take the items out; they arrive in decreasing priority order.
 	for pq.Len() > 0 {
 		item := pq.Pop()
@@ -57,7 +56,9 @@ func TestPriorityMap(t *testing.T) {
 	// Take the items out; they arrive in decreasing priority order.
 	for {
 		key, val, priority, ok := pq.Pop()
-		if !ok { break }
+		if !ok {
+			break
+		}
 
 		fmt.Printf("%d:%s: %d \n", key, val, priority)
 	}
@@ -84,7 +85,9 @@ func TestPriorityMapClear(t *testing.T) {
 	// Take the items out; they arrive in decreasing priority order.
 	for {
 		key, val, priority, ok := pq.Pop()
-		if !ok { break }
+		if !ok {
+			break
+		}
 
 		fmt.Printf("%d:%s: %d \n", key, val, priority)
 		panic("SHOULD NOT GET HERE!")

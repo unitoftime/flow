@@ -19,17 +19,18 @@ import (
 
 // TODO: Finalizers on handles to deallocate assets that are no longer used?
 type Handle[T any] struct {
-	ptr atomic.Pointer[T]
-	Name string
-	err error
-	doneChan chan struct{}
-	done atomic.Bool
-	modTime time.Time
+	ptr        atomic.Pointer[T]
+	Name       string
+	err        error
+	doneChan   chan struct{}
+	done       atomic.Bool
+	modTime    time.Time
 	generation atomic.Int32
 }
+
 func newHandle[T any](name string) *Handle[T] {
 	return &Handle[T]{
-		Name: name,
+		Name:     name,
 		doneChan: make(chan struct{}),
 	}
 }
@@ -42,7 +43,7 @@ func (h *Handle[T]) Set(val *T) {
 	h.err = nil
 	h.ptr.Store(val)
 	h.done.Store(true)
-	h.generation.Add(1)// Note: Do this last so that everything else is in place when we swap generations
+	h.generation.Add(1) // Note: Do this last so that everything else is in place when we swap generations
 }
 func (h *Handle[T]) Get() (*T, error) {
 	h.Wait()
@@ -60,10 +61,10 @@ func (h *Handle[T]) Done() bool {
 
 // Blocks until the handle, or an error is set
 func (h *Handle[T]) Wait() {
-	<- h.doneChan
+	<-h.doneChan
 }
 
-type assetHandler interface {}
+type assetHandler interface{}
 
 type Loader[T any] interface {
 	Ext() []string
@@ -71,12 +72,12 @@ type Loader[T any] interface {
 	Store(*Server, *T) ([]byte, error)
 }
 
-
 type Filesystem struct {
-	path string
-	fs fs.FS // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
+	path   string
+	fs     fs.FS  // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
 	prefix string // dynamically added when registered
 }
+
 func NewFilesystem(path string, fsys fs.FS) Filesystem {
 	return Filesystem{path, fsys, ""}
 }
@@ -84,10 +85,14 @@ func NewFilesystem(path string, fsys fs.FS) Filesystem {
 func (fsys *Filesystem) getModTime(fpath string) (time.Time, error) {
 	// TODO: Wont work for networked files
 	file, err := fsys.fs.Open(fpath)
-	if err != nil { return time.Time{}, err }
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	info, err := file.Stat()
-	if err != nil { return time.Time{}, err }
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	return info.ModTime(), nil
 }
@@ -95,11 +100,12 @@ func (fsys *Filesystem) getModTime(fpath string) (time.Time, error) {
 type Server struct {
 	// fsPath string
 	// filesystem fs.FS // TODO: Maybe use: https://pkg.go.dev/github.com/ungerik/go-fs
-	mu sync.Mutex
-	fsMap map[string]Filesystem // Maps a prefix to a filesystem
-	extToLoader map[string]any // Map file extension strings to the loader that loads them
+	mu           sync.Mutex
+	fsMap        map[string]Filesystem   // Maps a prefix to a filesystem
+	extToLoader  map[string]any          // Map file extension strings to the loader that loads them
 	nameToHandle map[string]assetHandler // Map the full filepath name to the asset handle
 }
+
 // func NewServerFromPath(fsPath string) *Server {
 // 	filesystem := os.DirFS(fsPath)
 // 	return &Server{
@@ -115,23 +121,24 @@ type Server struct {
 // 		filesystem: filesystem,
 // 		extToLoader: make(map[string]any),
 
-// 		nameToHandle: make(map[string]assetHandler),
-// 	}
-// }
+//			nameToHandle: make(map[string]assetHandler),
+//		}
+//	}
 func NewServer() *Server {
 	return &Server{
-		fsMap: make(map[string]Filesystem), // TODO: Would be faster to be a prefix tree
-		extToLoader: make(map[string]any),
+		fsMap:        make(map[string]Filesystem), // TODO: Would be faster to be a prefix tree
+		extToLoader:  make(map[string]any),
 		nameToHandle: make(map[string]assetHandler),
 	}
 }
-
 
 func (s *Server) RegisterFilesystem(prefix string, fs Filesystem) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, ok := s.fsMap[prefix]
-	if ok { panic("flow:asset: failed to register filesystem, prefix already registered") }
+	if ok {
+		panic("flow:asset: failed to register filesystem, prefix already registered")
+	}
 
 	fs.prefix = prefix
 	s.fsMap[prefix] = fs
@@ -147,7 +154,9 @@ func getScheme(path string) string {
 
 func (s *Server) getFilesystem(fpath string) (Filesystem, string, bool) {
 	for prefix, fs := range s.fsMap {
-		if !strings.HasPrefix(fpath, prefix) { continue }
+		if !strings.HasPrefix(fpath, prefix) {
+			continue
+		}
 
 		return fs, strings.TrimPrefix(fpath, prefix), true
 	}
@@ -160,14 +169,17 @@ func (s *Server) getModTime(fpath string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("Couldnt find file prefix: %s", fpath)
 	}
 	file, err := fsys.fs.Open(trimmedPath)
-	if err != nil { return time.Time{}, err }
+	if err != nil {
+		return time.Time{}, err
+	}
 	defer file.Close()
 
 	info, err := file.Stat()
-	if err != nil { return time.Time{}, err }
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	return info.ModTime(), nil
-
 
 	// // TODO: Wont work for networked files
 	// file, err := s.filesystem.Open(fpath)
@@ -206,9 +218,13 @@ func (s *Server) getFile(fpath string) (io.ReadCloser, time.Time, error) {
 	}
 
 	file, err := fsys.fs.Open(trimmedPath)
-	if err != nil { return nil, time.Time{}, err }
+	if err != nil {
+		return nil, time.Time{}, err
+	}
 	info, err := file.Stat()
-	if err != nil { return nil, time.Time{}, err }
+	if err != nil {
+		return nil, time.Time{}, err
+	}
 
 	return file, info.ModTime(), nil
 
@@ -236,7 +252,9 @@ func (s *Server) getHttp(fpath string) (io.ReadCloser, error) {
 
 func (s *Server) WriteRaw(fpath string, dat []byte) error {
 	fsys, trimmedPath, ok := s.getFilesystem(fpath)
-	if !ok { return fmt.Errorf("Couldnt find file prefix: %s", fpath) }
+	if !ok {
+		return fmt.Errorf("Couldnt find file prefix: %s", fpath)
+	}
 
 	fullFilepath := path.Join(fsys.path, trimmedPath)
 
@@ -298,7 +316,9 @@ func LoadDir[T any](server *Server, fpath string, recursive bool) []*Handle[T] {
 	ret := make([]*Handle[T], 0, len(dirEntries))
 	for _, e := range dirEntries {
 		if e.IsDir() {
-			if !recursive { continue }
+			if !recursive {
+				continue
+			}
 
 			dirPath := path.Join(fsys.prefix, fpath, e.Name())
 			fmt.Println("Directory:", dirPath)
@@ -319,7 +339,6 @@ func LoadDir[T any](server *Server, fpath string, recursive bool) []*Handle[T] {
 	// if err != nil {
 	// 	return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
 	// }
-
 
 	// ret := make([]*Handle[T], 0, len(dirEntries))
 	// for _, e := range dirEntries {
@@ -398,7 +417,9 @@ func Load[T any](server *Server, name string) *Handle[T] {
 
 // Loads a single file
 func Reload[T any](server *Server, handle *Handle[T]) {
-	if !handle.Done() { return } // If its still loading, then don't try to reload
+	if !handle.Done() {
+		return
+	} // If its still loading, then don't try to reload
 
 	name := handle.Name
 
@@ -479,7 +500,9 @@ func Store[T any](server *Server, handle *Handle[T]) error {
 func getExtension(name string) string {
 	idx := -1
 	for i := len(name) - 1; i >= 0; i-- {
-		if name[i] == '/' { break }
+		if name[i] == '/' {
+			break
+		}
 		if name[i] == '.' {
 			idx = i
 		}
@@ -520,7 +543,6 @@ func getExtension(name string) string {
 // 	Load(data []byte) (any, error)
 // }
 
-
 // type Server struct {
 // 	load *Load
 
@@ -538,7 +560,6 @@ func getExtension(name string) string {
 // 		assets: make([]Asset, 0),
 // 	}
 // }
-
 
 // func (s *Server) Register(loader Loader) {
 // 	extensions := loader.Ext()

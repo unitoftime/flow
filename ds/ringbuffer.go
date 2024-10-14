@@ -1,13 +1,14 @@
 package ds
 
 type RingBuffer[T any] struct {
-	idx int
+	idx     int
 	readIdx int
-	buffer []T
+	buffer  []T
 }
+
 func NewRingBuffer[T any](length int) *RingBuffer[T] {
 	return &RingBuffer[T]{
-		idx: 0,
+		idx:    0,
 		buffer: make([]T, length),
 	}
 }

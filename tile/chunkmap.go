@@ -16,10 +16,10 @@ import (
 // 	SaveChunk(chunkmap *Chunkmap[T], chunkPos ChunkPosition) error
 // }
 
-
 type ChunkPosition struct {
 	X, Y int16
 }
+
 func (c *ChunkPosition) hash() uint32 {
 	return (uint32(uint16(c.X)) << 16) | uint32(uint16(c.Y))
 }
@@ -62,7 +62,7 @@ func (c *Chunkmap[T]) GetAllChunkPositions() []ChunkPosition {
 	ret := make([]ChunkPosition, 0, c.NumChunks())
 	c.chunks.ForEach(func(chunkHash uint32, chunk *Chunk[T]) {
 		chunkPos := fromHash(chunkHash)
-	// for chunkPos := range c.chunks {
+		// for chunkPos := range c.chunks {
 		ret = append(ret, chunkPos)
 	})
 	return ret
@@ -73,7 +73,7 @@ func (c *Chunkmap[T]) Bounds() Rect {
 	i := 0
 	c.chunks.ForEach(func(chunkHash uint32, chunk *Chunk[T]) {
 		chunkPos := fromHash(chunkHash)
-	// for chunkPos := range c.chunks {
+		// for chunkPos := range c.chunks {
 		if i == 0 {
 			bounds = c.GetChunkTileRect(chunkPos)
 		} else {
@@ -119,7 +119,7 @@ func (c *Chunkmap[T]) GenerateChunk(chunkPos ChunkPosition, expansionLambda func
 		for y := range tiles[x] {
 			// fmt.Println(x, y, tileOffset.X, tileOffset.Y)
 			if expansionLambda != nil {
-				tiles[x][y] = expansionLambda(x + tileOffset.X, y + tileOffset.Y)
+				tiles[x][y] = expansionLambda(x+tileOffset.X, y+tileOffset.Y)
 			}
 		}
 	}
@@ -226,12 +226,16 @@ func (c *Chunkmap[T]) GetNeighborsAtDistance(tilePos TilePosition, dist int) []T
 		current := q.Dequeue()
 
 		d := distance[current]
-		if d >= dist { continue } // Don't need to search past our limit
+		if d >= dist {
+			continue
+		} // Don't need to search past our limit
 
 		neighbors := c.GetEdgeNeighbors(current.X, current.Y)
 		for _, next := range neighbors {
 			_, ok := c.GetTile(next)
-			if !ok { continue } // Skip as neighbor doesn't actually exist (ie could be OOB)
+			if !ok {
+				continue
+			} // Skip as neighbor doesn't actually exist (ie could be OOB)
 
 			// If we haven't already walked over this neighbor, then enqueue it and add it to our path
 			_, exists := distance[next]
@@ -245,7 +249,9 @@ func (c *Chunkmap[T]) GetNeighborsAtDistance(tilePos TilePosition, dist int) []T
 	// Pull out all of the tiles that are at the correct distance
 	ret := make([]TilePosition, 0)
 	for pos, d := range distance {
-		if d != dist { continue } // Don't return if distance isn't corect
+		if d != dist {
+			continue
+		} // Don't return if distance isn't corect
 		ret = append(ret, pos)
 	}
 	return ret
@@ -263,9 +269,13 @@ func (c *Chunkmap[T]) BreadthFirstSearch(tilePos TilePosition, valid func(t T) b
 		neighbors := c.GetEdgeNeighbors(current.X, current.Y)
 		for _, next := range neighbors {
 			t, ok := c.GetTile(next)
-			if !ok { continue } // Skip as neighbor doesn't actually exist (ie could be OOB)
+			if !ok {
+				continue
+			} // Skip as neighbor doesn't actually exist (ie could be OOB)
 
-			if !valid(t) { continue } // Skip if the tile isn't valid
+			if !valid(t) {
+				continue
+			} // Skip if the tile isn't valid
 
 			// If we haven't already walked over this neighbor, then enqueue it and add it to our path
 			_, exists := distance[next]
@@ -301,9 +311,13 @@ func (c *Chunkmap[T]) IterBreadthFirst(tilePos TilePosition, valid func(t T) boo
 			neighbors := c.GetEdgeNeighbors(current.X, current.Y)
 			for _, next := range neighbors {
 				t, ok := c.GetTile(next)
-				if !ok { continue } // Skip as neighbor doesn't actually exist (ie could be OOB)
+				if !ok {
+					continue
+				} // Skip as neighbor doesn't actually exist (ie could be OOB)
 
-				if !valid(t) { continue } // Skip if the tile isn't valid
+				if !valid(t) {
+					continue
+				} // Skip if the tile isn't valid
 
 				// If we haven't already walked over this neighbor, then enqueue it and add it to our path
 				_, exists := distance[next]
@@ -325,7 +339,7 @@ func (c *Chunkmap[T]) GetPerimeter() map[ChunkPosition]bool {
 	// TODO: originally this function would just use the first in the for loop. but we cant break out of a lambda func
 	c.chunks.ForEach(func(chunkHash uint32, chunk *Chunk[T]) {
 		chunkPos := fromHash(chunkHash)
-	// for chunkPos := range c.chunks {
+		// for chunkPos := range c.chunks {
 		start = chunkPos
 		// break
 	})
@@ -358,7 +372,9 @@ func (c *Chunkmap[T]) GetPerimeter() map[ChunkPosition]bool {
 
 func (c *Chunkmap[T]) CalculateBlobmapVariant(pos TilePosition, same func(a T, b T) bool) uint8 {
 	tile, ok := c.GetTile(pos)
-	if !ok { return 0 }
+	if !ok {
+		return 0
+	}
 
 	t, _ := c.GetTile(TilePosition{pos.X, pos.Y + 1})
 	b, _ := c.GetTile(TilePosition{pos.X, pos.Y - 1})
@@ -383,7 +399,9 @@ func (c *Chunkmap[T]) CalculateBlobmapVariant(pos TilePosition, same func(a T, b
 
 func (c *Chunkmap[T]) CalculatePipemapVariant(pos TilePosition, same func(a T, b T) bool) uint8 {
 	tile, ok := c.GetTile(pos)
-	if !ok { return 0 }
+	if !ok {
+		return 0
+	}
 
 	t, _ := c.GetTile(TilePosition{pos.X, pos.Y + 1})
 	b, _ := c.GetTile(TilePosition{pos.X, pos.Y - 1})
@@ -400,7 +418,9 @@ func (c *Chunkmap[T]) CalculatePipemapVariant(pos TilePosition, same func(a T, b
 
 func (c *Chunkmap[T]) CalculateRawEightVariant(pos TilePosition, same func(a T, b T) bool) uint8 {
 	tile, ok := c.GetTile(pos)
-	if !ok { return 0 }
+	if !ok {
+		return 0
+	}
 
 	t, _ := c.GetTile(TilePosition{pos.X, pos.Y + 1})
 	b, _ := c.GetTile(TilePosition{pos.X, pos.Y - 1})
@@ -437,14 +457,15 @@ type ChunkMath struct {
 	// math FlatRectMath
 
 	globalmath FlatRectMath
-	chunkmath FlatRectMath
-	tilemath FlatRectMath
+	chunkmath  FlatRectMath
+	tilemath   FlatRectMath
 }
+
 func NewChunkmath(chunkSize int, tileSize int) ChunkMath {
 	return ChunkMath{
 		globalmath: NewFlatRectMath([2]int{tileSize * chunkSize, tileSize * chunkSize}),
-		chunkmath: NewFlatRectMath([2]int{chunkSize, chunkSize}),
-		tilemath: NewFlatRectMath([2]int{tileSize, tileSize}),
+		chunkmath:  NewFlatRectMath([2]int{chunkSize, chunkSize}),
+		tilemath:   NewFlatRectMath([2]int{tileSize, tileSize}),
 	}
 	// chunkDiv := int(math.Log2(float64(chunkSize)))
 	// if (1 << chunkDiv) != chunkSize {
@@ -477,12 +498,12 @@ func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) glm.Vec2 {
 		X: float64(offX),
 		// Y: float64(offY) - (0.5 * float64(c.chunkSize[1]) * float64(c.tileSize[1])) + float64(c.tileSize[1]/2),
 		// Y: float64(offY) - float64(c.chunkSizeOver2[1] * c.tileSize[1]) + float64(c.tileSizeOver2[1]),
-		Y: float64(offY) - float64(c.chunkmath.sizeOver2[1] * c.tilemath.size[1]) + float64(c.tilemath.sizeOver2[1]),
+		Y: float64(offY) - float64(c.chunkmath.sizeOver2[1]*c.tilemath.size[1]) + float64(c.tilemath.sizeOver2[1]),
 	}
 	return offset
 }
 
-//Note: untested
+// Note: untested
 func (c *ChunkMath) TileToChunkLocalPosition(tilePos Position) glm.Vec2 {
 	chunkPos := c.TileToChunk(tilePos)
 	offsetPos := c.ToPosition(chunkPos)
@@ -555,11 +576,10 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 	return R(
 		center.X,
 		center.Y,
-		center.X + (c.chunkmath.size[0]) - 1,
-		center.Y + (c.chunkmath.size[1]) - 1,
+		center.X+(c.chunkmath.size[0])-1,
+		center.Y+(c.chunkmath.size[1])-1,
 	)
 }
-
 
 // // Returns the worldspace position of a chunk
 // func (c *ChunkMath) ToPosition(chunkPos ChunkPosition) glm.Vec22 {
@@ -643,19 +663,19 @@ func (c *ChunkMath) RectToWorldRect(r Rect) glm.Rect {
 
 func (c *ChunkMath) GetEdgeNeighbors(x, y int) []TilePosition {
 	return []TilePosition{
-		TilePosition{x+1, y},
-		TilePosition{x-1, y},
-		TilePosition{x, y+1},
-		TilePosition{x, y-1},
+		TilePosition{x + 1, y},
+		TilePosition{x - 1, y},
+		TilePosition{x, y + 1},
+		TilePosition{x, y - 1},
 	}
 }
 
 func (c *ChunkMath) GetChunkEdgeNeighbors(pos ChunkPosition) []ChunkPosition {
 	return []ChunkPosition{
-		ChunkPosition{pos.X+1, pos.Y},
-		ChunkPosition{pos.X-1, pos.Y},
-		ChunkPosition{pos.X, pos.Y+1},
-		ChunkPosition{pos.X, pos.Y-1},
+		ChunkPosition{pos.X + 1, pos.Y},
+		ChunkPosition{pos.X - 1, pos.Y},
+		ChunkPosition{pos.X, pos.Y + 1},
+		ChunkPosition{pos.X, pos.Y - 1},
 	}
 }
 
@@ -664,16 +684,16 @@ func (c *ChunkMath) GetNeighbors(pos TilePosition) []TilePosition {
 	y := pos.Y
 	return []TilePosition{
 		// Edges
-		TilePosition{x+1, y},
-		TilePosition{x-1, y},
-		TilePosition{x, y+1},
-		TilePosition{x, y-1},
+		TilePosition{x + 1, y},
+		TilePosition{x - 1, y},
+		TilePosition{x, y + 1},
+		TilePosition{x, y - 1},
 
 		// Corners
-		TilePosition{x-1, y-1},
-		TilePosition{x-1, y+1},
-		TilePosition{x+1, y-1},
-		TilePosition{x+1, y+1},
+		TilePosition{x - 1, y - 1},
+		TilePosition{x - 1, y + 1},
+		TilePosition{x + 1, y - 1},
+		TilePosition{x + 1, y + 1},
 	}
 }
 

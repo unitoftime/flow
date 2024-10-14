@@ -17,33 +17,38 @@ import (
 // }
 
 type Channel struct {
-	mixer *beep.Mixer
-	ctrl *beep.Ctrl
+	mixer  *beep.Mixer
+	ctrl   *beep.Ctrl
 	volume *effects.Volume
 }
+
 func NewChannel() *Channel {
 	mixer := &beep.Mixer{}
 	ctrl := &beep.Ctrl{
 		Streamer: mixer,
-		Paused: false,
+		Paused:   false,
 	}
 	volume := &effects.Volume{
 		Streamer: ctrl,
-		Base: 2,
-		Volume: 0,
-		Silent: false,
+		Base:     2,
+		Volume:   0,
+		Silent:   false,
 	}
 	return &Channel{
-		mixer: mixer,
-		ctrl: ctrl,
+		mixer:  mixer,
+		ctrl:   ctrl,
 		volume: volume,
 	}
 }
 func (c *Channel) Add(channels ...*Channel) {
-	if c == nil { return }
+	if c == nil {
+		return
+	}
 
 	for _, channel := range channels {
-		if channel == nil { return }
+		if channel == nil {
+			return
+		}
 
 		// TODO: Prevent the same channel from being added multiple times?
 
@@ -53,7 +58,9 @@ func (c *Channel) Add(channels ...*Channel) {
 
 // Get the number of sources currently playing
 func (c *Channel) NumSources() int {
-	if c == nil { return 0 }
+	if c == nil {
+		return 0
+	}
 	speaker.Lock()
 	length := c.mixer.Len()
 	speaker.Unlock()
@@ -61,7 +68,9 @@ func (c *Channel) NumSources() int {
 }
 
 func (c *Channel) add(streamer beep.Streamer) {
-	if streamer == nil { return }
+	if streamer == nil {
+		return
+	}
 
 	speaker.Lock()
 	c.mixer.Add(streamer)
@@ -69,8 +78,12 @@ func (c *Channel) add(streamer beep.Streamer) {
 }
 
 func (c *Channel) PlayOnly(src *Source, loop bool) {
-	if c == nil { return }
-	if src == nil { return }
+	if c == nil {
+		return
+	}
+	if src == nil {
+		return
+	}
 
 	go func() {
 		speaker.Lock()
@@ -78,7 +91,9 @@ func (c *Channel) PlayOnly(src *Source, loop bool) {
 		speaker.Unlock()
 
 		streamer, err := src.Streamer()
-		if err != nil { return } // TODO: Snuffed error message
+		if err != nil {
+			return
+		} // TODO: Snuffed error message
 
 		if !loop {
 			c.add(streamer)
@@ -86,7 +101,7 @@ func (c *Channel) PlayOnly(src *Source, loop bool) {
 		}
 
 		// Note: -1 indicates to loop forever
-		looper := beep.Loop(-1,  streamer)
+		looper := beep.Loop(-1, streamer)
 		c.add(looper)
 	}()
 }
@@ -99,13 +114,19 @@ func (c *Channel) PlayOnly(src *Source, loop bool) {
 // }
 
 func (c *Channel) Play(src *Source) {
-	if c == nil { return }
-	if src == nil { return }
+	if c == nil {
+		return
+	}
+	if src == nil {
+		return
+	}
 
 	// TODO: You need to pass these via a channel/queue to execute on some other thread. The speaker locks for miliseconds at a time
 	go func() {
 		streamer, err := src.Streamer()
-		if err != nil { return } // TODO: Snuffed error message
+		if err != nil {
+			return
+		} // TODO: Snuffed error message
 		c.add(streamer)
 	}()
 }
@@ -132,44 +153,58 @@ func (c *Channel) Play(src *Source) {
 // }
 
 func (c *Channel) SetMute(val bool) {
-	if c == nil { return }
+	if c == nil {
+		return
+	}
 	speaker.Lock()
 	c.volume.Silent = val
 	speaker.Unlock()
 }
 
 func (c *Channel) SetVolume(val float64) {
-	if c == nil { return }
+	if c == nil {
+		return
+	}
 	speaker.Lock()
 	c.volume.Volume = val
 	speaker.Unlock()
 }
 
 func (c *Channel) Mute() {
-	if c == nil { return }
+	if c == nil {
+		return
+	}
 	speaker.Lock()
 	c.volume.Silent = true
 	speaker.Unlock()
 }
 func (c *Channel) Unmute() {
-	if c == nil { return }
+	if c == nil {
+		return
+	}
 	speaker.Lock()
 	c.volume.Silent = false
 	speaker.Unlock()
 }
 func (c *Channel) Muted() bool {
-	if c == nil { return false }
+	if c == nil {
+		return false
+	}
 	return c.volume.Silent
 }
 
 func (c *Channel) AddVolume(val float64) {
-	if c == nil { return }
+	if c == nil {
+		return
+	}
 	speaker.Lock()
 	c.volume.Volume += val
 	speaker.Unlock()
 }
 func (c *Channel) Volume() float64 {
-	if c == nil { return 0 }
+	if c == nil {
+		return 0
+	}
 	return c.volume.Volume
 }
 

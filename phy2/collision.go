@@ -13,18 +13,17 @@ func (c CollisionLayer) Mask(layer CollisionLayer) bool {
 	return (c & layer) > 0 // One layer must overlap for the layermask to work
 }
 
-
 // This tracks the list of current collisions
 type ColliderCache struct {
-	Current []ecs.Id
-	Last []ecs.Id
+	Current       []ecs.Id
+	Last          []ecs.Id
 	NewCollisions []ecs.Id // This list contains all new collisions
 }
 
 func NewColliderCache() ColliderCache {
 	return ColliderCache{
-		Current: make([]ecs.Id, 0),
-		Last: make([]ecs.Id, 0),
+		Current:       make([]ecs.Id, 0),
+		Last:          make([]ecs.Id, 0),
 		NewCollisions: make([]ecs.Id, 0),
 	}
 }
@@ -33,7 +32,9 @@ func (c *ColliderCache) Add(id ecs.Id) {
 	c.Current = append(c.Current, id)
 
 	for i := range c.Last {
-		if c.Last[i] == id { return } // Exit early, because this one was in the last frame
+		if c.Last[i] == id {
+			return
+		} // Exit early, because this one was in the last frame
 	}
 	// Else if we get here, then the id wasn't in the last frame list
 	c.NewCollisions = append(c.NewCollisions, id)
@@ -51,9 +52,9 @@ func (c *ColliderCache) Clear() {
 
 type CircleCollider struct {
 	CenterX, CenterY float64 // TODO - right now this holds the entire position of the circle (relative to world space). You might consider stripping that out though
-	Radius float64
-	HitLayer CollisionLayer
-	Layer CollisionLayer
+	Radius           float64
+	HitLayer         CollisionLayer
+	Layer            CollisionLayer
 	// Disabled bool // If set true, this collider won't collide with anything
 }
 
@@ -90,7 +91,7 @@ func (c *CircleCollider) Contains(yProjection float64, pos glm.Vec2) bool {
 	// return dist < c.Radius
 	dx := pos.X - c.CenterX
 	dy := pos.Y - c.CenterY
-	dist := math.Hypot(dx, yProjection * dy)
+	dist := math.Hypot(dx, yProjection*dy)
 	return dist < c.Radius
 }
 
@@ -102,10 +103,9 @@ func (c *CircleCollider) Contains(yProjection float64, pos glm.Vec2) bool {
 func (c *CircleCollider) Overlaps(yProjection float64, c2 *CircleCollider) bool {
 	dx := c2.CenterX - c.CenterX
 	dy := c2.CenterY - c.CenterY
-	dist := math.Hypot(dx, yProjection * dy)
+	dist := math.Hypot(dx, yProjection*dy)
 	return dist < (c.Radius + c2.Radius)
 }
-
 
 type HashPosition struct {
 	X, Y int32
@@ -113,19 +113,20 @@ type HashPosition struct {
 
 type SpatialBucket struct {
 	position HashPosition
-	ids []ecs.Id
+	ids      []ecs.Id
 }
+
 func NewSpatialBucket(hashPos HashPosition) *SpatialBucket {
 	return &SpatialBucket{
 		position: hashPos,
-		ids: make([]ecs.Id, 0),
+		ids:      make([]ecs.Id, 0),
 	}
 }
 
 // This holds a spatial hash of objects placed inside
 type SpatialHash struct {
 	bucketSize float64
-	buckets map[HashPosition]*SpatialBucket
+	buckets    map[HashPosition]*SpatialBucket
 }
 
 // TODO - pass in world dimensions?
@@ -133,7 +134,7 @@ type SpatialHash struct {
 func NewSpatialHash(bucketSize float64) *SpatialHash {
 	return &SpatialHash{
 		bucketSize: bucketSize,
-		buckets: make(map[HashPosition]*SpatialBucket),
+		buckets:    make(map[HashPosition]*SpatialBucket),
 	}
 }
 
@@ -150,8 +151,8 @@ func (s *SpatialHash) AddCircle(id ecs.Id, circle *CircleCollider) {
 }
 
 func (s *SpatialHash) ToHashPosition(x, y float64) HashPosition {
-	bucketX := int32(math.Floor(x/s.bucketSize))
-	bucketY := int32(math.Floor(y/s.bucketSize))
+	bucketX := int32(math.Floor(x / s.bucketSize))
+	bucketY := int32(math.Floor(y / s.bucketSize))
 
 	return HashPosition{bucketX, bucketY}
 }

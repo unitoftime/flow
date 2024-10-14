@@ -1,17 +1,18 @@
 package main
 
 import (
-	"image"
-	_ "image/png"
 	"bytes"
 	"errors"
+	"image"
+	_ "image/png"
 
-	"github.com/unitoftime/glitch"
 	"github.com/unitoftime/flow/asset"
+	"github.com/unitoftime/glitch"
 )
 
 type SpriteAssetLoader struct {
 }
+
 func (l SpriteAssetLoader) Ext() []string {
 	return []string{".png"}
 }

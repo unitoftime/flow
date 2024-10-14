@@ -8,20 +8,20 @@ import (
 
 type TileDraw struct {
 	Sprite *glitch.Sprite
-	Depth float64
+	Depth  float64
 }
 
 type Chunkmap[T any] struct {
-	chunkmap *tile.Chunkmap[T]
+	chunkmap      *tile.Chunkmap[T]
 	tilemapRender *TilemapRender[T]
-	chunks map[tile.ChunkPosition]*glitch.Batch
+	chunks        map[tile.ChunkPosition]*glitch.Batch
 }
 
-func NewChunkmap[T any](chunkmap *tile.Chunkmap[T], tileToSprite func(t T)[]TileDraw) *Chunkmap[T] {
+func NewChunkmap[T any](chunkmap *tile.Chunkmap[T], tileToSprite func(t T) []TileDraw) *Chunkmap[T] {
 	return &Chunkmap[T]{
-		chunkmap: chunkmap,
+		chunkmap:      chunkmap,
 		tilemapRender: NewTilemapRender[T](tileToSprite),
-		chunks: make(map[tile.ChunkPosition]*glitch.Batch),
+		chunks:        make(map[tile.ChunkPosition]*glitch.Batch),
 	}
 }
 
@@ -58,12 +58,12 @@ func (c *Chunkmap[T]) RebatchChunk(chunkPos tile.ChunkPosition) {
 }
 
 type TilemapRender[T any] struct {
-	tileToSprite func(t T)[]TileDraw
+	tileToSprite func(t T) []TileDraw
 	// tileToSprite map[tile.TileType]*glitch.Sprite
 }
 
-func NewTilemapRender[T any](tileToSprite func(t T)[]TileDraw) *TilemapRender[T] {
-// func NewTilemapRender(tileToSprite map[tile.TileType]*glitch.Sprite) *TilemapRender {
+func NewTilemapRender[T any](tileToSprite func(t T) []TileDraw) *TilemapRender[T] {
+	// func NewTilemapRender(tileToSprite map[tile.TileType]*glitch.Sprite) *TilemapRender {
 	// Note: Assumes that all sprites share the same spritesheet
 	return &TilemapRender[T]{
 		tileToSprite: tileToSprite,
@@ -74,11 +74,13 @@ func (r *TilemapRender[T]) Draw(tmap *tile.Chunk[T], batch *glitch.Batch) {
 	for x := 0; x < tmap.Width(); x++ {
 		for y := tmap.Height(); y >= 0; y-- {
 			t, ok := tmap.Get(tile.TilePosition{x, y})
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 
 			// pos := r.Math.Position(x, y, t.TileSize)
 			xPos, yPos := tmap.TileToPosition(tile.TilePosition{x, y})
-			pos := glitch.Vec2{xPos, yPos}// .Add(glitch.Vec2{8, 8})
+			pos := glitch.Vec2{xPos, yPos} // .Add(glitch.Vec2{8, 8})
 
 			// TODO!!! - This should get captured in maybe some extra offset function?
 			// pos[1] += t.Height * float32(tmap.TileSize[1])
@@ -98,7 +100,6 @@ func (r *TilemapRender[T]) Draw(tmap *tile.Chunk[T], batch *glitch.Batch) {
 				if d.Sprite == nil {
 					continue // Skip if the sprite is nil
 				}
-
 
 				mat := glitch.Mat4Ident
 				mat.Translate(pos.X, pos.Y, d.Depth)

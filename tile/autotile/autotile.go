@@ -9,11 +9,12 @@ import (
 )
 
 type Pattern uint8
+
 const (
-	Top Pattern = 0b00000001
-	Right       = 0b00000010
-	Bottom      = 0b00000100
-	Left        = 0b00001000
+	Top    Pattern = 0b00000001
+	Right          = 0b00000010
+	Bottom         = 0b00000100
+	Left           = 0b00001000
 )
 
 func (p Pattern) Top() bool {
@@ -47,8 +48,9 @@ type Rule[T any] interface {
 
 type BlobmapRule[T any] struct {
 	MatchCenter func(a, b T) bool
-	Match func(a, b T) bool
+	Match       func(a, b T) bool
 }
+
 func (rule BlobmapRule[T]) ExecuteFull(m, t, b, l, r, tl, tr, bl, br T) int {
 	if rule.MatchCenter != nil {
 		if !rule.MatchCenter(m, m) {
@@ -85,7 +87,6 @@ func (rule BlobmapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) in
 
 	t, b, l, r, tl, tr, bl, br := getEightNeighbors(tilemap, pos)
 
-
 	pattern := PackedBlobmapNumber(
 		rule.Match(tile, t),
 		rule.Match(tile, b),
@@ -103,6 +104,7 @@ func (rule BlobmapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) in
 type PipemapRule[T any] struct {
 	Match func(a, b T) bool
 }
+
 func (rule PipemapRule[T]) ExecuteFull(m, t, b, l, r, tl, tr, bl, br T) int {
 	if !rule.Match(m, m) {
 		return -1
@@ -139,11 +141,11 @@ func (rule PipemapRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) in
 	return int(pattern)
 }
 
-
 type LambdaRule[T any] struct {
-	Func func(Pattern) int
+	Func  func(Pattern) int
 	Match func(T, T) bool
 }
+
 func (rule LambdaRule[T]) ExecuteFull(m, t, b, l, r, tl, tr, bl, br T) int {
 	if !rule.Match(m, m) {
 		return -1
@@ -215,12 +217,12 @@ func (rule LambdaRule[T]) Execute(tilemap Tilemap[T], pos tile.TilePosition) int
 type Set[T, S any] struct {
 	// mapping map[uint8][]int
 	// Rule func(Pattern)int
-	Rule Rule[T]
-	Tiles [][]S
+	Rule         Rule[T]
+	Tiles        [][]S
 	VariantNoise *pgen.NoiseMap
 }
 
-func (s *Set[T,S]) GetFull(pos tile.Position, m, t, b, l, r, tl, tr, bl, br T) (S, bool) {
+func (s *Set[T, S]) GetFull(pos tile.Position, m, t, b, l, r, tl, tr, bl, br T) (S, bool) {
 	variant := s.Rule.ExecuteFull(m, t, b, l, r, tl, tr, bl, br)
 	if variant < 0 {
 		var ret S
@@ -237,7 +239,7 @@ func (s *Set[T,S]) GetFull(pos tile.Position, m, t, b, l, r, tl, tr, bl, br T) (
 	return s.Tiles[variant][idx], true
 }
 
-func (s *Set[T,S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
+func (s *Set[T, S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
 	variant := s.Rule.Execute(tilemap, pos)
 	if variant < 0 {
 		var ret S
@@ -282,13 +284,29 @@ func getEightNeighbors[T any](tilemap Tilemap[T], pos tile.TilePosition) (T, T, 
 
 func PackedRawEightNumber(t, b, l, r, tl, tr, bl, br bool) uint8 {
 	total := uint8(0)
-	if t	{ total	+= (1 << 0) }
-	if r	{ total	+= (1 << 1) }
-	if b	{ total	+= (1 << 2) }
-	if l	{ total	+= (1 << 3) }
-	if tr { total += (1 << 4) }
-	if tl { total += (1 << 5) }
-	if br { total += (1 << 6) }
-	if bl { total += (1 << 7) }
+	if t {
+		total += (1 << 0)
+	}
+	if r {
+		total += (1 << 1)
+	}
+	if b {
+		total += (1 << 2)
+	}
+	if l {
+		total += (1 << 3)
+	}
+	if tr {
+		total += (1 << 4)
+	}
+	if tl {
+		total += (1 << 5)
+	}
+	if br {
+		total += (1 << 6)
+	}
+	if bl {
+		total += (1 << 7)
+	}
 	return total
 }

@@ -8,6 +8,7 @@ import (
 )
 
 var globalTimer time.Duration
+
 func UpdateGlobalAnimationTimer(dt time.Duration) {
 	globalTimer += dt
 }
@@ -18,14 +19,15 @@ func UpdateGlobalAnimationTimer(dt time.Duration) {
 type Frame struct {
 	Sprite *glitch.Sprite
 	// Origin phy2.Vec
-	Dur time.Duration
+	Dur   time.Duration
 	mount map[string]glm.Vec2 // TODO - this is just kind of arbitrary data for my mountpoint system
 }
+
 func NewFrame(sprite *glitch.Sprite, dur time.Duration) Frame {
 	return Frame{
 		Sprite: sprite,
-		Dur: dur,
-		mount: make(map[string]glm.Vec2),
+		Dur:    dur,
+		mount:  make(map[string]glm.Vec2),
 	}
 }
 
@@ -46,19 +48,19 @@ func (f *Frame) Mount(name string) glm.Vec2 {
 }
 
 type Animation struct {
-	frameIdx int
-	remainingDur time.Duration
-	frames map[string][]Frame // This is the map of all animations and their associated frames
-	animName string
-	curAnim []Frame // This is the current animation frames that we are operating on
+	frameIdx      int
+	remainingDur  time.Duration
+	frames        map[string][]Frame // This is the map of all animations and their associated frames
+	animName      string
+	curAnim       []Frame       // This is the current animation frames that we are operating on
 	totalAnimTime time.Duration // This is the total amount of time for the current animation (speed adjusted)
 
-	done bool
-	Loop bool
+	done  bool
+	Loop  bool
 	speed float64 // This is used to scale the duration of the animation evenly so that the animation can fit a certain time duration
 
 	// MirrorX bool // TODO
-	MirrorY bool // Mirror around the Y axis
+	MirrorY        bool // Mirror around the Y axis
 	AlignAnimation bool
 	hasUpdatedOnce bool
 }
@@ -68,7 +70,7 @@ func NewAnimation(startingAnim string, frames map[string][]Frame) Animation {
 		frames: frames,
 		// Color: color.NRGBA{255, 255, 255, 255},
 		// Scale: glitch.Vec2{1, 1},
-		Loop: true,
+		Loop:  true,
 		speed: 1.0,
 	}
 	if startingAnim == "" {
@@ -116,7 +118,9 @@ func (a *Animation) GetAnimationName() string {
 }
 
 func (a *Animation) SetAnimation(name string) {
-	if name == a.animName { return } // Skip if we aren't actually changing the animation
+	if name == a.animName {
+		return
+	} // Skip if we aren't actually changing the animation
 
 	newAnim, ok := a.frames[name]
 	if !ok {
@@ -151,7 +155,9 @@ func (a *Animation) Done() bool {
 }
 
 func (a *Animation) SetFrame(idx int) {
-	if len(a.curAnim) <= 0 { return } // Cant set the frame if the animation is zero length
+	if len(a.curAnim) <= 0 {
+		return
+	} // Cant set the frame if the animation is zero length
 
 	if a.Loop {
 		// If the idx is passed the animation, then loop it

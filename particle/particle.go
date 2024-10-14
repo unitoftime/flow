@@ -46,16 +46,17 @@ func Clamp(min, max, val float64) float64 {
 	return val
 }
 
-//--------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------
 // - Positioners
-//--------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------
 type Lifetime struct {
-	Total time.Duration
+	Total     time.Duration
 	Remaining time.Duration
 }
+
 func NewLifetime(total time.Duration) Lifetime {
 	return Lifetime{
-		Total: total,
+		Total:     total,
 		Remaining: total,
 	}
 }
@@ -64,19 +65,19 @@ func (l *Lifetime) Ratio() float64 {
 		return 0
 	}
 
-	return 1 - Clamp(0, 1.0, l.Remaining.Seconds() / l.Total.Seconds())
+	return 1 - Clamp(0, 1.0, l.Remaining.Seconds()/l.Total.Seconds())
 }
-
 
 type Color struct {
-	Interp interp.Interp
+	Interp     interp.Interp
 	Start, End color.NRGBA
 }
+
 func NewColor(interpolation interp.Interp, start, end color.NRGBA) Color {
 	return Color{
 		Interp: interpolation,
-		Start: start,
-		End: end,
+		Start:  start,
+		End:    end,
 	}
 }
 
@@ -92,14 +93,15 @@ func (c *Color) Get(ratio float64) color.NRGBA {
 }
 
 type Size struct {
-	Interp interp.Interp
+	Interp     interp.Interp
 	Start, End glm.Vec2
 }
+
 func NewSize(interpolation interp.Interp, start, end glm.Vec2) Size {
 	return Size{
 		Interp: interpolation,
-		Start: start,
-		End: end,
+		Start:  start,
+		End:    end,
 	}
 }
 
@@ -113,9 +115,9 @@ func (s *Size) Get(ratio float64) glm.Vec2 {
 	return size
 }
 
-//--------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------
 // - ComponentFactory
-//--------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------
 type PrefabBuilder interface {
 	Add(*ecs.Entity)
 }
@@ -190,9 +192,9 @@ type PrefabBuilder interface {
 // func (b *RigidbodyBuilder) Add(prefab ecs.Entity) {
 // }
 
-//--------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------
 // - Positioners
-//--------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------
 type Float64Positioner interface {
 	Float64(count int, A float64) float64
 }
@@ -200,15 +202,17 @@ type Float64Positioner interface {
 type ConstFloat64Positioner struct {
 	Val float64
 }
+
 func (p ConstFloat64Positioner) Float64(count int, v float64) float64 {
 	return v + p.Val
 }
+
 type RandomFloat64Positioner struct {
 }
+
 func (p RandomFloat64Positioner) Float64(count int, v float64) float64 {
 	return v + (2 * math.Pi * rand.Float64())
 }
-
 
 type Vec2Positioner interface {
 	Vec2(count int, A glm.Vec2) glm.Vec2
@@ -217,17 +221,19 @@ type Vec2Positioner interface {
 type ConstantPositioner struct {
 	X, Y float64
 }
+
 func (p ConstantPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	return glm.Vec2{p.X, p.Y}
 }
 
 type GeometricPositioner struct {
-	Scale glm.Vec2 // X is min, Y is max
-	Offset float64
+	Scale          glm.Vec2 // X is min, Y is max
+	Offset         float64
 	DistanceOffset float64
-	DistanceMod int
-	DistanceRem int
+	DistanceMod    int
+	DistanceRem    int
 }
+
 func (p *GeometricPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	theta := 2 * math.Pi * float64(count) * p.Offset
 
@@ -251,6 +257,7 @@ func (p *GeometricPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 type CirclePositioner struct {
 	Scale glm.Vec2 // X is min, Y is max
 }
+
 func (p *CirclePositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	theta := 2 * math.Pi * rand.Float64()
 
@@ -266,12 +273,13 @@ func (p *CirclePositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 type RectPositioner struct {
 	Min, Max glm.Vec2 // TODO - rectangle passed in
 }
+
 func (p RectPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	w := p.Max.X - p.Min.X
 	h := p.Max.Y - p.Min.Y
 
-	x := w * rand.Float64() + p.Min.X
-	y := h * rand.Float64() + p.Min.Y
+	x := w*rand.Float64() + p.Min.X
+	y := h*rand.Float64() + p.Min.Y
 
 	return glm.Vec2{x, y}
 }
@@ -279,6 +287,7 @@ func (p RectPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 type CopyPositioner struct {
 	Scale float64
 }
+
 func (p *CopyPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	return A.Scaled(p.Scale)
 }
@@ -286,14 +295,16 @@ func (p *CopyPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 type AnglePositioner struct {
 	Scale float64
 }
+
 func (p *AnglePositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	return A.Norm().Scaled(p.Scale)
 }
 
 type RingPositioner struct {
-	AngleRange glm.Vec2
+	AngleRange  glm.Vec2
 	RadiusRange glm.Vec2
 }
+
 func (p *RingPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	angle := interp.Linear.Float64(p.AngleRange.X, p.AngleRange.Y, rand.Float64())
 	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
@@ -304,7 +315,7 @@ func (p *RingPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 }
 
 // type FirePositioner struct {
-	
+
 // }
 // func (p *FirePositioner) Vec2(A glm.Vec2) glm.Vec2 {
 // 	return glm.Vec2{-A.X, 5}
@@ -313,11 +324,11 @@ func (p *RingPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 // An emitter is used to spawn particles in a certain way
 type Emitter struct {
 	// Max int
-	Rate float64 // Spawn how many per frame
+	Rate   float64 // Spawn how many per frame
 	period int
 
-	OneShot bool
-	Loop bool
+	OneShot     bool
+	Loop        bool
 	Probability float64
 	// Duration time.Duration
 	// Type ParticleType

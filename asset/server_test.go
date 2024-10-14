@@ -9,6 +9,7 @@ type MyAsset struct {
 }
 type CustomAssetLoader struct {
 }
+
 func (l CustomAssetLoader) Ext() []string {
 	return []string{"1.json"}
 }
@@ -23,6 +24,7 @@ type MyAsset2 struct {
 }
 type CustomAssetLoader2 struct {
 }
+
 func (l CustomAssetLoader2) Ext() []string {
 	return []string{"2.json"}
 }
@@ -60,7 +62,6 @@ func (l CustomAssetLoader2) Load(server *Server, data []byte) (*MyAsset2, error)
 // 	t.Log(asset2)
 // }
 
-
 // func TestAssetServerNested(t *testing.T) {
 // 	server := NewServer(NewLoad(os.DirFS("./test-data")))
 // 	Register(server, CustomAssetLoader{})
@@ -94,7 +95,6 @@ func (l CustomAssetLoader2) Load(server *Server, data []byte) (*MyAsset2, error)
 // 	t.Log(asset1, err1)
 // 	t.Log(asset2, err2)
 // }
-
 
 // type MyAsset struct {
 // 	Health int

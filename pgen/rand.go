@@ -15,6 +15,7 @@ type castable interface {
 type Range[T castable] struct {
 	Min, Max T
 }
+
 func (r Range[T]) Get() T {
 	width := float64(r.Max) - float64(r.Min)
 	return T((rand.Float64() * width) + float64(r.Min))
@@ -69,14 +70,15 @@ func RandomPositionInRect(r glm.Rect) glm.Vec2 {
 // - Tables
 //--------------------------------------------------------------------------------
 
-type Item[T any] struct{
+type Item[T any] struct {
 	Weight int
-	Item T
+	Item   T
 }
+
 func NewItem[T any](weight int, item T) Item[T] {
 	return Item[T]{
 		Weight: weight,
-		Item: item,
+		Item:   item,
 	}
 }
 
@@ -98,7 +100,9 @@ func NewTable[T any](items ...Item[T]) *Table[T] {
 func (t *Table[T]) regenerate() {
 	total := 0
 	for i := range t.Items {
-		if t.Items[i].Weight <= 0 { continue } // Skip if the weight of this item is <= 0
+		if t.Items[i].Weight <= 0 {
+			continue
+		} // Skip if the weight of this item is <= 0
 
 		total += t.Items[i].Weight
 	}
@@ -187,7 +191,6 @@ func (t *Table[T]) GetUnique(count int) []T {
 		}
 		return ret
 	}
-
 
 	indexes := make([]int, 0, count)
 	for i := 0; i < count; i++ {
