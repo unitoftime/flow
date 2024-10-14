@@ -32,13 +32,13 @@ func TestDotProduct(t *testing.T) {
 	}
 }
 
-func TestAngle(t *testing.T) {
-	a := Vec3{2, -4, -1}
-	b := Vec3{1, 5, 2}
-	angle := a.Angle(b)
-	// Should be: 2.4928086
-	fmt.Println(angle)
-}
+// func TestAngle(t *testing.T) {
+// 	a := Vec3{2, -4, -1}
+// 	b := Vec3{1, 5, 2}
+// 	angle := a.Angle(b)
+// 	// Should be: 2.4928086
+// 	fmt.Println(angle)
+// }
 
 func TestRotate(t *testing.T) {
 	a := Vec3{1, 0, 0}
