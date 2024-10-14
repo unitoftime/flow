@@ -16,6 +16,7 @@ func (v Vec3) Dot(u Vec3) float64 {
 }
 
 // Finds the angle between two vectors
+// TODO: Is this correct?
 func (v Vec3) Angle(u Vec3) float64 {
 	return  math.Acos(v.Dot(u) / (v.Len() * u.Len()))
 }
