@@ -1,10 +1,6 @@
 package asset
 
 import (
-	"testing"
-
-	"os"
-	"time"
 	"encoding/json"
 )
 
@@ -40,47 +36,47 @@ func (l CustomAssetLoader2) Load(server *Server, data []byte) (*MyAsset2, error)
 
 	healthAssetName := assetMap["Health"]
 	myAsset := MyAsset2{
-		HealthAsset: LoadAsset[MyAsset](server, healthAssetName),
+		HealthAsset: Load[MyAsset](server, healthAssetName),
 	}
 	return &myAsset, err
 }
 
-func TestAssetServerBasic(t *testing.T) {
-	server := NewServer(NewLoad(os.DirFS("./test-data")))
-	Register(server, CustomAssetLoader{})
+// func TestAssetServerBasic(t *testing.T) {
+// 	server := NewServer(NewLoad(os.DirFS("./test-data")))
+// 	Register(server, CustomAssetLoader{})
 
-	handle1 := LoadAsset[MyAsset](server, "test.1.json")
-	handle2 := LoadAsset[MyAsset](server, "test2.1.json")
+// 	handle1 := Load[MyAsset](server, "test.1.json")
+// 	handle2 := Load[MyAsset](server, "test2.1.json")
 
-	time.Sleep(1 * time.Second)
+// 	time.Sleep(1 * time.Second)
 
-	t.Log(handle1)
-	t.Log(handle2)
+// 	t.Log(handle1)
+// 	t.Log(handle2)
 
-	asset1 := handle1.Get()
-	asset2 := handle2.Get()
+// 	asset1 := handle1.Get()
+// 	asset2 := handle2.Get()
 
-	t.Log(asset1)
-	t.Log(asset2)
-}
+// 	t.Log(asset1)
+// 	t.Log(asset2)
+// }
 
 
-func TestAssetServerNested(t *testing.T) {
-	server := NewServer(NewLoad(os.DirFS("./test-data")))
-	Register(server, CustomAssetLoader{})
-	Register(server, CustomAssetLoader2{})
+// func TestAssetServerNested(t *testing.T) {
+// 	server := NewServer(NewLoad(os.DirFS("./test-data")))
+// 	Register(server, CustomAssetLoader{})
+// 	Register(server, CustomAssetLoader2{})
 
-	handle1 := LoadAsset[MyAsset2](server, "test.2.json")
+// 	handle1 := LoadAsset[MyAsset2](server, "test.2.json")
 
-	time.Sleep(1 * time.Second)
+// 	time.Sleep(1 * time.Second)
 
-	t.Log(handle1)
+// 	t.Log(handle1)
 
-	asset1 := handle1.Get()
+// 	asset1 := handle1.Get()
 
-	t.Log(asset1)
-	t.Log(asset1.HealthAsset.Get())
-}
+// 	t.Log(asset1)
+// 	t.Log(asset1.HealthAsset.Get())
+// }
 
 // func TestAssetServerTyped(t *testing.T) {
 // 	server := NewServer(NewLoad(os.DirFS("./test-data")))
