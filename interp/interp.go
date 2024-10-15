@@ -26,7 +26,7 @@ func DynamicValue(val float64, fixedTime, dt time.Duration) float64 {
 
 var Linear *Lerp = &Lerp{}
 
-var EaseOut *Bezier = &Bezier{
+var EaseOut Bezier = Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
 		vec2.T{1.0, 0.0},
@@ -34,7 +34,7 @@ var EaseOut *Bezier = &Bezier{
 		vec2.T{1.0, 1.0},
 	},
 }
-var EaseIn *Bezier = &Bezier{
+var EaseIn Bezier = Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
 		vec2.T{0.0, 1.0},
@@ -42,7 +42,7 @@ var EaseIn *Bezier = &Bezier{
 		vec2.T{1.0, 1.0},
 	},
 }
-var EaseInOut *Bezier = &Bezier{
+var EaseInOut Bezier = Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
 		vec2.T{1.0, 0.0},
@@ -50,7 +50,7 @@ var EaseInOut *Bezier = &Bezier{
 		vec2.T{1.0, 1.0},
 	},
 }
-var BezLerp *Bezier = &Bezier{
+var BezLerp Bezier = Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
 		vec2.T{0.0, 0.0},
@@ -59,7 +59,7 @@ var BezLerp *Bezier = &Bezier{
 	},
 }
 
-var BezFlash *Bezier = &Bezier{
+var BezFlash Bezier = Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
 		vec2.T{0.1, 1.0},
@@ -68,8 +68,8 @@ var BezFlash *Bezier = &Bezier{
 	},
 }
 
-func NewBezier(a, b, c, d glm.Vec2) *Bezier {
-	return &Bezier{
+func NewBezier(a, b, c, d glm.Vec2) Bezier {
+	return Bezier{
 		bezier2.T{
 			vec2.T{a.X, b.Y},
 			vec2.T{b.X, b.Y},
@@ -81,8 +81,8 @@ func NewBezier(a, b, c, d glm.Vec2) *Bezier {
 
 // Note: https://www.w3schools.com/cssref/func_cubic-bezier.php#:~:text=P0%20is%20(0%2C%200),transition%2Dtiming%2Dfunction%20property.
 // Essentially: First point is (0, 0), last point is (1, 1) and you can define the two points in the middle
-func NewCubicBezier(b, c glm.Vec2) *Bezier {
-	return &Bezier{
+func NewCubicBezier(b, c glm.Vec2) Bezier {
+	return Bezier{
 		bezier2.T{
 			vec2.T{0, 0},
 			vec2.T{b.X, b.Y},
@@ -126,14 +126,14 @@ func (i StepF) Uint8(a, b uint8, t float64) uint8 {
 	itrp, val := i.get(t)
 	return itrp.Uint8(a, b, val)
 }
-func (i StepF) Vec2(a, b vec2.T, t float64) vec2.T {
+func (i StepF) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
 	itrp, val := i.get(t)
 	return itrp.Vec2(a, b, val)
 }
 
-func Const(val float64) *Bezier {
+func Const(val float64) Bezier {
 	a := vec2.T{0, val}
-	return &Bezier{
+	return Bezier{
 		bezier2.T{a, a, a, a},
 	}
 }
@@ -143,7 +143,7 @@ func Const(val float64) *Bezier {
 // }
 
 // https://cubic-bezier.com/#.22,1,.36,1
-var EaseOutQuint *Bezier = &Bezier{
+var EaseOutQuint Bezier = Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
 		vec2.T{0.22, 1.0},
@@ -152,7 +152,7 @@ var EaseOutQuint *Bezier = &Bezier{
 	},
 }
 
-var EaseTest *Bezier = &Bezier{
+var EaseTest Bezier = Bezier{
 	bezier2.T{
 		vec2.T{0.0, 0.0},
 		vec2.T{0.0, 1.0},
@@ -165,7 +165,7 @@ type Interp interface {
 	Uint8(uint8, uint8, float64) uint8
 	Float32(float32, float32, float64) float32
 	Float64(float64, float64, float64) float64
-	Vec2(vec2.T, vec2.T, float64) vec2.T
+	Vec2(glm.Vec2, glm.Vec2, float64) glm.Vec2
 }
 
 type Lerp struct {
@@ -185,10 +185,10 @@ func (i Lerp) Uint8(a, b uint8, t float64) uint8 {
 	return uint8(i.Float64(float64(a), float64(b), t))
 }
 
-func (i Lerp) Vec2(a, b vec2.T, t float64) vec2.T {
-	ret := vec2.T{
-		i.Float64(a[0], b[0], t),
-		i.Float64(a[1], b[1], t),
+func (i Lerp) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
+	ret := glm.Vec2{
+		i.Float64(a.X, b.X, t),
+		i.Float64(a.Y, b.Y, t),
 	}
 	return ret
 }
@@ -197,21 +197,40 @@ type Bezier struct {
 	bezier2.T
 }
 
-func (i *Bezier) Float64(a, b float64, t float64) float64 {
+func (i Bezier) Float64(a, b float64, t float64) float64 {
 	iValue := i.T.Point(t)
 	return Linear.Float64(a, b, iValue[1])
 }
-func (i *Bezier) Float32(a, b float32, t float64) float32 {
+func (i Bezier) Float32(a, b float32, t float64) float32 {
 	iValue := i.T.Point(t)
 	return Linear.Float32(a, b, iValue[1])
 }
-func (i *Bezier) Uint8(a, b uint8, t float64) uint8 {
+func (i Bezier) Uint8(a, b uint8, t float64) uint8 {
 	iValue := i.T.Point(t)
 	return Linear.Uint8(a, b, iValue[1])
 }
-func (i *Bezier) Vec2(a, b vec2.T, t float64) vec2.T {
+func (i Bezier) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
 	iValue := i.T.Point(t)
 	return Linear.Vec2(a, b, iValue[1])
+}
+
+type Sine struct {}
+
+func (i Sine) Float64(a, b float64, t float64) float64 {
+	iValue := math.Sin(t * math.Pi)
+	return Linear.Float64(a, b, iValue)
+}
+func (i Sine) Float32(a, b float32, t float64) float32 {
+	iValue := math.Sin(t * math.Pi)
+	return Linear.Float32(a, b, iValue)
+}
+func (i Sine) Uint8(a, b uint8, t float64) uint8 {
+	iValue := math.Sin(t * math.Pi)
+	return Linear.Uint8(a, b, iValue)
+}
+func (i Sine) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
+	iValue := math.Sin(t * math.Pi)
+	return Linear.Vec2(a, b, iValue)
 }
 
 type Equation struct {
@@ -230,7 +249,7 @@ func (i *Equation) Uint8(a, b uint8, t float64) uint8 {
 	iValue := i.Func.Interp(t)
 	return Linear.Uint8(a, b, iValue)
 }
-func (i *Equation) Vec2(a, b vec2.T, t float64) vec2.T {
+func (i *Equation) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
 	iValue := i.Func.Interp(t)
 	return Linear.Vec2(a, b, iValue)
 }
@@ -262,7 +281,7 @@ func (s CosFunc) Interp(t float64) float64 {
 type BezFunc struct {
 	Radius float64
 	Dur    float64
-	Bezier *Bezier
+	Bezier Bezier
 }
 
 func (f BezFunc) Interp(t float64) float64 {
