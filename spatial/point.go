@@ -38,9 +38,23 @@ func (b *PointBucket[T]) Remove(point glm.Vec2, val T) {
 		return
 	} // Nothing to remove
 
+	b.RemoveIndex(indexToRemove)
+}
+
+func (b *PointBucket[T]) RemoveIndex(idx int) {
 	lastIdx := len(b.List) - 1
-	b.List[indexToRemove] = b.List[lastIdx]
+	b.List[idx] = b.List[lastIdx]
 	b.List = b.List[:lastIdx]
+}
+
+// Remove every point that collides with the bucket
+func (b *PointBucket[T]) RemoveCollides(bounds glm.Rect) {
+	for i := 0; i < len(b.List); i++ {
+		if !bounds.Contains(b.List[i].point) { continue } // skip if doesnt collide
+
+		b.RemoveIndex(i)
+		i--
+	}
 }
 
 func (b *PointBucket[T]) Clear() {
@@ -158,4 +172,22 @@ func (h *Pointmap[T]) Collides(bounds glm.Rect) bool {
 	}
 
 	return false
+}
+
+// Remove every point that collides with the supplied bounds
+func (h *Pointmap[T]) RemoveCollides(bounds glm.Rect) {
+	min := h.PositionToIndex(bounds.Min)
+	max := h.PositionToIndex(bounds.Max)
+
+	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok {
+				continue
+			}
+
+			bucket.RemoveCollides(bounds)
+		}
+	}
 }
