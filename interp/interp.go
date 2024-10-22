@@ -71,7 +71,7 @@ var BezFlash Bezier = Bezier{
 func NewBezier(a, b, c, d glm.Vec2) Bezier {
 	return Bezier{
 		bezier2.T{
-			vec2.T{a.X, b.Y},
+			vec2.T{a.X, a.Y},
 			vec2.T{b.X, b.Y},
 			vec2.T{c.X, c.Y},
 			vec2.T{d.X, d.Y},
