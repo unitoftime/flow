@@ -224,9 +224,19 @@ func (r Rect) Snap() Rect {
 	return r
 }
 
-// Adds padding to a rectangle consistently
+// Adds padding to a rectangle consistently on every edge
 func (r Rect) PadAll(padding float64) Rect {
 	return r.Pad(R(padding, padding, padding, padding))
+}
+
+// Adds padding to a rectangle on the X axis
+func (r Rect) PadX(padding float64) Rect {
+	return r.Pad(R(padding, 0, padding, 0))
+}
+
+// Adds padding to a rectangle on the Y Axis
+func (r Rect) PadY(padding float64) Rect {
+	return r.Pad(R(0, padding, 0, padding))
 }
 
 // Adds padding to a rectangle (pads inward if padding is negative)
