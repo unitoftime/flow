@@ -321,3 +321,12 @@ type MultFunc struct {
 func (f MultFunc) Interp(t float64) float64 {
 	return f.A.Interp(t) * f.B.Interp(t)
 }
+
+func Color(lerp Interp, start, finish glm.RGBA, val float64) glm.RGBA {
+	return glm.RGBA{
+		R: lerp.Float64(start.R, finish.R, val),
+		G: lerp.Float64(start.G, finish.G, val),
+		B: lerp.Float64(start.B, finish.B, val),
+		A: lerp.Float64(start.A, finish.A, val),
+	}
+}
