@@ -214,7 +214,7 @@ var MasterChannel *Channel
 
 func Initialize() error {
 	err := speaker.Init(defaultSampleRate,
-		4 * defaultSampleRate.N(time.Second/60)) // Buffer length of 4 * (1/60) of a second
+		4*defaultSampleRate.N(time.Second/60)) // Buffer length of 4 * (1/60) of a second
 	if err != nil {
 		return err
 	}

@@ -50,7 +50,9 @@ func (b *PointBucket[T]) RemoveIndex(idx int) {
 // Remove every point that collides with the bucket
 func (b *PointBucket[T]) RemoveCollides(bounds glm.Rect) {
 	for i := 0; i < len(b.List); i++ {
-		if !bounds.Contains(b.List[i].point) { continue } // skip if doesnt collide
+		if !bounds.Contains(b.List[i].point) {
+			continue
+		} // skip if doesnt collide
 
 		b.RemoveIndex(i)
 		i--

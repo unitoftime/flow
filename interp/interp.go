@@ -214,7 +214,7 @@ func (i Bezier) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
 	return Linear.Vec2(a, b, iValue[1])
 }
 
-type Sine struct {}
+type Sine struct{}
 
 func (i Sine) Float64(a, b float64, t float64) float64 {
 	iValue := math.Sin(t * math.Pi)
