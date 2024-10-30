@@ -3,6 +3,7 @@ package phy2
 import (
 	"math"
 
+	"github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/glm"
 )
 
@@ -47,6 +48,14 @@ import (
 
 //cod:struct
 type Vel glm.Vec2
+
+var velComp = ecs.Comp(Vel{})
+func (c Vel) CompId() ecs.CompId {
+	return velComp.CompId()
+}
+func (c Vel) CompWrite(w ecs.W) {
+	velComp.WriteVal(w, c)
+}
 
 func (v Vel) Add(v2 Vel) Vel {
 	return Vel(glm.Vec2(v).Add(glm.Vec2(v2)))

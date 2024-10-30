@@ -115,6 +115,14 @@ func (s *Size) Get(ratio float64) glm.Vec2 {
 	return size
 }
 
+var sizeComp = ecs.Comp(Size{})
+func (c Size) CompId() ecs.CompId {
+	return sizeComp.CompId()
+}
+func (c Size) CompWrite(w ecs.W) {
+	sizeComp.WriteVal(w, c)
+}
+
 // --------------------------------------------------------------------------------------------------
 // - ComponentFactory
 // --------------------------------------------------------------------------------------------------
