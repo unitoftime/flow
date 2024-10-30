@@ -11,6 +11,7 @@ type Pos struct {
 }
 
 var posComp = ecs.Comp(Pos{})
+
 func (c Pos) CompId() ecs.CompId {
 	return posComp.CompId()
 }
@@ -19,6 +20,7 @@ func (c Pos) CompWrite(w ecs.W) {
 }
 
 var animationComp = ecs.Comp(Animation{})
+
 func (c Animation) CompId() ecs.CompId {
 	return animationComp.CompId()
 }

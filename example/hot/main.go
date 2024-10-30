@@ -24,7 +24,9 @@ func main() {
 
 	for {
 		time.Sleep(1 * time.Second)
-		if !p.Check() { continue } // When this becomes true, it means a new plugin is loaded
+		if !p.Check() {
+			continue
+		} // When this becomes true, it means a new plugin is loaded
 
 		// With our new plugin, we can lookup our symbol `HelloWorld`
 		sym, err := p.Lookup("HelloWorld")

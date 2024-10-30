@@ -116,6 +116,7 @@ func (s *Size) Get(ratio float64) glm.Vec2 {
 }
 
 var sizeComp = ecs.Comp(Size{})
+
 func (c Size) CompId() ecs.CompId {
 	return sizeComp.CompId()
 }

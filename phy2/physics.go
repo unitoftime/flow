@@ -50,6 +50,7 @@ import (
 type Vel glm.Vec2
 
 var velComp = ecs.Comp(Vel{})
+
 func (c Vel) CompId() ecs.CompId {
 	return velComp.CompId()
 }

@@ -51,13 +51,13 @@ func (c *ColliderCache) Clear() {
 }
 
 var colliderCacheComp = ecs.Comp(ColliderCache{})
+
 func (c ColliderCache) CompId() ecs.CompId {
 	return colliderCacheComp.CompId()
 }
 func (c ColliderCache) CompWrite(w ecs.W) {
 	colliderCacheComp.WriteVal(w, c)
 }
-
 
 type CircleCollider struct {
 	CenterX, CenterY float64 // TODO - right now this holds the entire position of the circle (relative to world space). You might consider stripping that out though
