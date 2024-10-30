@@ -9,8 +9,8 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/ungerik/go3d v0.0.0-20240502073936-1137f6adf7e9
 	github.com/unitoftime/beep v0.0.0-20241026233918-b83e337289e8
-	github.com/unitoftime/ecs v0.0.1
-	github.com/unitoftime/glitch v0.0.0-20241026230355-f78efeb88e93
+	github.com/unitoftime/ecs v0.0.2
+	github.com/unitoftime/glitch v0.0.0-20241027174416-138cdfb026f8
 	github.com/unitoftime/gotiny v0.0.0-20240915162236-e7a35021e769
 	github.com/unitoftime/intmap v0.0.0-20231203115433-9505126f7096
 	github.com/unitoftime/packer v0.0.0-20230818221437-1f2c1b1e4275
