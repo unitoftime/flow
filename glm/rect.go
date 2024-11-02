@@ -206,6 +206,24 @@ func (r *Rect) CutTop(amount float64) Rect {
 	return cutRect
 }
 
+// Returns the left half of the rectangle. Doesn't modify the original rectangle
+func (r Rect) LeftHalf() Rect {
+	return r.CutLeft(0.5 * r.W())
+}
+// Returns the right half of the rectangle. Doesn't modify the original rectangle
+func (r Rect) RightHalf() Rect {
+	return r.CutRight(0.5 * r.W())
+}
+
+// Returns the top half of the rectangle. Doesn't modify the original rectangle
+func (r Rect) TopHalf() Rect {
+	return r.CutTop(0.5 * r.H())
+}
+// Returns the bottom half of the rectangle. Doesn't modify the original rectangle
+func (r Rect) BottomHalf() Rect {
+	return r.CutBottom(0.5 * r.H())
+}
+
 // Returns a centered horizontal sliver with height set by amount
 func (r Rect) SliceHorizontal(amount float64) Rect {
 	r.CutTop((r.H() - amount) / 2)
@@ -238,6 +256,27 @@ func (r Rect) PadX(padding float64) Rect {
 func (r Rect) PadY(padding float64) Rect {
 	return r.Pad(R(0, padding, 0, padding))
 }
+
+// Adds padding to the left side of a rectangle
+func (r Rect) PadLeft(padding float64) Rect {
+	return r.Pad(R(padding, 0, 0, 0))
+}
+
+// Adds padding to the right side of a rectangle
+func (r Rect) PadRight(padding float64) Rect {
+	return r.Pad(R(0, 0, padding, 0))
+}
+
+// Adds padding to the top side of a rectangle
+func (r Rect) PadTop(padding float64) Rect {
+	return r.Pad(R(0, 0, 0, padding))
+}
+
+// Adds padding to the bottom side of a rectangle
+func (r Rect) PadBottom(padding float64) Rect {
+	return r.Pad(R(0, padding, 0, 0))
+}
+
 
 // Adds padding to a rectangle (pads inward if padding is negative)
 func (r Rect) Pad(pad Rect) Rect {
