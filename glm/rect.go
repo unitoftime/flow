@@ -288,6 +288,14 @@ func (r Rect) Unpad(pad Rect) Rect {
 	return r.Pad(pad.Scaled(-1))
 }
 
+func (r Rect) Point(x, y float64) Vec2 {
+	anchorPoint := Vec2{
+		X: r.Min.X + (x * r.W()),
+		Y: r.Min.Y + (y * r.H()),
+	}
+	return anchorPoint
+}
+
 // Takes r2 and places it in r based on the alignment
 // TODO - rename to InnerAnchor?
 func (r Rect) Anchor(r2 Rect, anchor Vec2) Rect {
