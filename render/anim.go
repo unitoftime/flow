@@ -177,6 +177,9 @@ func (a *Animation) SetFrame(idx int) {
 }
 
 func (a *Animation) GetFrame() Frame {
+	if len(a.curAnim) <= 0 {
+		return Frame{}
+	}
 	idx := a.frameIdx % len(a.curAnim)
 	return a.curAnim[idx]
 }
