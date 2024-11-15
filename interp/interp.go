@@ -7,6 +7,7 @@ import (
 	"github.com/ungerik/go3d/float64/bezier2"
 	"github.com/ungerik/go3d/float64/vec2"
 	"github.com/unitoftime/flow/glm"
+	"golang.org/x/exp/constraints"
 )
 
 // TODO: use https://easings.net/
@@ -191,6 +192,16 @@ func (i Lerp) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
 		i.Float64(a.Y, b.Y, t),
 	}
 	return ret
+}
+
+// Linearly interpolates integers, rounding them to the nearest
+func Int[T constraints.Integer](a, b T, t float64) T {
+	return T(math.Round(Linear.Float64(float64(a), float64(b), t)))
+}
+
+// Linearly interpolates floats
+func Float[T constraints.Float](a, b T, t float64) T {
+	return T(Linear.Float64(float64(a), float64(b), t))
 }
 
 type Bezier struct {
