@@ -46,6 +46,10 @@ func (r Rect) Center() Vec2 {
 	return Vec2{r.Min.X + (r.W() / 2), r.Min.Y + (r.H() / 2)}
 }
 
+func (r Rect) Size() Vec2 {
+	return Vec2{r.W(), r.H()}
+}
+
 //	func (r Rect) CenterAt(v Vec2) Rect {
 //		return r.Moved(r.Center().Scaled(-1)).Moved(v)
 //	}
