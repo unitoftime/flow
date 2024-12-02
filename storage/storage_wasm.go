@@ -5,13 +5,15 @@ package storage
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"runtime"
 	"runtime/pprof"
 	"syscall/js"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/unitoftime/flow/browser"
 )
 
@@ -34,15 +36,13 @@ func GetItem[T any](key string) (*T, error) {
 	}
 
 	baseString := val.String()
-	gobDat, err := base64.StdEncoding.DecodeString(baseString)
+	jsonDat, err := base64.StdEncoding.DecodeString(baseString)
 	if err != nil {
 		return nil, err
 	}
 
 	var ret T
-	buf := bytes.NewBuffer(gobDat)
-	dec := gob.NewDecoder(buf)
-	err = dec.Decode(&ret)
+	err = json.Unmarshal(jsonDat, &ret)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +51,12 @@ func GetItem[T any](key string) (*T, error) {
 }
 
 func GetItemWithDefault[T any](key string, def T) (*T, error) {
+	defaultMap := make(map[string]any)
+	err := mapstructure.Decode(def, &defaultMap)
+	if err != nil {
+		return nil, err
+	}
+
 	val := localStorage.Call("getItem", key)
 	if val.IsNull() || val.IsUndefined() {
 		return nil, nil
@@ -60,30 +66,42 @@ func GetItemWithDefault[T any](key string, def T) (*T, error) {
 	}
 
 	baseString := val.String()
-	gobDat, err := base64.StdEncoding.DecodeString(baseString)
+	jsonDat, err := base64.StdEncoding.DecodeString(baseString)
 	if err != nil {
 		return nil, err
 	}
 
-	buf := bytes.NewBuffer(gobDat)
-	dec := gob.NewDecoder(buf)
-	err = dec.Decode(&def)
+	decodedMap := make(map[string]any)
+	err = json.Unmarshal(jsonDat, &decodedMap)
 	if err != nil {
 		return nil, err
 	}
 
-	return &def, nil
+	maps.Copy(defaultMap, decodedMap)
+
+	var ret T
+	err = mapstructure.Decode(decodedMap, &ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ret, nil
 }
 
+
 func SetItem(key string, val any) error {
-	buf := bytes.Buffer{}
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(val)
+	valMap := make(map[string]any)
+	err := mapstructure.Decode(val, &valMap)
 	if err != nil {
 		return err
 	}
 
-	baseString := base64.StdEncoding.EncodeToString(buf.Bytes())
+	buf, err := json.Marshal(valMap)
+	if err != nil {
+		return err
+	}
+
+	baseString := base64.StdEncoding.EncodeToString(buf)
 
 	localStorage.Call("setItem", key, baseString)
 	return nil

@@ -5,6 +5,7 @@ go 1.23
 require (
 	github.com/go-gl/mathgl v1.1.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ojrac/opensimplex-go v1.0.2
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/ungerik/go3d v0.0.0-20240502073936-1137f6adf7e9
@@ -30,6 +31,6 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/unitoftime/cod v0.0.0-20240909130117-f553b1d09d22 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
