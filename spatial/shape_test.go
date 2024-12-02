@@ -9,7 +9,7 @@ import (
 )
 
 type intersectTest struct {
-	a, b Shape
+	a, b     Shape
 	expected bool
 }
 
@@ -101,49 +101,47 @@ func TestIntersectAABB(t *testing.T) {
 	}
 }
 
-
 func TestIntersectRect(t *testing.T) {
 	baseRect5 := glm.CR(5)
 	// baseRect10 := glm.CR(10)
 
 	tests := []intersectTest{
 		{
-			Rect(baseRect5, *glm.IM4().Rotate(math.Pi / 4, glm.Vec3{0, 0, 1})),
+			Rect(baseRect5, *glm.IM4().Rotate(math.Pi/4, glm.Vec3{0, 0, 1})),
 			Rect(baseRect5, *glm.IM4().Translate(0, 0, 0)),
 			true,
 		},
 		{
-			Rect(baseRect5, *glm.IM4().Rotate(math.Pi / 4, glm.Vec3{0, 0, 1})),
+			Rect(baseRect5, *glm.IM4().Rotate(math.Pi/4, glm.Vec3{0, 0, 1})),
 			Rect(baseRect5, *glm.IM4().Translate(5, 0, 0)),
 			true,
 		},
 		{
 			// Rotated 45 degrees and nudged inward
-			Rect(baseRect5, *glm.IM4().Rotate(math.Pi / 4, glm.Vec3{0, 0, 1})),
-			Rect(baseRect5, *glm.IM4().Translate(5 + 7.07106781187 - 0.001, 0, 0)),
+			Rect(baseRect5, *glm.IM4().Rotate(math.Pi/4, glm.Vec3{0, 0, 1})),
+			Rect(baseRect5, *glm.IM4().Translate(5+7.07106781187-0.001, 0, 0)),
 			true,
 		},
 
 		{
 			// Rotated 45 degrees and nudged outward
-			Rect(baseRect5, *glm.IM4().Rotate(math.Pi / 4, glm.Vec3{0, 0, 1})),
-			Rect(baseRect5, *glm.IM4().Translate(5 + 7.07106781187 + 0.001, 0, 0)),
+			Rect(baseRect5, *glm.IM4().Rotate(math.Pi/4, glm.Vec3{0, 0, 1})),
+			Rect(baseRect5, *glm.IM4().Translate(5+7.07106781187+0.001, 0, 0)),
 			false,
 		},
 
 		{
 			// Rotated 45 degrees and nudged inward
-			Rect(baseRect5, *glm.IM4().Rotate(math.Pi / 4, glm.Vec3{0, 0, 1}).Translate(10, 10, 0)),
-			Rect(baseRect5, *glm.IM4().Translate(5 + 7.07106781187 - 0.001, 0, 0).Translate(10, 10, 0)),
+			Rect(baseRect5, *glm.IM4().Rotate(math.Pi/4, glm.Vec3{0, 0, 1}).Translate(10, 10, 0)),
+			Rect(baseRect5, *glm.IM4().Translate(5+7.07106781187-0.001, 0, 0).Translate(10, 10, 0)),
 			true,
 		},
 		{
 			// Rotated 45 degrees and both translated
-			Rect(baseRect5, *glm.IM4().Rotate(math.Pi / 4, glm.Vec3{0, 0, 1}).Translate(10, 10, 0)),
-			Rect(baseRect5, *glm.IM4().Translate(5 + 7.07106781187 + 0.001, 0, 0).Translate(10, 10, 0)),
+			Rect(baseRect5, *glm.IM4().Rotate(math.Pi/4, glm.Vec3{0, 0, 1}).Translate(10, 10, 0)),
+			Rect(baseRect5, *glm.IM4().Translate(5+7.07106781187+0.001, 0, 0).Translate(10, 10, 0)),
 			false,
 		},
-
 	}
 
 	for i := range tests {

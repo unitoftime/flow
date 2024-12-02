@@ -230,6 +230,7 @@ func (r *Rect) CutTop(amount float64) Rect {
 func (r Rect) LeftHalf() Rect {
 	return r.CutLeft(0.5 * r.W())
 }
+
 // Returns the right half of the rectangle. Doesn't modify the original rectangle
 func (r Rect) RightHalf() Rect {
 	return r.CutRight(0.5 * r.W())
@@ -239,6 +240,7 @@ func (r Rect) RightHalf() Rect {
 func (r Rect) TopHalf() Rect {
 	return r.CutTop(0.5 * r.H())
 }
+
 // Returns the bottom half of the rectangle. Doesn't modify the original rectangle
 func (r Rect) BottomHalf() Rect {
 	return r.CutBottom(0.5 * r.H())
@@ -296,7 +298,6 @@ func (r Rect) PadTop(padding float64) Rect {
 func (r Rect) PadBottom(padding float64) Rect {
 	return r.Pad(R(0, padding, 0, 0))
 }
-
 
 // Adds padding to a rectangle (pads inward if padding is negative)
 func (r Rect) Pad(pad Rect) Rect {

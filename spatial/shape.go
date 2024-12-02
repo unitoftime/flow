@@ -5,9 +5,10 @@ import (
 )
 
 type ShapeType uint8
+
 const (
 	ShapeAABB ShapeType = iota // A rectangle, not rotated nor scaled
-	ShapeRect // Can be rotated or scaled
+	ShapeRect                  // Can be rotated or scaled
 	// ShapeCircle // TODO: A circle
 	// ShapeRing // TODO: A ring (Circle with excluded middle segment
 	// ShapeEllipses // TODO: Maybe combine with circle?
@@ -15,14 +16,14 @@ const (
 )
 
 type Shape struct {
-	Type ShapeType
-	Bounds glm.Rect // The bounding AABB
+	Type    ShapeType
+	Bounds  glm.Rect    // The bounding AABB
 	Vectors [4]glm.Vec2 // Vector data which is stored differently depending on the shape type
 }
 
 func AABB(rect glm.Rect) Shape {
 	return Shape{
-		Type: ShapeAABB,
+		Type:   ShapeAABB,
 		Bounds: rect,
 		Vectors: [4]glm.Vec2{
 			rect.Min,
@@ -47,7 +48,7 @@ func Rect(r glm.Rect, mat glm.Mat4) Shape {
 
 	bounds := glm.R(xMin, yMin, xMax, yMax)
 	return Shape{
-		Type: ShapeRect,
+		Type:   ShapeRect,
 		Bounds: bounds,
 		Vectors: [4]glm.Vec2{
 			bl, tl, tr, br,
@@ -113,10 +114,10 @@ func polygonIntersectionCheck(a, b []glm.Vec2) bool {
 	var l1, l2 glm.Line2
 	for i := range a {
 		l1.A = a[i]
-		l1.B = a[(i+1) % lenA]
+		l1.B = a[(i+1)%lenA]
 		for j := range b {
 			l2.A = b[j]
-			l2.B = b[(j+1) % lenB]
+			l2.B = b[(j+1)%lenB]
 
 			if l1.Intersects(l2) {
 				return true
@@ -153,19 +154,19 @@ func polygonContainsPoint(poly []glm.Vec2, point glm.Vec2) bool {
 	var inside = false
 	for i := range poly {
 		a := poly[i]
-		b := poly[(i+1) % length]
+		b := poly[(i+1)%length]
 		xi := a.X
 		yi := a.Y
 		xj := b.X
 		yj := b.Y
 
-		intersect := ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
-		if (intersect) {
+		intersect := ((yi > y) != (yj > y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)
+		if intersect {
 			inside = !inside
 		}
 	}
 
-	return inside;
+	return inside
 }
 
 // Note: Originally I was doing this, but it actually takes way more projections than I thought. So I opted to just do a generic line intersection test for all edges of both rectangles. Even though this one may be faster. Maybe I"ll add it back in the future
@@ -242,4 +243,3 @@ func polygonContainsPoint(poly []glm.Vec2, point glm.Vec2) bool {
 
 // 	return false
 // }
-
