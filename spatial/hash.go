@@ -7,52 +7,6 @@ import (
 	"github.com/unitoftime/flow/glm"
 )
 
-// TODO: eventually use shapes
-// type ShapeType uint8
-// const (
-// 	ShapeRect ShapeType = iota
-// 	ShapeCircle
-// )
-
-// type Shape struct {
-// 	Type ShapeType
-// 	Bounds glm.Rect
-// }
-// func Rect(rect glm.Rect) Shape {
-// 	return Shape{
-// 		Type: ShapeRect,
-// 		Bounds: rect,
-// 	}
-// }
-// func Circle(rect glm.Rect) Shape {
-// 	return Shape{
-// 		Type: ShapeCircle,
-// 		Bounds: rect,
-// 	}
-// }
-// func (s Shape) Rect() glm.Rect {
-// 	return s.Bounds
-// }
-// func (s Shape) Circle() glm.Circle {
-// 	glm.NewCircle(s.Bounds.Center())
-// }
-
-// func (s Shape) Intersects(s2 Shape) bool {
-// 	if s.Type == ShapeRect {
-// 		if s2.Type == ShapeRect {
-// 			return s.Rect().Intersects(s2.Bounds)
-// 		} else if s2.Type == ShapeCircle {
-// 			return s.Rect().IntersectCircle(s2.Circle())
-// 		}
-// 	} else if s.Type == ShapeCircle {
-// 		if s2.Type == ShapeRect {
-// 			return s.Bounds.Intersects(s2.Bounds)
-// 		} else if s2.Type == ShapeCircle {
-// 			return s.Circle().IntersectCircle(s2.Circle())
-// 		}
-// 	}
-// }
-
 type arrayMap[T any] struct {
 	topRight [][]*T
 	topLeft  [][]*T
@@ -195,7 +149,7 @@ type Index struct {
 }
 
 type BucketItem[T comparable] struct {
-	shape glm.Rect
+	shape Shape
 	item  T
 }
 
@@ -208,7 +162,7 @@ func NewBucket[T comparable]() *Bucket[T] {
 		List: make([]BucketItem[T], 0),
 	}
 }
-func (b *Bucket[T]) Add(shape glm.Rect, val T) {
+func (b *Bucket[T]) Add(shape Shape, val T) {
 	b.List = append(b.List, BucketItem[T]{
 		shape: shape,
 		item:  val,
@@ -223,14 +177,14 @@ func (b *Bucket[T]) Remove(val T) {
 func (b *Bucket[T]) Clear() {
 	b.List = b.List[:0]
 }
-func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape glm.Rect) {
+func (b *Bucket[T]) Check(colSet *CollisionSet[T], shape Shape) {
 	for i := range b.List {
 		if shape.Intersects(b.List[i].shape) {
 			colSet.Add(b.List[i].item)
 		}
 	}
 }
-func (b *Bucket[T]) Collides(shape glm.Rect) bool {
+func (b *Bucket[T]) Collides(shape Shape) bool {
 	for i := range b.List {
 		if shape.Intersects(b.List[i].shape) {
 			return true
@@ -239,14 +193,14 @@ func (b *Bucket[T]) Collides(shape glm.Rect) bool {
 	return false
 }
 
-func (b *Bucket[T]) FindClosest(shape glm.Rect) (BucketItem[T], bool) {
-	center := shape.Center()
+func (b *Bucket[T]) FindClosest(shape Shape) (BucketItem[T], bool) {
+	center := shape.Bounds.Center()
 	distSquared := math.MaxFloat64
 	ret := BucketItem[T]{}
 	set := false
 	for i := range b.List {
 		if shape.Intersects(b.List[i].shape) {
-			ds := center.DistSq(b.List[i].shape.Center())
+			ds := center.DistSq(b.List[i].shape.Bounds.Center())
 			if ds < distSquared {
 				distSquared = ds
 				ret = b.List[i]
@@ -329,9 +283,9 @@ func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 	return bucket
 }
 
-func (h *Hashmap[T]) Add(shape glm.Rect, val T) {
-	min := h.PositionToIndex(shape.Min)
-	max := h.PositionToIndex(shape.Max)
+func (h *Hashmap[T]) Add(shape Shape, val T) {
+	min := h.PositionToIndex(shape.Bounds.Min)
+	max := h.PositionToIndex(shape.Bounds.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -350,9 +304,10 @@ func (h *Hashmap[T]) Remove(val T) {
 }
 
 // Finds collisions and adds them directly into your collision set
-func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape glm.Rect) {
-	min := h.PositionToIndex(shape.Min)
-	max := h.PositionToIndex(shape.Max)
+func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape Shape) {
+	// shape := AABB(rect)
+	min := h.PositionToIndex(shape.Bounds.Min)
+	max := h.PositionToIndex(shape.Bounds.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -376,9 +331,10 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape glm.Rect) {
 	}
 }
 
-func (h *Hashmap[T]) Collides(shape glm.Rect) bool {
-	min := h.PositionToIndex(shape.Min)
-	max := h.PositionToIndex(shape.Max)
+func (h *Hashmap[T]) Collides(rect glm.Rect) bool {
+	shape := AABB(rect)
+	min := h.PositionToIndex(shape.Bounds.Min)
+	max := h.PositionToIndex(shape.Bounds.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
@@ -405,11 +361,12 @@ func (h *Hashmap[T]) Collides(shape glm.Rect) bool {
 	return false
 }
 
-func (h *Hashmap[T]) FindClosest(shape glm.Rect) (T, bool) {
-	min := h.PositionToIndex(shape.Min)
-	max := h.PositionToIndex(shape.Max)
+func (h *Hashmap[T]) FindClosest(rect glm.Rect) (T, bool) {
+	shape := AABB(rect)
+	min := h.PositionToIndex(shape.Bounds.Min)
+	max := h.PositionToIndex(shape.Bounds.Max)
 
-	center := shape.Center()
+	center := shape.Bounds.Center()
 	distSquared := math.MaxFloat64
 	var ret T
 	set := false
@@ -424,7 +381,7 @@ func (h *Hashmap[T]) FindClosest(shape glm.Rect) (T, bool) {
 			// For border chunks, we need to do narrow phase too
 			closest, ok := bucket.FindClosest(shape)
 			if ok {
-				ds := center.DistSq(closest.shape.Center())
+				ds := center.DistSq(closest.shape.Bounds.Center())
 				if ds < distSquared {
 					distSquared = ds
 					ret = closest.item
@@ -438,9 +395,10 @@ func (h *Hashmap[T]) FindClosest(shape glm.Rect) (T, bool) {
 }
 
 // Adds the collisions directly into your collision set. This one doesnt' do any narrow phase detection. It returns all objects that collide with the same chunk
-func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], shape glm.Rect) {
-	min := h.PositionToIndex(shape.Min)
-	max := h.PositionToIndex(shape.Max)
+func (h *Hashmap[T]) BroadCheck(colSet CollisionSet[T], rect glm.Rect) {
+	shape := AABB(rect)
+	min := h.PositionToIndex(shape.Bounds.Min)
+	max := h.PositionToIndex(shape.Bounds.Max)
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {

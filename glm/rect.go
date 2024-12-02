@@ -23,6 +23,16 @@ func CR(radius float64) Rect {
 	}
 }
 
+// Returns the top left point
+func (r Rect) TL() Vec2 {
+	return Vec2{r.Min.X, r.Max.Y}
+}
+
+// Returns the bottom right point
+func (r Rect) BR() Vec2 {
+	return Vec2{r.Max.X, r.Min.Y}
+}
+
 // Returns a box that holds this rect. The Z axis is 0
 func (r Rect) Box() Box {
 	return r.ToBox()
@@ -156,8 +166,14 @@ func (r Rect) Norm() Rect {
 	return R(x1, y1, x2, y2)
 }
 
+// Returns true if the point is inside (not on the edge of) the rect
 func (r Rect) Contains(pos Vec2) bool {
 	return pos.X > r.Min.X && pos.X < r.Max.X && pos.Y > r.Min.Y && pos.Y < r.Max.Y
+}
+
+// Returns true if the point is inside or on the edge of the rect
+func (r Rect) OverlapsPoint(pos Vec3) bool {
+	return pos.X >= r.Min.X && pos.X <= r.Max.X && pos.Y >= r.Min.Y && pos.Y <= r.Max.Y
 }
 
 // func (r Rect) Contains(x, y float64) bool {

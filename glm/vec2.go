@@ -56,7 +56,12 @@ func (v Vec2) Scaled(s float64) Vec2 {
 	return V2(s*v.X, s*v.Y)
 }
 
+// TODO: Same thing as mult
 func (v Vec2) ScaledXY(s Vec2) Vec2 {
+	return Vec2{v.X * s.X, v.Y * s.Y}
+}
+
+func (v Vec2) Mult(s Vec2) Vec2 {
 	return Vec2{v.X * s.X, v.Y * s.Y}
 }
 

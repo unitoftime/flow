@@ -33,6 +33,15 @@ var Mat4Ident Mat4 = Mat4{
 	0.0, 0.0, 0.0, 1.0,
 }
 
+func IM4() *Mat4 {
+	return &Mat4{
+		1.0, 0.0, 0.0, 0.0,
+		0.0, 1.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 1.0,
+	}
+}
+
 func (m *Mat3) Translate(x, y float64) *Mat3 {
 	m[i3_2_0] = m[i3_2_0] + x
 	m[i3_2_1] = m[i3_2_1] + y
@@ -72,12 +81,17 @@ func (m *Mat4) GetTranslation() Vec3 {
 
 // https://github.com/go-gl/mathgl/blob/v1.0.0/mgl32/transform.go#L159
 func (m *Mat4) Rotate(angle float64, axis Vec3) *Mat4 {
-	// quat := mgl32.Mat4ToQuat(mgl32.Mat4(*m))
-	// return &retMat
+	// // quat := mgl32.Mat4ToQuat(mgl32.Mat4(*m))
+	// // return &retMat
+	// rotation := Mat4(mgl64.HomogRotate3D(angle, mgl64.Vec3{axis.X, axis.Y, axis.Z}))
+	// // retMat := Mat4(mgl32.Mat4(*m).)
+	// // return &retMat
+	// mNew := m.Mul(&rotation)
+	// *m = *mNew
+	// return m
+
 	rotation := Mat4(mgl64.HomogRotate3D(angle, mgl64.Vec3{axis.X, axis.Y, axis.Z}))
-	// retMat := Mat4(mgl32.Mat4(*m).)
-	// return &retMat
-	mNew := m.Mul(&rotation)
+	mNew := rotation.Mul(m)
 	*m = *mNew
 	return m
 }
