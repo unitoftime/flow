@@ -79,6 +79,11 @@ func (m *Mat4) GetTranslation() Vec3 {
 	return Vec3{m[i4_3_0], m[i4_3_1], m[i4_3_2]}
 }
 
+// Rotate around the Z axis
+func (m *Mat4) RotateZ(angle float64) *Mat4 {
+	return m.Rotate(angle, Vec3{0, 0, 1})
+}
+
 // https://github.com/go-gl/mathgl/blob/v1.0.0/mgl32/transform.go#L159
 func (m *Mat4) Rotate(angle float64, axis Vec3) *Mat4 {
 	// // quat := mgl32.Mat4ToQuat(mgl32.Mat4(*m))
