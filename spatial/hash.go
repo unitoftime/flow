@@ -331,6 +331,7 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape Shape) {
 	}
 }
 
+// Returns true if the rect collides with anything in the hashmap
 func (h *Hashmap[T]) Collides(rect glm.Rect) bool {
 	shape := AABB(rect)
 	min := h.PositionToIndex(shape.Bounds.Min)
