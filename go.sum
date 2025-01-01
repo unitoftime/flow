@@ -35,8 +35,8 @@ github.com/unitoftime/beep v0.0.0-20241026233918-b83e337289e8 h1:Qm08cMaNAue7tl5
 github.com/unitoftime/beep v0.0.0-20241026233918-b83e337289e8/go.mod h1:P1j3xRgms7eb4x95IaPENFqQ/7GCNx/KAgEfTPhPaq8=
 github.com/unitoftime/cod v0.0.0-20241228160133-efe666697475 h1:m0K71y86gw7kbyQSN4rJblreVbvSdKF/9x7lgOTWPbE=
 github.com/unitoftime/cod v0.0.0-20241228160133-efe666697475/go.mod h1:Iufibv9gn5GJb4Qzkf8e8xaXOV77OgkrB5kkBZTEN+M=
-github.com/unitoftime/ecs v0.0.2 h1:QVZKMsVSaG9WkU2M7EYqkxL3rN3Y498zDt5W8dHDRPU=
-github.com/unitoftime/ecs v0.0.2/go.mod h1:YmsHdpPA1CcSd7i6o2W3NgTwFJYI8G68GeGqKimMb3c=
+github.com/unitoftime/ecs v0.0.3 h1:W3AfvJg04u1njFa7Q1GtFTSEuLnlevKkhzUC8aMEpww=
+github.com/unitoftime/ecs v0.0.3/go.mod h1:YmsHdpPA1CcSd7i6o2W3NgTwFJYI8G68GeGqKimMb3c=
 github.com/unitoftime/glitch v0.0.0-20241226152421-0e5863c2be1d h1:ujKNn8QSdGXE4CVHTUH4Di309HuuIlXGl+yk0ugVQ68=
 github.com/unitoftime/glitch v0.0.0-20241226152421-0e5863c2be1d/go.mod h1:8QQX+VRTfxdixHCn5bWXYWDrmRzGlEY964ERh3/YIF8=
 github.com/unitoftime/gotiny v0.0.0-20240915162236-e7a35021e769 h1:SjK7DZ+RQcLLZwuz9bOLPW59fAZfadztDFDVg3nSiCE=

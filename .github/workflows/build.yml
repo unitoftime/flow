@@ -28,9 +28,6 @@ jobs:
     - name: make All
       run: make all
 
-    - name: Test
-      run: go test -v ./...
-
     - name: Update coverage report
       uses: ncruces/go-coverage-report@v0
       with:
@@ -41,6 +38,7 @@ jobs:
         matrix.os == 'ubuntu-latest' &&
         github.event_name == 'push'
       continue-on-error: true
+
     # Maybe one day
     # - name: Upload coverage to Codecov
     #   uses: codecov/codecov-action@v2
