@@ -3,10 +3,10 @@ all: test
 generate:
 	go generate ./...
 
-fmt: generate
+fmt:
 	go fmt ./...
 
-test: fmt
+test:
 	go test ./...
 
 upgrade:
