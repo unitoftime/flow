@@ -1,10 +1,10 @@
 package transform
 
 import (
-	"slices"
 	"time"
 
 	"github.com/unitoftime/ecs"
+	"github.com/unitoftime/flow/ds"
 	"github.com/unitoftime/flow/glm"
 )
 
@@ -16,8 +16,8 @@ import (
 
 func FromPos(pos glm.Vec2) Transform {
 	return Transform{
-		Pos: pos,
-		Rot: 0,
+		Pos:   pos,
+		Rot:   0,
 		Scale: glm.Vec2{1, 1},
 	}
 }
@@ -28,8 +28,8 @@ type Local struct {
 }
 
 type Transform struct {
-	Pos glm.Vec2
-	Rot float64
+	Pos   glm.Vec2
+	Rot   float64
 	Scale glm.Vec2
 }
 
@@ -88,23 +88,40 @@ type Parent struct {
 }
 
 // 3. You could reorganize so that parent's know their transform children, and recursively calculate each child's GlobalTransform
+//
 //cod:component
 type Children struct {
-	List []ecs.Id
+	// List []ecs.Id
+	MiniSlice ds.MiniSlice[[8]ecs.Id, ecs.Id]
 }
+
+// func (c *Children) Add(id ecs.Id) {
+// 	c.List = append(c.List, id)
+// }
+// func (c *Children) Remove(id ecs.Id) {
+// 	idx := slices.Index(c.List, id)
+// 	if idx < 0 { return } // Skip: Doesnt exist
+
+// 	c.List[idx] = c.List[len(c.List) - 1]
+// 	c.List = c.List[:len(c.List) - 1]
+// }
+// func (c *Children) Clear() {
+// 	if c.List == nil { return }
+// 	c.List = c.List[:0]
+// }
+
 func (c *Children) Add(id ecs.Id) {
-	c.List = append(c.List, id)
+	c.MiniSlice.Append(id)
 }
 func (c *Children) Remove(id ecs.Id) {
-	idx := slices.Index(c.List, id)
-	if idx < 0 { return } // Skip: Doesnt exist
-
-	c.List[idx] = c.List[len(c.List) - 1]
-	c.List = c.List[:len(c.List) - 1]
+	idx := c.MiniSlice.Find(id)
+	if idx < 0 {
+		return
+	} // Skip: Doesnt exist
+	c.MiniSlice.Delete(idx)
 }
 func (c *Children) Clear() {
-	if c.List == nil { return }
-	c.List = c.List[:0]
+	c.MiniSlice.Clear()
 }
 
 // Recursively goes through the transform heirarchy and calculates entity GlobalTransform based on their Parent's GlobalTransform and their local Transform.
@@ -133,9 +150,29 @@ func resolveTransform(
 	children *Children, // TODO: Pointer here?
 	parentGlobal *Global, // TODO: Pointer here?
 ) {
-	for i := range children.List {
-		nextChildren, childLocal, childGlobal := query.Read(children.List[i])
-		if childGlobal == nil { continue } // If child has no transform, skip
+	// for i := range children.List {
+	// 	nextChildren, childLocal, childGlobal := query.Read(children.List[i])
+	// 	if childGlobal == nil { continue } // If child has no transform, skip
+	// 	if childLocal == nil {
+	// 		// If child has no local transform. Assume it is identity. And just copy parentGlobal
+	// 		childGlobal.Pos = parentGlobal.Pos
+	// 		childGlobal.Rot = parentGlobal.Rot
+	// 		childGlobal.Scale = parentGlobal.Scale
+	// 	} else {
+	// 		*childGlobal = childLocal.Globalize(*parentGlobal)
+	// 	}
+
+	// 	if nextChildren == nil { continue } // Dont recurse: This child doesn't have a TransformChildren component
+	// 	if len(nextChildren.List) > 0 {
+	// 		resolveTransform(query, nextChildren, childGlobal)
+	// 	}
+	// }
+
+	for _, childId := range children.MiniSlice.All() {
+		nextChildren, childLocal, childGlobal := query.Read(childId)
+		if childGlobal == nil {
+			continue // If child has no transform, skip
+		}
 		if childLocal == nil {
 			// If child has no local transform. Assume it is identity. And just copy parentGlobal
 			childGlobal.Pos = parentGlobal.Pos
@@ -145,11 +182,14 @@ func resolveTransform(
 			*childGlobal = childLocal.Globalize(*parentGlobal)
 		}
 
-		if nextChildren == nil { continue } // Dont recurse: This child doesn't have a TransformChildren component
-		if len(nextChildren.List) > 0 {
+		if nextChildren == nil {
+			continue // Dont recurse: This child doesn't have a TransformChildren component
+		}
+		if nextChildren.MiniSlice.Len() > 0 {
 			resolveTransform(query, nextChildren, childGlobal)
 		}
 	}
+
 }
 
 // Note: Originally you added this just because you wanted transform parenting with projectiles

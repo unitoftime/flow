@@ -88,7 +88,6 @@ func GetItemWithDefault[T any](key string, def T) (*T, error) {
 	return &ret, nil
 }
 
-
 func SetItem(key string, val any) error {
 	valMap := make(map[string]any)
 	err := mapstructure.Decode(val, &valMap)
