@@ -1,6 +1,9 @@
 all: test
 
-fmt:
+generate:
+	go generate ./...
+
+fmt: generate
 	go fmt ./...
 
 test: fmt
