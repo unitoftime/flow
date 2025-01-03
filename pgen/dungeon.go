@@ -371,6 +371,7 @@ func AddWalk(dag *RoomDag, roomPos map[string]tile.TilePosition, rng *rand.Rand,
 	}
 }
 
+// Calculates the depth of each room placement based on the dag
 func CalculateRoomDepths(dag *RoomDag, placements map[string]RoomPlacement, start string) {
 	queue := ds.NewQueue[string](len(placements))
 	queue.Add(start)

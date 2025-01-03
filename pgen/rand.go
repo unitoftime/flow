@@ -36,14 +36,19 @@ func GetList[T any](list []T) (T, bool) {
 	return list[rand.Intn(len(list))], true
 }
 
-func ListItem[T any](rng *rand.Rand, list []T) (T, bool) {
-	if len(list) <= 0 {
-		var t T
-		return t, false
-	}
-
-	return list[rng.Intn(len(list))], true
+// Returns a random element of the list, based on the provided rng
+func SeededList[T any](rng *rand.Rand, list []T) T {
+	return list[rng.Intn(len(list))]
 }
+
+// func ListItem[T any](rng *rand.Rand, list []T) (T, bool) {
+// 	if len(list) <= 0 {
+// 		var t T
+// 		return t, false
+// 	}
+
+// 	return list[rng.Intn(len(list))], true
+// }
 
 // TODO: Should I separate int from float?
 // type RngRange[T constraints.Integer]struct{

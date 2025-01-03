@@ -6,6 +6,7 @@ import (
 
 type ShapeType uint8
 
+// TODO: Tagged Union?
 const (
 	ShapeAABB ShapeType = iota // A rectangle, not rotated nor scaled
 	ShapeRect                  // Can be rotated or scaled
