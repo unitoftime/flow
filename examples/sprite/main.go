@@ -22,7 +22,7 @@ func main() {
 func run() {
 	app := flow.NewApp()
 	app.AddPlugin(render.DefaultPlugin{})
-	app.AddPlugin(transform.DefaultPlugin)
+	app.AddPlugin(transform.DefaultPlugin{})
 
 	app.AddSystems(ecs.StageStartup,
 		ecs.NewSystem1(setup),
