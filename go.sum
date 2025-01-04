@@ -37,8 +37,8 @@ github.com/unitoftime/cod v0.0.0-20241228160133-efe666697475 h1:m0K71y86gw7kbyQS
 github.com/unitoftime/cod v0.0.0-20241228160133-efe666697475/go.mod h1:Iufibv9gn5GJb4Qzkf8e8xaXOV77OgkrB5kkBZTEN+M=
 github.com/unitoftime/ecs v0.0.4-0.20250104145201-4bbe9d72f60c h1:Hn3mekxfD7p3zqZN2LzT8MeemfRMZRzdKy7+1yeCGkM=
 github.com/unitoftime/ecs v0.0.4-0.20250104145201-4bbe9d72f60c/go.mod h1:YmsHdpPA1CcSd7i6o2W3NgTwFJYI8G68GeGqKimMb3c=
-github.com/unitoftime/glitch v0.0.0-20241226152421-0e5863c2be1d h1:ujKNn8QSdGXE4CVHTUH4Di309HuuIlXGl+yk0ugVQ68=
-github.com/unitoftime/glitch v0.0.0-20241226152421-0e5863c2be1d/go.mod h1:8QQX+VRTfxdixHCn5bWXYWDrmRzGlEY964ERh3/YIF8=
+github.com/unitoftime/glitch v0.0.0-20250104145909-ad673646faaf h1:trqN6GqPkGOF6QnsPfp9RX87earQ05A7YUcOmRDpUG8=
+github.com/unitoftime/glitch v0.0.0-20250104145909-ad673646faaf/go.mod h1:PNiytmW1wtVkCpOSzHWopTHbGI5JLBUESNwn9jl9uuU=
 github.com/unitoftime/gotiny v0.0.0-20240915162236-e7a35021e769 h1:SjK7DZ+RQcLLZwuz9bOLPW59fAZfadztDFDVg3nSiCE=
 github.com/unitoftime/gotiny v0.0.0-20240915162236-e7a35021e769/go.mod h1:iq4kY4pPC8ZKztyei1pln4Fkk0BxQbyM1hICubHxoCo=
 github.com/unitoftime/intmap v0.0.0-20231203115433-9505126f7096 h1:ietNpHDGnFAyabqzzinz8zJW2rjx/0DLslU4hU4wNbU=

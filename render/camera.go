@@ -18,7 +18,7 @@ type Camera2DBundle struct {
 func (c Camera2DBundle) CompWrite(w ecs.W) {
 	cam := NewCamera2D(glm.CR(0), 0, 0)
 	target := Target{
-		draw: c.target,
+		draw:  c.target,
 		batch: c.target,
 	}
 	visionList := NewVisionList()
@@ -27,8 +27,6 @@ func (c Camera2DBundle) CompWrite(w ecs.W) {
 	target.CompWrite(w)
 	visionList.CompWrite(w)
 }
-
-
 
 //cod:component
 type Camera struct {

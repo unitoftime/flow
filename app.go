@@ -26,8 +26,8 @@ func NewApp() *App {
 	// scheduler.SetFixedTimeStep(4 * time.Millisecond)
 
 	app := &App{
-		world:          world,
-		scheduler:      scheduler,
+		world:     world,
+		scheduler: scheduler,
 	}
 
 	return app
@@ -43,6 +43,7 @@ func (a *App) Run() {
 type Plugin interface {
 	Initialize(world *ecs.World)
 }
+
 func (a *App) AddPlugin(plugin Plugin) {
 	plugin.Initialize(a.world)
 }

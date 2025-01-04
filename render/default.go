@@ -36,6 +36,7 @@ func (p DefaultPlugin) Initialize(world *ecs.World) {
 type VisionList struct {
 	List []ecs.Id
 }
+
 func NewVisionList() VisionList {
 	return VisionList{
 		List: make([]ecs.Id, 0),
@@ -48,7 +49,6 @@ func (vl *VisionList) Clear() {
 	vl.List = vl.List[:0]
 }
 
-
 //cod:component
 type Window struct {
 	*glitch.Window
@@ -58,19 +58,20 @@ type Window struct {
 type Sprite struct {
 	Sprite *glitch.Sprite
 }
+
 func (s Sprite) Bounds() glm.Rect {
 	return s.Sprite.Bounds()
 }
 
 //cod:component
 type Target struct {
-	draw RenderTarget
+	draw  RenderTarget
 	batch glitch.BatchTarget // TODO: Indexed?
 }
 
 //cod:component
 type Visibility struct {
-	Hide bool // If set true, the entity will always be calculated as invisible
+	Hide       bool // If set true, the entity will always be calculated as invisible
 	Calculated bool
 }
 

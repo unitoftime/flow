@@ -51,7 +51,9 @@ func CalculateVisibilitySystem(dt time.Duration, camQuery *ecs.View2[Camera, Vis
 
 		query.MapId(func(id ecs.Id, gt *transform.Global, sprite *Sprite, vis *Visibility) {
 			vis.Calculated = false
-			if vis.Hide { return }
+			if vis.Hide {
+				return
+			}
 
 			mat := gt.Mat4()
 			shape := spatial.Rect(sprite.Bounds(), mat)
@@ -63,7 +65,6 @@ func CalculateVisibilitySystem(dt time.Duration, camQuery *ecs.View2[Camera, Vis
 			}
 		})
 	})
-
 
 	// TODO: Optimization if there are a lot of cameras: Preconfigure a spatial hash
 	// chunkSize := [2]int{1024/8, 1024/8}
@@ -92,7 +93,7 @@ func (l *RenderPassList) Clear() {
 	l.List = l.List[:0]
 }
 
-type RenderTarget interface{
+type RenderTarget interface {
 	glitch.Target
 	glitch.BatchTarget
 	Bounds() glm.Rect
@@ -100,26 +101,25 @@ type RenderTarget interface{
 
 type RenderPass struct {
 	batchTarget glitch.BatchTarget
-	drawTarget RenderTarget
-	clearColor glm.RGBA
-	camera Camera // TODO: I feel like there could/should support multiple?
-	visionList VisionList
+	drawTarget  RenderTarget
+	clearColor  glm.RGBA
+	camera      Camera // TODO: I feel like there could/should support multiple?
+	visionList  VisionList
 }
 
 func CalculateRenderPasses(dt time.Duration, passes *RenderPassList, query *ecs.View3[Camera, Target, VisionList]) {
 	passes.Clear()
 	query.MapId(func(id ecs.Id, camera *Camera, target *Target, visionList *VisionList) {
 		passes.Add(RenderPass{
-			drawTarget: target.draw,
+			drawTarget:  target.draw,
 			batchTarget: target.batch,
-			camera: *camera,
-			visionList: *visionList,
+			camera:      *camera,
+			visionList:  *visionList,
 		})
 	})
 
 	// TODO: Sort somehow? Priority? Order added?
 }
-
 
 func ExecuteRenderPass(dt time.Duration, passes *RenderPassList, query *ecs.View2[transform.Global, Sprite]) {
 	for _, pass := range passes.List {
@@ -130,15 +130,18 @@ func ExecuteRenderPass(dt time.Duration, passes *RenderPassList, query *ecs.View
 
 		for _, id := range pass.visionList.List {
 			gt, sprite := query.Read(id)
-			if gt == nil { continue }
-			if sprite == nil { continue }
+			if gt == nil {
+				continue
+			}
+			if sprite == nil {
+				continue
+			}
 
 			mat := gt.Mat4()
 			sprite.Sprite.DrawColorMask(pass.batchTarget, mat, glm.White)
 		}
 	}
 }
-
 
 func RenderingFlushSystem(dt time.Duration, query *ecs.View1[Window]) {
 	query.MapId(func(_ ecs.Id, win *Window) {

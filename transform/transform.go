@@ -158,7 +158,9 @@ func ResolveHeirarchySystem(world *ecs.World) ecs.System {
 				global.Transform = local.Transform
 			}
 
-			if children == nil { return }
+			if children == nil {
+				return
+			}
 			resolveTransform(query, children, global)
 		})
 	})
