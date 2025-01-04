@@ -322,9 +322,15 @@ func (h *Hashmap[T]) Check(colSet *CollisionSet[T], shape Shape) {
 				// For border chunks, we need to do narrow phase too
 				bucket.Check(colSet, shape)
 			} else {
-				// For inner chunks, we can just add everything from the bucket (much faster)
-				for i := range bucket.List {
-					colSet.Add(bucket.List[i].item)
+				// If the shape is an AABB it means that everything inside inner chunks must collide
+				// so we can just add everything from the bucket (much faster)
+				if shape.Type == ShapeAABB {
+					for i := range bucket.List {
+						colSet.Add(bucket.List[i].item)
+					}
+				} else {
+					// Else we need to do the slower, manual check of each one
+					bucket.Check(colSet, shape)
 				}
 			}
 		}
