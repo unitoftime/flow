@@ -10,6 +10,7 @@ test:
 	go test ./...
 
 upgrade:
+	go get -u github.com/unitoftime/ecs@HEAD
 	go get -u ./...
 	go mod tidy
 

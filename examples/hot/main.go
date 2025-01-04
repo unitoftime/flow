@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/unitoftime/flow/example/hot/plugin"
+	"github.com/unitoftime/flow/examples/hot/plugin"
 	"github.com/unitoftime/flow/hot"
 )
 
