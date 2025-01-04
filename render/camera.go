@@ -1,26 +1,56 @@
 package render
 
 import (
-	// "math"
-
+	"github.com/unitoftime/ecs"
 	"github.com/unitoftime/flow/glm"
+	"github.com/unitoftime/flow/spatial"
 	"github.com/unitoftime/glitch"
 )
 
+// Bevy Reference
+// https://docs.rs/bevy_core_pipeline/0.15.1/src/bevy_core_pipeline/core_2d/camera_2d.rs.html#34
+
+// TODO: Make a cod macro to generate stuff like this? ie use required components instead of manually setting up a bundle
+type Camera2DBundle struct {
+	target RenderTarget
+}
+
+func (c Camera2DBundle) CompWrite(w ecs.W) {
+	cam := NewCamera2D(glm.CR(0), 0, 0)
+	target := Target{
+		draw: c.target,
+		batch: c.target,
+	}
+	visionList := NewVisionList()
+
+	cam.CompWrite(w)
+	target.CompWrite(w)
+	visionList.CompWrite(w)
+}
+
+
+
+//cod:component
 type Camera struct {
-	Camera   *glitch.CameraOrtho
+	Camera   glitch.CameraOrtho
 	Position glm.Vec2
 	Zoom     float64
 	bounds   glm.Rect
 }
 
-func NewCamera(bounds glm.Rect, x, y float64) *Camera {
-	return &Camera{
-		Camera:   glitch.NewCameraOrtho(),
+func NewCamera2D(bounds glm.Rect, x, y float64) Camera {
+	orthoCam := glitch.NewCameraOrtho()
+	return Camera{
+		Camera:   *orthoCam,
 		Position: glm.Vec2{x, y},
 		Zoom:     1.0,
 		bounds:   bounds,
 	}
+}
+
+func NewCamera(bounds glm.Rect, x, y float64) *Camera {
+	cam := NewCamera2D(bounds, x, y)
+	return &cam
 }
 
 func (c *Camera) Update(bounds glm.Rect) {
@@ -53,6 +83,11 @@ func (c *Camera) WorldSpaceRect() glm.Rect {
 	max := c.Unproject(box.Max)
 
 	return glm.R(min.X, min.Y, max.X, max.Y)
+}
+
+func (c *Camera) WorldSpaceShape() spatial.Shape {
+	cameraMatrix := c.Camera.GetInverseMat4()
+	return spatial.Rect(c.bounds, cameraMatrix)
 }
 
 // type Camera struct {

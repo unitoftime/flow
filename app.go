@@ -1,51 +1,66 @@
 package flow
 
-// "time"
+import (
+	"github.com/unitoftime/ecs"
+)
 
 // type Stage uint8
 
 // const (
 // 	StageStartup Stage = iota
+// 	StagePreFixedUpdate
 // 	StageFixedUpdate
+// 	StagePostFixedUpdate
 // 	StageUpdate
 // )
 
-// type App struct {
-// 	world     *ecs.World
-// 	scheduler *ecs.Scheduler
+type App struct {
+	world     *ecs.World
+	scheduler *ecs.Scheduler
+}
 
-// 	startupSystems []ecs.System
-// }
+func NewApp() *App {
+	world := ecs.NewWorld()
+	scheduler := ecs.NewScheduler(world)
+	ecs.PutResource(world, scheduler)
+	// scheduler.SetFixedTimeStep(4 * time.Millisecond)
 
-// func NewApp() *App {
-// 	scheduler := ecs.NewScheduler()
-// 	// scheduler.SetFixedTimeStep(4 * time.Millisecond)
-// 	app := &App{
-// 		world:          ecs.NewWorld(),
-// 		scheduler:      scheduler,
-// 		startupSystems: make([]ecs.System, 0),
-// 	}
+	app := &App{
+		world:          world,
+		scheduler:      scheduler,
+	}
 
-// 	AddResource(app, scheduler)
+	return app
+}
 
-// 	return app
-// }
+func (a *App) Run() {
+	// fmt.Printf("%+v", a.startupSystems)
+	// fmt.Printf("%+v", a.scheduler)
 
-// func (a *App) Run() {
-// 	for _, sys := range a.startupSystems {
-// 		sys.Run(0)
-// 	}
+	a.scheduler.Run()
+}
 
-// 	a.scheduler.Run()
-// }
+type Plugin interface {
+	Initialize(world *ecs.World)
+}
+func (a *App) AddPlugin(plugin Plugin) {
+	plugin.Initialize(a.world)
+}
 
-// func (a *App) GetScheduler() *ecs.Scheduler {
-// 	return a.scheduler
-// }
-
-// func (a *App) GetWorld() *ecs.World {
-// 	return a.world
-// }
+func (a *App) AddSystems(stage ecs.Stage, systems ...ecs.SystemBuilder) {
+	a.scheduler.AddSystems(stage, systems...)
+	// for _, sys := range systems {
+	// 	system := sys.Build(a.world)
+	// 	switch stage {
+	// 	case StageStartup:
+	// 		a.startupSystems = append(a.startupSystems, system)
+	// 	case StageFixedUpdate:
+	// 		a.scheduler.AppendPhysics(system)
+	// 	case StageUpdate:
+	// 		a.scheduler.AppendRender(system)
+	// 	}
+	// }
+}
 
 // func (a *App) AddSystems2(stage Stage, systems ...ecs.System) {
 // 	for _, system := range systems {
@@ -104,14 +119,14 @@ package flow
 // 	ecs.PutResource(a.world, t)
 // }
 
-// // func System1[A ecs.Initializer](sysFunc func(time.Duration, A)) func(*ecs.World) ecs.System {
-// // 	return func(world *ecs.World) ecs.System {
-// // 		ecs.NewSystem1(world, sysFunc)
-// // 	}
-// // }
+// func System1[A ecs.Initializer](sysFunc func(time.Duration, A)) func(*ecs.World) ecs.System {
+// 	return func(world *ecs.World) ecs.System {
+// 		ecs.NewSystem1(world, sysFunc)
+// 	}
+// }
 
-// // func System[A, B ecs.Initializer](sysFunc func(time.Duration, A, B)) func(*ecs.World) ecs.System {
-// // 	return func(world *ecs.World) ecs.System {
-// // 		ecs.NewSystem2(world, sysFunc)
-// // 	}
-// // }
+// func System[A, B ecs.Initializer](sysFunc func(time.Duration, A, B)) func(*ecs.World) ecs.System {
+// 	return func(world *ecs.World) ecs.System {
+// 		ecs.NewSystem2(world, sysFunc)
+// 	}
+// }

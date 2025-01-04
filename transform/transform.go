@@ -14,6 +14,22 @@ import (
 // 1. Migrate to 3D transforms
 // 2. Revisit optimizations for heirarchy resolutions
 
+type DefaultPlugin struct {
+}
+
+func (p DefaultPlugin) Initialize(world *ecs.World) {
+	scheduler := ecs.GetResource[ecs.Scheduler](world)
+
+	// TODO: This should be added to a better stage
+	scheduler.AppendPhysics(ResolveHeirarchySystem(world))
+}
+
+func Default() Transform {
+	return Transform{
+		Scale: glm.Vec2{1, 1},
+	}
+}
+
 func FromPos(pos glm.Vec2) Transform {
 	return Transform{
 		Pos:   pos,
@@ -128,7 +144,10 @@ func (c *Children) Clear() {
 func ResolveHeirarchySystem(world *ecs.World) ecs.System {
 	queryTopLevel := ecs.Query3[Children, Local, Global](world,
 		ecs.Without(Parent{}),
-		ecs.Optional(Local{}), // Note: Some entities are "top level" and dont have a local transform, so we will just use their global transform as is. I should move away from this model
+		ecs.Optional(Children{}, Local{}),
+		// Note: Some entities are "top level" and dont have a local transform, so we will just use their global transform as is. I should move away from this model
+		// ^^^^^
+		// TODO: Fix hack where Local{} is optional
 	)
 
 	query := ecs.Query3[Children, Local, Global](world)
@@ -139,6 +158,7 @@ func ResolveHeirarchySystem(world *ecs.World) ecs.System {
 				global.Transform = local.Transform
 			}
 
+			if children == nil { return }
 			resolveTransform(query, children, global)
 		})
 	})
