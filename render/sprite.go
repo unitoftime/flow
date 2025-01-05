@@ -1,31 +1,12 @@
 package render
 
-import (
-	"github.com/unitoftime/ecs"
-	"github.com/unitoftime/flow/glm"
-)
+import "github.com/unitoftime/flow/glm"
 
-type Pos struct {
+//cod:component
+type Transform struct {
 	glm.Vec2
 	Height float64
-}
-
-var posComp = ecs.Comp(Pos{})
-
-func (c Pos) CompId() ecs.CompId {
-	return posComp.CompId()
-}
-func (c Pos) CompWrite(w ecs.W) {
-	posComp.WriteVal(w, c)
-}
-
-var animationComp = ecs.Comp(Animation{})
-
-func (c Animation) CompId() ecs.CompId {
-	return animationComp.CompId()
-}
-func (c Animation) CompWrite(w ecs.W) {
-	animationComp.WriteVal(w, c)
+	// transform.Transform
 }
 
 // // Represents multiple sprites

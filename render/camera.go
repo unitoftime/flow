@@ -75,6 +75,10 @@ func (c *Camera) Unproject(point glitch.Vec3) glitch.Vec3 {
 	return c.Camera.Unproject(point)
 }
 
+func (c *Camera) Bounds() glm.Rect {
+	return c.bounds
+}
+
 func (c *Camera) WorldSpaceRect() glm.Rect {
 	box := c.bounds.ToBox()
 	min := c.Unproject(box.Min)

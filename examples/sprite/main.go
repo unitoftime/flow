@@ -59,6 +59,9 @@ func setup(dt time.Duration, commands *ecs.CommandQueue) {
 func rotate(dt time.Duration, query *ecs.View1[transform.Local]) {
 	query.MapId(func(id ecs.Id, lt *transform.Local) {
 		lt.Rot += math.Pi * dt.Seconds()
+
+		// angle := math.Pi * dt.Seconds()
+		// lt.Rot.RotateZ(angle)
 	})
 }
 

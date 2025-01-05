@@ -59,3 +59,13 @@ func (v Vec3) Scaled(x, y, z float64) Vec3 {
 
 	return v
 }
+
+func (v Vec3) Mult(s Vec3) Vec3 {
+	return Vec3{
+		X: v.X * s.X,
+		Y: v.Y * s.Y,
+		Z: v.Z * s.Z,
+	}
+
+	return v
+}

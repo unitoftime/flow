@@ -1,6 +1,8 @@
 package glm
 
-import "github.com/go-gl/mathgl/mgl64"
+import (
+	"github.com/go-gl/mathgl/mgl64"
+)
 
 type Vec3 struct {
 	X, Y, Z float64
@@ -84,21 +86,33 @@ func (m *Mat4) RotateZ(angle float64) *Mat4 {
 	return m.Rotate(angle, Vec3{0, 0, 1})
 }
 
-// https://github.com/go-gl/mathgl/blob/v1.0.0/mgl32/transform.go#L159
-func (m *Mat4) Rotate(angle float64, axis Vec3) *Mat4 {
-	// // quat := mgl32.Mat4ToQuat(mgl32.Mat4(*m))
-	// // return &retMat
-	// rotation := Mat4(mgl64.HomogRotate3D(angle, mgl64.Vec3{axis.X, axis.Y, axis.Z}))
-	// // retMat := Mat4(mgl32.Mat4(*m).)
-	// // return &retMat
-	// mNew := m.Mul(&rotation)
-	// *m = *mNew
-	// return m
+// // https://github.com/go-gl/mathgl/blob/v1.0.0/mgl32/transform.go#L159
+// func (m *Mat4) Rotate(angle float64, axis Vec3) *Mat4 {
+// 	// // quat := mgl32.Mat4ToQuat(mgl32.Mat4(*m))
+// 	// // return &retMat
+// 	// rotation := Mat4(mgl64.HomogRotate3D(angle, mgl64.Vec3{axis.X, axis.Y, axis.Z}))
+// 	// // retMat := Mat4(mgl32.Mat4(*m).)
+// 	// // return &retMat
+// 	// mNew := m.Mul(&rotation)
+// 	// *m = *mNew
+// 	// return m
 
-	rotation := Mat4(mgl64.HomogRotate3D(angle, mgl64.Vec3{axis.X, axis.Y, axis.Z}))
+// 	rotation := Mat4(mgl64.HomogRotate3D(angle, mgl64.Vec3{axis.X, axis.Y, axis.Z}))
+// 	mNew := rotation.Mul(m)
+// 	*m = *mNew
+// 	return m
+// }
+
+func (m *Mat4) RotateQuat(quat Quat) *Mat4 {
+	rotation := quat.Mat4()
 	mNew := rotation.Mul(m)
 	*m = *mNew
 	return m
+}
+
+func (m *Mat4) Rotate(angle float64, axis Vec3) *Mat4 {
+	quat := QuatRotate(angle, axis)
+	return m.RotateQuat(quat)
 }
 
 // Note: This modifies in place

@@ -4,6 +4,16 @@ import (
 	"github.com/unitoftime/ecs"
 )
 
+var AnimationComp = ecs.NewComp[Animation]()
+
+func (c Animation) CompId() ecs.CompId {
+	return AnimationComp.CompId()
+}
+
+func (c Animation) CompWrite(w ecs.W) {
+	AnimationComp.WriteVal(w, c)
+}
+
 var CalculatedVisibilityComp = ecs.NewComp[CalculatedVisibility]()
 
 func (c CalculatedVisibility) CompId() ecs.CompId {
@@ -42,6 +52,16 @@ func (c Target) CompId() ecs.CompId {
 
 func (c Target) CompWrite(w ecs.W) {
 	TargetComp.WriteVal(w, c)
+}
+
+var TransformComp = ecs.NewComp[Transform]()
+
+func (c Transform) CompId() ecs.CompId {
+	return TransformComp.CompId()
+}
+
+func (c Transform) CompWrite(w ecs.W) {
+	TransformComp.WriteVal(w, c)
 }
 
 var VisibilityComp = ecs.NewComp[Visibility]()

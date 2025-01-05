@@ -47,6 +47,7 @@ func (f *Frame) Mount(name string) glm.Vec2 {
 	return pos
 }
 
+//cod:component
 type Animation struct {
 	frameIdx      int
 	remainingDur  time.Duration

@@ -24,8 +24,54 @@ func (p DefaultPlugin) Initialize(world *ecs.World) {
 	scheduler.AppendPhysics(ResolveHeirarchySystem(world))
 }
 
+type Transform3D struct {
+	Pos   glm.Vec3
+	Rot   glm.Quat
+	Scale glm.Vec3
+}
+
+func Default3D() Transform3D {
+	return Transform3D{
+		Rot:   glm.IQuat(),
+		Scale: glm.Vec3{1, 1, 1},
+	}
+}
+
+func FromPos3D(pos glm.Vec3) Transform3D {
+	return Transform3D{
+		Pos:   pos,
+		Rot:   glm.IQuat(),
+		Scale: glm.Vec3{1, 1, 1},
+	}
+}
+func (t Transform3D) Mat4() glm.Mat4 {
+	mat := glm.Mat4Ident
+	mat.
+		Scale(t.Scale.X, t.Scale.Y, 1).
+		RotateQuat(t.Rot).
+		// Rotate(t.Rot, glm.Vec3{0, 0, 1}).
+		Translate(t.Pos.X, t.Pos.Y, 0)
+	return mat
+}
+
+// // Returns the transform, but with the vector space moved to the parent transform
+// func (t Transform3D) Globalize(parent Global) Global {
+// 	childGlobal := t
+
+// 	parentMat := parent.Mat4()
+// 	dstPos := parentMat.Apply(t.Pos)
+// 	childGlobal.Pos = dstPos
+// 	childGlobal.Rot = *parent.Rot.RotateQuat(t.Rot) // TODO: is this backwards?
+// 	childGlobal.Scale = t.Scale.Mult(parent.Scale)
+
+// 	return Global{childGlobal}
+// }
+
+//--------------------------------------------------------------------------------
+
 func Default() Transform {
 	return Transform{
+		Rot:   0,
 		Scale: glm.Vec2{1, 1},
 	}
 }
@@ -61,9 +107,6 @@ func (t Transform) Mat4() glm.Mat4 {
 // Returns the transform, but with the vector space moved to the parent transform
 func (t Transform) Globalize(parent Global) Global {
 	childGlobal := t
-
-	// OG
-	// childGlobal.Pos = childLocal.Pos.Add(parentGlobal.Pos)
 
 	// try 2 - manually calculate
 	parentMat := parent.Mat4()
