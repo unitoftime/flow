@@ -5,8 +5,16 @@ import "github.com/unitoftime/flow/glm"
 //cod:component
 type Transform struct {
 	glm.Vec2
+	Rot float64
 	Height float64
 	// transform.Transform
+}
+func TransformFromPos(pos glm.Vec2) Transform {
+	return Transform{
+		pos,
+		0,
+		0,
+	}
 }
 
 // // Represents multiple sprites
