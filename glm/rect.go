@@ -103,6 +103,11 @@ func (r Rect) FitInt(r2 Rect) Rect {
 	return r.Scaled(scale).WithCenter(r2.Center())
 }
 
+// Fits rect 'r' into another rect 'r2' with same center
+func (r Rect) Fit(r2 Rect) Rect {
+	return r.Scaled(r.FitScale(r2)).WithCenter(r2.Center())
+}
+
 // Scales rect r uniformly to fit inside rect r2
 // TODO This only scales around {0, 0}
 func (r Rect) ScaledToFit(r2 Rect) Rect {
