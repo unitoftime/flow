@@ -653,6 +653,12 @@ func (c *ChunkMath) GetChunkTileRect(chunkPos ChunkPosition) Rect {
 // 	)
 // }
 
+func (c *ChunkMath) WorldToTileRect(r glm.Rect) Rect {
+	min := c.PositionToTile2(r.Min)
+	max := c.PositionToTile2(r.Max)
+	return Rect{min, max}
+}
+
 // Returns a rect including all of the tiles.
 // Centered on edge tiles
 func (c *ChunkMath) RectToWorldRect(r Rect) glm.Rect {
