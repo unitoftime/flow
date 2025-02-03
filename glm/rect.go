@@ -251,6 +251,13 @@ func (r Rect) BottomHalf() Rect {
 	return r.CutBottom(0.5 * r.H())
 }
 
+// Returns a centered square with height and width set by amount
+func (r Rect) SliceSquare(amount float64) Rect {
+	r = r.SliceHorizontal(amount)
+	r = r.SliceVertical(amount)
+	return r
+}
+
 // Returns a centered horizontal sliver with height set by amount
 func (r Rect) SliceHorizontal(amount float64) Rect {
 	r.CutTop((r.H() - amount) / 2)
