@@ -2,60 +2,77 @@ package ds
 
 import (
 	"iter"
-
-	"golang.org/x/exp/constraints"
 )
 
-// Acts like a map, but backed by an integer indexed slice instead of a map
-// This is mostly for use cases where you have a small list of increasing numbers that you want to store in an array, but you dont want to worry about ensuring the bounds are always correct
-// Note: If you put a huge key in here, the slice will allocate a ton of space.
-type ArrayMap[K constraints.Integer, V any] struct {
-	// TODO: set slice should just be a bitmask
-	set []bool // Tracks whether or not the data at a location is set or empty
-	slice []V // Tracks the data
+type arrayMapData[K comparable, V any] struct {
+	key K
+	value V
+}
+func newArrayMapData[K comparable, V any](k K, v V) arrayMapData[K, V] {
+	return arrayMapData[K, V]{
+		key: k,
+		value: v,
+	}
 }
 
-func NewArrayMap[K constraints.Integer, V any]() ArrayMap[K, V] {
+// Acts like a map, but is backed by an array. Can provide better iteration speed at the cost of slower lookups
+type ArrayMap[K comparable, V any] struct {
+	slice []arrayMapData[K, V] // TODO: Maybe faster with two slices? one for key, another for value?
+}
+
+func NewArrayMap[K comparable, V any]() ArrayMap[K, V] {
 	return ArrayMap[K, V]{
-		set: make([]bool, 0),
-		slice: make([]V, 0),
+		slice: make([]arrayMapData[K, V], 0),
 	}
 }
 
-func(m *ArrayMap[K, V]) grow(idx K) {
-	requiredLength := idx + 1
-	growAmount := requiredLength - K(len(m.set))
-	if growAmount <= 0 {
-		return // No need to grow if the sliceIdx is already in bounds
-	}
-
-	m.set = append(m.set, make([]bool, growAmount)...)
-	m.slice = append(m.slice, make([]V, growAmount)...)
+func (m *ArrayMap[K, V]) append(key K, val V) {
+	m.slice = append(m.slice, newArrayMapData(key, val))
 }
 
-func(m *ArrayMap[K, V]) Put(idx K, val V) {
+// returns the index of the value, or -1 if the key does not exist
+func (m *ArrayMap[K, V]) find(key K) int {
+	for i := range m.slice {
+		if m.slice[i].key != key {
+			continue // Skip: Wrong key
+		}
+
+		return i
+	}
+
+	return -1
+}
+
+func (m *ArrayMap[K, V]) Put(key K, val V) {
+	idx := m.find(key)
 	if idx < 0 {
-		return
+		// Can't find key, so just append
+		m.append(key, val)
+	} else {
+		// Else, just update the current key
+		m.slice[idx].value = val
 	}
-
-	m.grow(idx) // Ensure index is within bounds
-
-	m.set[idx] = true
-	m.slice[idx] = val
 }
 
-func(m *ArrayMap[K, V]) Get(idx K) (V, bool) {
-	if idx < 0 || idx >= K(len(m.set)) {
+func (m *ArrayMap[K, V]) Get(key K) (V, bool) {
+	idx := m.find(key)
+	if idx < 0 {
 		var v V
 		return v, false
+	} else {
+		return m.slice[idx].value, true
 	}
-
-	return m.slice[idx], m.set[idx]
 }
 
-// Delete a specific index
-func(m *ArrayMap[K, V]) Delete(idx K) {
-	m.set[idx] = false
+// Delete a specific index. Note this will move the last index into the hole
+func (m *ArrayMap[K, V]) Delete(key K) {
+	idx := m.find(key)
+	if idx < 0 {
+		return // Nothing to do, does not exist
+	}
+
+	m.slice[idx] = m.slice[len(m.slice)-1]
+	m.slice = m.slice[:len(m.slice)-1]
 }
 
 // Clear the entire slice
@@ -66,13 +83,8 @@ func(m *ArrayMap[K, V]) Clear() {
 // Iterate through the entire slice
 func(m *ArrayMap[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
-		for i, v := range m.slice {
-			// Ensure that the map key is set
-			if !m.set[i] {
-				continue
-			}
-
-			if !yield(K(i), v) {
+		for _, d := range m.slice {
+			if !yield(d.key, d.value) {
 				break
 			}
 		}
