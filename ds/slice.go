@@ -13,3 +13,12 @@ func GrowAdd[K any](slice []K, idx int, val K) []K {
 	slice[idx] = val
 	return slice
 }
+
+// Safely gets and returns a value from a slice, and a boolen to indicate boundscheck
+func SafeGet[K any](slice []K, idx int) (K, bool) {
+	if idx < 0 || idx >= len(slice) {
+		var k K
+		return k, false
+	}
+	return slice[idx], true
+}
