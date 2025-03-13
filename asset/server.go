@@ -217,6 +217,17 @@ func (s *Server) getFile(fpath string) (io.ReadCloser, time.Time, error) {
 		return nil, time.Time{}, fmt.Errorf("Couldnt find file prefix: %s", fpath)
 	}
 
+	// TODO: I'd prefer this to be more explicit
+	// If the FS is nil, then try a web-based filesystem
+	if fsys.fs == nil {
+		httpPath, err := url.JoinPath(fsys.path, trimmedPath)
+		if err != nil {
+			return nil, time.Time{}, err
+		}
+		rc, err := s.getHttp(httpPath)
+		return rc, time.Time{}, err
+	}
+
 	file, err := fsys.fs.Open(trimmedPath)
 	if err != nil {
 		return nil, time.Time{}, err
