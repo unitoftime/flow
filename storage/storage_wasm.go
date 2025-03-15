@@ -5,17 +5,19 @@ package storage
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"maps"
 	"net/url"
 	"runtime"
 	"runtime/pprof"
 	"syscall/js"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/unitoftime/flow/browser"
 )
+
+// Noop on browser
+func SetStorageRoot(root string) error {
+	return nil
+}
 
 // TODO Maybe: https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API
 
@@ -41,22 +43,10 @@ func GetItem[T any](key string) (*T, error) {
 		return nil, err
 	}
 
-	var ret T
-	err = json.Unmarshal(jsonDat, &ret)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ret, nil
+	return deserialize[T](jsonDat)
 }
 
 func GetItemWithDefault[T any](key string, def T) (*T, error) {
-	defaultMap := make(map[string]any)
-	err := mapstructure.Decode(def, &defaultMap)
-	if err != nil {
-		return nil, err
-	}
-
 	val := localStorage.Call("getItem", key)
 	if val.IsNull() || val.IsUndefined() {
 		return nil, nil
@@ -71,31 +61,11 @@ func GetItemWithDefault[T any](key string, def T) (*T, error) {
 		return nil, err
 	}
 
-	decodedMap := make(map[string]any)
-	err = json.Unmarshal(jsonDat, &decodedMap)
-	if err != nil {
-		return nil, err
-	}
-
-	maps.Copy(defaultMap, decodedMap)
-
-	var ret T
-	err = mapstructure.Decode(decodedMap, &ret)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ret, nil
+	return deserializeWithDefault[T](jsonDat, def)
 }
 
 func SetItem(key string, val any) error {
-	valMap := make(map[string]any)
-	err := mapstructure.Decode(val, &valMap)
-	if err != nil {
-		return err
-	}
-
-	buf, err := json.Marshal(valMap)
+	buf, err := serialize(val)
 	if err != nil {
 		return err
 	}
