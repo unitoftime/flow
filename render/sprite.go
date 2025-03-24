@@ -1,19 +1,22 @@
 package render
 
-import "github.com/unitoftime/flow/glm"
+import (
+	"github.com/unitoftime/flow/glm"
+	"github.com/unitoftime/flow/transform"
+)
 
 //cod:component
 type Transform struct {
-	glm.Vec2
-	Rot float64
-	Height float64
-	// transform.Transform
+	transform.Transform
+	Height float64 // TODO: Remove
 }
 func TransformFromPos(pos glm.Vec2) Transform {
 	return Transform{
-		pos,
-		0,
-		0,
+		Transform: transform.Transform{
+			Pos: pos,
+			Rot: 0,
+			Scale: glm.Vec2{1, 1},
+		},
 	}
 }
 
