@@ -676,15 +676,6 @@ func (c *ChunkMath) GetEdgeNeighbors(x, y int) []TilePosition {
 	}
 }
 
-func (c *ChunkMath) GetChunkEdgeNeighbors(pos ChunkPosition) []ChunkPosition {
-	return []ChunkPosition{
-		ChunkPosition{pos.X + 1, pos.Y},
-		ChunkPosition{pos.X - 1, pos.Y},
-		ChunkPosition{pos.X, pos.Y + 1},
-		ChunkPosition{pos.X, pos.Y - 1},
-	}
-}
-
 func (c *ChunkMath) GetNeighbors(pos TilePosition) []TilePosition {
 	x := pos.X
 	y := pos.Y
@@ -700,6 +691,31 @@ func (c *ChunkMath) GetNeighbors(pos TilePosition) []TilePosition {
 		TilePosition{x - 1, y + 1},
 		TilePosition{x + 1, y - 1},
 		TilePosition{x + 1, y + 1},
+	}
+}
+
+func (c *ChunkMath) GetChunkEdgeNeighbors(pos ChunkPosition) []ChunkPosition {
+	return []ChunkPosition{
+		{pos.X + 1, pos.Y},
+		{pos.X - 1, pos.Y},
+		{pos.X, pos.Y + 1},
+		{pos.X, pos.Y - 1},
+	}
+}
+
+func (c *ChunkMath) GetChunkNeighbors(pos ChunkPosition) []ChunkPosition {
+	return []ChunkPosition{
+		// Edge
+		{pos.X + 1, pos.Y},
+		{pos.X - 1, pos.Y},
+		{pos.X, pos.Y + 1},
+		{pos.X, pos.Y - 1},
+
+		// Corners
+		{pos.X + 1, pos.Y + 1},
+		{pos.X - 1, pos.Y + 1},
+		{pos.X - 1, pos.Y - 1},
+		{pos.X + 1, pos.Y - 1},
 	}
 }
 
