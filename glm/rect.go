@@ -330,8 +330,24 @@ func (r Rect) Point(x, y float64) Vec2 {
 }
 
 // Takes r2 and places it in r based on the alignment
-// TODO - rename to InnerAnchor?
 func (r Rect) Anchor(r2 Rect, anchor Vec2) Rect {
+	return r.AnchorFull(r2, anchor, anchor)
+}
+
+// Anchors r2 to r1 based on two anchors, one for r and one for r2
+func (r Rect) AnchorFull(r2 Rect, anchor, pivot Vec2) Rect {
+	r2 = r2.AnchorZero()
+
+	anchorPoint := Vec2{r.Min.X + (anchor.X * r.W()), r.Min.Y + (anchor.Y * r.H())}
+	pivotPoint := Vec2{r2.Min.X + (pivot.X * r2.W()), r2.Min.Y + (pivot.Y * r2.H())}
+
+	a := Vec2{anchorPoint.X - pivotPoint.X, anchorPoint.Y - pivotPoint.Y}
+	return R(a.X, a.Y, a.X+r2.W(), a.Y+r2.H()).Norm()
+}
+
+// Takes r2 and places it in r based on the alignment
+// Warning: Assumes r2 min point is 0, 0
+func (r Rect) AnchorOLD(r2 Rect, anchor Vec2) Rect {
 	// Anchor point is the position in r that we are anchoring to
 	anchorPoint := Vec2{r.Min.X + (anchor.X * r.W()), r.Min.Y + (anchor.Y * r.H())}
 	pivotPoint := Vec2{r2.Min.X + (anchor.X * r2.W()), r2.Min.Y + (anchor.Y * r2.H())}
@@ -344,13 +360,20 @@ func (r Rect) Anchor(r2 Rect, anchor Vec2) Rect {
 }
 
 // Anchors r2 to r1 based on two anchors, one for r and one for r2
-// TODO - rename to Anchor?
-func (r Rect) FullAnchor(r2 Rect, anchor, pivot Vec2) Rect {
+// Warning: Assumes r2 min point is 0, 0
+func (r Rect) FullAnchorOLD(r2 Rect, anchor, pivot Vec2) Rect {
 	anchorPoint := Vec2{r.Min.X + (anchor.X * r.W()), r.Min.Y + (anchor.Y * r.H())}
 	pivotPoint := Vec2{r2.Min.X + (pivot.X * r2.W()), r2.Min.Y + (pivot.Y * r2.H())}
 
 	a := Vec2{anchorPoint.X - pivotPoint.X, anchorPoint.Y - pivotPoint.Y}
 	return R(a.X, a.Y, a.X+r2.W(), a.Y+r2.H()).Norm()
+}
+
+// Anchors the minimum point of the rectangle to 0,0
+func (r Rect) AnchorZero() Rect {
+	r.Max = r.Max.Sub(r.Min)
+	r.Min = Vec2{}
+	return r
 }
 
 // Move the min point of the rect to a certain position
