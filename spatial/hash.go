@@ -8,32 +8,26 @@ import (
 )
 
 type arrayMap[T any] struct {
-	topRight [][]*T
-	topLeft  [][]*T
-	botRight [][]*T
-	botLeft  [][]*T
+	// (+x, +y) => 0
+	// (+x, -y) => 2
+	// (-x, +y) => 1
+	// (-x, -y) => 3
+	quad [][][]*T
 }
 
 func newArrayMap[T any](size int) *arrayMap[T] {
 	size = size / 2 // Note: We cut in half b/c we use 4 quadrants
 	m := &arrayMap[T]{
-		topRight: make([][]*T, size),
-		topLeft:  make([][]*T, size),
-		botRight: make([][]*T, size),
-		botLeft:  make([][]*T, size),
+		quad: make([][][]*T, size),
 	}
 
-	for i := range m.topRight {
-		m.topRight[i] = make([]*T, size)
-	}
-	for i := range m.topLeft {
-		m.topLeft[i] = make([]*T, size)
-	}
-	for i := range m.botRight {
-		m.botRight[i] = make([]*T, size)
-	}
-	for i := range m.botLeft {
-		m.botLeft[i] = make([]*T, size)
+	// Create 4 quadrants
+	for range 4 {
+		slice := make([][]*T, size)
+		for i := range slice {
+			slice[i] = make([]*T, size)
+		}
+		m.quad = append(m.quad, slice)
 	}
 
 	return m
@@ -61,20 +55,29 @@ func (m *arrayMap[T]) safePut(slice [][]*T, x, y int, t *T) [][]*T {
 	return slice
 }
 
-func (m *arrayMap[T]) Put(x, y int, t *T) {
-	if x >= 0 {
-		if y >= 0 {
-			m.topRight = m.safePut(m.topRight, x, y, t)
-		} else {
-			m.botRight = m.safePut(m.botRight, x, -y, t)
-		}
-	} else {
-		if y >= 0 {
-			m.topLeft = m.safePut(m.topLeft, -x, y, t)
-		} else {
-			m.botLeft = m.safePut(m.botLeft, -x, -y, t)
-		}
+// Returns the qudrant index, the X index, and the Y Index
+func (m *arrayMap[T]) getQuadIndexes(x, y int) (int, int, int) {
+	// Calculates the following Quadrants:
+	// (+x, +y) => 0
+	// (+x, -y) => 2
+	// (-x, +y) => 1
+	// (-x, -y) => 3
+
+	idx := 0
+	if x < 0 {
+		idx += 1
+		x = -x
 	}
+	if y < 0 {
+		idx += 2
+		y = -y
+	}
+	return idx, x, y
+}
+
+func (m *arrayMap[T]) Put(x, y int, t *T) {
+	idx, xIdx, yIdx := m.getQuadIndexes(x, y)
+	m.quad[idx] = m.safePut(m.quad[idx], xIdx, yIdx, t)
 }
 
 func (m *arrayMap[T]) safeGet(slice [][]*T, x, y int) (*T, bool) {
@@ -90,56 +93,20 @@ func (m *arrayMap[T]) safeGet(slice [][]*T, x, y int) (*T, bool) {
 }
 
 func (m *arrayMap[T]) Get(x, y int) (*T, bool) {
-	if x >= 0 {
-		if y >= 0 {
-			return m.safeGet(m.topRight, x, y)
-		} else {
-			return m.safeGet(m.botRight, x, -y)
-		}
-	} else {
-		if y >= 0 {
-			return m.safeGet(m.topLeft, -x, y)
-		} else {
-			return m.safeGet(m.botLeft, -x, -y)
-		}
-	}
+	idx, xIdx, yIdx := m.getQuadIndexes(x, y)
+	return m.safeGet(m.quad[idx], xIdx, yIdx)
 }
 
 func (m *arrayMap[T]) ForEachValue(lambda func(t *T)) {
-	for x := range m.topRight {
-		for y := range m.topRight[x] {
-			val := m.topRight[x][y]
-			if val == nil {
-				continue
+	for idx := range m.quad {
+		for x := range m.quad[idx] {
+			for y := range m.quad[idx][x] {
+				val := m.quad[idx][x][y]
+				if val == nil {
+					continue
+				}
+				lambda(val)
 			}
-			lambda(val)
-		}
-	}
-	for x := range m.topLeft {
-		for y := range m.topLeft[x] {
-			val := m.topLeft[x][y]
-			if val == nil {
-				continue
-			}
-			lambda(val)
-		}
-	}
-	for x := range m.botLeft {
-		for y := range m.botLeft[x] {
-			val := m.botLeft[x][y]
-			if val == nil {
-				continue
-			}
-			lambda(val)
-		}
-	}
-	for x := range m.botRight {
-		for y := range m.botRight[x] {
-			val := m.botRight[x][y]
-			if val == nil {
-				continue
-			}
-			lambda(val)
 		}
 	}
 }
@@ -286,6 +253,13 @@ func (h *Hashmap[T]) GetBucket(index Index) *Bucket[T] {
 func (h *Hashmap[T]) Add(shape Shape, val T) {
 	min := h.PositionToIndex(shape.Bounds.Min)
 	max := h.PositionToIndex(shape.Bounds.Max)
+
+	// Early case if it's only one bucket
+	if min == max {
+		bucket := h.GetBucket(min)
+		bucket.Add(shape, val)
+		return
+	}
 
 	for x := min.X; x <= max.X; x++ {
 		for y := min.Y; y <= max.Y; y++ {
