@@ -7,10 +7,10 @@ import (
 type erasable[T any] struct {
 	val T
 }
+
 func newErasable[T any](v T) erasable[T] {
 	return erasable[T]{v}
 }
-
 
 func (s erasable[T]) Erase() error {
 	return nil
@@ -65,7 +65,7 @@ func NewMapPool[K comparable, V any](defaultSize int) MapPool[K, V] {
 	}
 }
 
-func (p MapPool[K,V]) Put(m map[K]V) {
+func (p MapPool[K, V]) Put(m map[K]V) {
 	// Erase
 	for k := range m {
 		delete(m, k)
@@ -77,12 +77,12 @@ func (p MapPool[K,V]) Put(m map[K]V) {
 	}
 }
 
-func (p MapPool[K,V]) Get() map[K]V {
+func (p MapPool[K, V]) Get() map[K]V {
 	s := p.inner.Get()
 	return s.val
 }
 
-func (p MapPool[K,V]) Clone(og map[K]V) map[K]V {
+func (p MapPool[K, V]) Clone(og map[K]V) map[K]V {
 	m := p.Get()
 	for k, v := range og {
 		m[k] = v

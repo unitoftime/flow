@@ -5,12 +5,13 @@ import (
 )
 
 type arrayMapData[K comparable, V any] struct {
-	key K
+	key   K
 	value V
 }
+
 func newArrayMapData[K comparable, V any](k K, v V) arrayMapData[K, V] {
 	return arrayMapData[K, V]{
-		key: k,
+		key:   k,
 		value: v,
 	}
 }
@@ -76,12 +77,12 @@ func (m *ArrayMap[K, V]) Delete(key K) {
 }
 
 // Clear the entire slice
-func(m *ArrayMap[K, V]) Clear() {
+func (m *ArrayMap[K, V]) Clear() {
 	m.slice = m.slice[:0]
 }
 
 // Iterate through the entire slice
-func(m *ArrayMap[K, V]) All() iter.Seq2[K, V] {
+func (m *ArrayMap[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for _, d := range m.slice {
 			if !yield(d.key, d.value) {

@@ -11,12 +11,10 @@ func TestArrayMap(t *testing.T) {
 	check(t, ok)
 	compare(t, v, "100")
 
-
 	// Doesn't have 50
 	v, ok = m.Get(50)
 	check(t, !ok)
 	compare(t, v, "")
-
 
 	// Add and check 50 (inside current bounds)
 	m.Put(50, "50")
@@ -28,7 +26,6 @@ func TestArrayMap(t *testing.T) {
 	v, ok = m.Get(150)
 	check(t, !ok)
 	compare(t, v, "")
-
 
 	// Add and check 150 (outside current bounds)
 	m.Put(150, "150")
@@ -92,12 +89,10 @@ func TestIndexMap(t *testing.T) {
 	check(t, ok)
 	compare(t, v, "100")
 
-
 	// Doesn't have 50
 	v, ok = m.Get(50)
 	check(t, !ok)
 	compare(t, v, "")
-
 
 	// Add and check 50 (inside current bounds)
 	m.Put(50, "50")
@@ -109,7 +104,6 @@ func TestIndexMap(t *testing.T) {
 	v, ok = m.Get(150)
 	check(t, !ok)
 	compare(t, v, "")
-
 
 	// Add and check 150 (outside current bounds)
 	m.Put(150, "150")

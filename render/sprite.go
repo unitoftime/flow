@@ -10,11 +10,12 @@ type Transform struct {
 	transform.Transform
 	Height float64 // TODO: Remove
 }
+
 func TransformFromPos(pos glm.Vec2) Transform {
 	return Transform{
 		Transform: transform.Transform{
-			Pos: pos,
-			Rot: 0,
+			Pos:   pos,
+			Rot:   0,
 			Scale: glm.Vec2{1, 1},
 		},
 	}

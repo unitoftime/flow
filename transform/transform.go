@@ -21,7 +21,7 @@ func (p DefaultPlugin) Initialize(world *ecs.World) {
 	scheduler := ecs.GetResource[ecs.Scheduler](world)
 
 	// TODO: This should be added to a better stage
-	scheduler.AppendPhysics(ResolveHeirarchySystem(world))
+	scheduler.AddSystems(ecs.StageFixedUpdate, ResolveHeirarchySystem(world))
 }
 
 type Transform3D struct {
