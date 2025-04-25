@@ -4,6 +4,8 @@ go 1.23.0
 
 toolchain go1.24.1
 
+tool github.com/unitoftime/cod/cmd/cod
+
 require (
 	github.com/go-gl/mathgl v1.2.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0

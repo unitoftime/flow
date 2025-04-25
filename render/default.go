@@ -8,8 +8,6 @@ import (
 	"github.com/unitoftime/glitch"
 )
 
-//go:generate go run ../../cod/cmd/cod
-
 type DefaultPlugin struct {
 }
 

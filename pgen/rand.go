@@ -43,7 +43,9 @@ func SeededList[T any](rng *rand.Rand, list []T) T {
 
 // Rolls the provided chance out of 100
 func Percent(chance int) bool {
-	if chance <= 0 { return false }
+	if chance <= 0 {
+		return false
+	}
 	return rand.Intn(100) < chance
 }
 

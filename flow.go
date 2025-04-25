@@ -1,3 +1,3 @@
 package flow
 
-//go:generate go run ../cod/cmd/cod
+//go:generate go tool cod -skip=.git,.github

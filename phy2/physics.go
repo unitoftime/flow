@@ -46,7 +46,6 @@ import (
 // 	return math.Atan2(v.Y, v.X)
 // }
 
-//cod:struct
 type Vel glm.Vec2
 
 var velComp = ecs.Comp(Vel{})

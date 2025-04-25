@@ -8,8 +8,6 @@ import (
 	"github.com/unitoftime/flow/glm"
 )
 
-//go:generate go run ../../cod/cmd/cod
-
 // Todo List
 // 1. Migrate to 3D transforms
 // 2. Revisit optimizations for heirarchy resolutions
