@@ -13,7 +13,7 @@ type castable interface {
 }
 
 type Range[T castable] struct {
-	Min, Max T
+	Min, Max T // Min inclusive, Max exclusive
 }
 
 func (r Range[T]) Get() T {
@@ -25,6 +25,25 @@ func (r Range[T]) SeededGet(rng *rand.Rand) T {
 	width := float64(r.Max) - float64(r.Min)
 	return T((rng.Float64() * width) + float64(r.Min))
 }
+
+func (r Range[T]) RollMultipleUnique(rng *rand.Rand, n int) []T {
+	if n == 0 { return []T{} }
+
+	list := make([]T, 0, n)
+	for range 50 {
+		item := r.SeededGet(rng)
+		if slices.Contains(list, item) {
+			continue // Skip: We already have this modifier
+		}
+
+		list = append(list, item)
+		if len(list) >= n {
+			break // Exit, we have finished the list
+		}
+	}
+	return list
+}
+
 
 // Pick a random item out of a list
 func GetList[T any](list []T) (T, bool) {
