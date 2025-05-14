@@ -128,6 +128,14 @@ func NewTable[T any](items ...Item[T]) *Table[T] {
 
 	return t
 }
+func NewUniformTable[T any](items ...T) *Table[T] {
+	weightedItems := make([]Item[T], len(items))
+	for i := range items {
+		weightedItems[i] = NewItem(1, items[i])
+	}
+	return NewTable(weightedItems...)
+}
+
 
 func (t *Table[T]) regenerate() {
 	total := 0
