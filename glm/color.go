@@ -25,6 +25,15 @@ func FromUint8(r, g, b, a uint8) RGBA {
 	}
 }
 
+func (c RGBA) ToUint8() color.NRGBA {
+	return color.NRGBA{
+		R: uint8(math.Round(c.R * float64(math.MaxUint8))),
+		G: uint8(math.Round(c.G * float64(math.MaxUint8))),
+		B: uint8(math.Round(c.B * float64(math.MaxUint8))),
+		A: uint8(math.Round(c.A * float64(math.MaxUint8))),
+	}
+}
+
 func HexColor(col uint64, alpha uint8) RGBA {
 	return FromNRGBA(color.NRGBA{
 		R: uint8((col >> 16) & 0xff),

@@ -125,6 +125,18 @@ func (t Transform) Globalize(parent Global) Global {
 	return Global{childGlobal}
 }
 
+// Returns the transform, but with the vector space moved to the parent transform
+func (parent Transform) Localize(childGlobal Global) Local {
+	// try 2 - manually calculate
+	parentMat := parent.Mat4()
+	dstPos := parentMat.Inv().Apply(childGlobal.Pos.Vec3())
+	childGlobal.Pos = dstPos.Vec2()
+	childGlobal.Rot = childGlobal.Rot - parent.Rot
+	childGlobal.Scale = childGlobal.Scale.Div(parent.Scale)
+
+	return Local{childGlobal.Transform}
+}
+
 //cod:component
 type Global struct {
 	Transform

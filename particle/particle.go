@@ -217,10 +217,13 @@ func (p ConstFloat64Positioner) Float64(count int, v float64) float64 {
 }
 
 type RandomFloat64Positioner struct {
+	Min, Max float64
 }
 
 func (p RandomFloat64Positioner) Float64(count int, v float64) float64 {
-	return v + (2 * math.Pi * rand.Float64())
+	w := p.Max - p.Min
+	return v + p.Min + (w * rand.Float64())
+	// return v + (2 * math.Pi * rand.Float64())
 }
 
 type Vec2Positioner interface {

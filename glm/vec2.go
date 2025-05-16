@@ -64,6 +64,9 @@ func (v Vec2) ScaledXY(s Vec2) Vec2 {
 func (v Vec2) Mult(s Vec2) Vec2 {
 	return Vec2{v.X * s.X, v.Y * s.Y}
 }
+func (v Vec2) Div(s Vec2) Vec2 {
+	return Vec2{v.X / s.X, v.Y / s.Y}
+}
 
 func (v Vec2) Rotated(radians float64) Vec2 {
 	sin := math.Sin(radians)
