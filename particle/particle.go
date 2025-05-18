@@ -1,18 +1,15 @@
 package particle
 
 import (
-	"image/color"
 	"math"
 	"math/rand"
 	"time"
 
-	// "github.com/ungerik/go3d/float64/vec2"
-
 	"github.com/unitoftime/ecs"
 
-	// "github.com/unitoftime/flow/timer"
 	"github.com/unitoftime/flow/glm"
 	"github.com/unitoftime/flow/interp"
+	"github.com/unitoftime/flow/pgen"
 )
 
 // + Position
@@ -68,42 +65,196 @@ func (l *Lifetime) Ratio() float64 {
 	return 1 - Clamp(0, 1.0, l.Remaining.Seconds()/l.Total.Seconds())
 }
 
+//cod:component
 type Color struct {
 	Interp     interp.Interp
-	Start, End color.NRGBA
+	Start, End glm.RGBA
 }
 
-func NewColor(interpolation interp.Interp, start, end color.NRGBA) Color {
-	return Color{
-		Interp: interpolation,
-		Start:  start,
-		End:    end,
-	}
-}
-
-func (c *Color) Get(ratio float64) color.NRGBA {
+func (c *Color) Get(ratio float64) glm.RGBA {
 	ratio = Clamp(0, 1.0, ratio)
-	color := color.NRGBA{
-		uint8(c.Interp.Uint8(c.Start.R, c.End.R, ratio)),
-		uint8(c.Interp.Uint8(c.Start.G, c.End.G, ratio)),
-		uint8(c.Interp.Uint8(c.Start.B, c.End.B, ratio)),
-		uint8(c.Interp.Uint8(c.Start.A, c.End.A, ratio)),
+	color := glm.RGBA{
+		c.Interp.Float64(c.Start.R, c.End.R, ratio),
+		c.Interp.Float64(c.Start.G, c.End.G, ratio),
+		c.Interp.Float64(c.Start.B, c.End.B, ratio),
+		c.Interp.Float64(c.Start.A, c.End.A, ratio),
 	}
 	return color
 }
 
+type Float64Getter interface {
+	Get() float64
+}
+type Vec2Getter interface {
+	Get() glm.Vec2
+}
+
+type StaticVec2 struct {
+	Vec glm.Vec2
+}
+func (r StaticVec2) Get() glm.Vec2 {
+	return r.Vec
+}
+
+type RandomSquareVec2 struct {
+	Min, Max float64
+}
+func (r RandomSquareVec2) Get() glm.Vec2 {
+	rng := pgen.Range[float64]{r.Min, r.Max}
+	v := rng.Get()
+	return glm.Vec2{v, v}
+}
+
+type RandomVec2 struct {
+	RangeX pgen.Range[float64]
+	RangeY pgen.Range[float64]
+}
+func (r RandomVec2) Get() glm.Vec2 {
+	return glm.Vec2{r.RangeX.Get(), r.RangeY.Get()}
+}
+
+type SizeBuilder interface {
+	Get() Size
+}
+
+type StartEndSize struct {
+	Interp interp.Interp
+	Start Vec2Getter
+	End Vec2Getter
+}
+
+func (s StartEndSize) Get() Size {
+	return Size{
+		Interp: s.Interp,
+		Start: s.Start.Get(),
+		End: s.End.Get(),
+	}
+}
+
+
+type StartOffsetSize struct {
+	Interp interp.Interp
+	Start Vec2Getter
+	Offset Vec2Getter
+}
+
+func (s StartOffsetSize) Get() Size {
+	start := s.Start.Get()
+	offset := s.Offset.Get()
+	return Size{
+		Interp: s.Interp,
+		Start: start,
+		End: start.Add(offset),
+	}
+}
+
+type RGBAGetter interface {
+	Get() glm.RGBA
+}
+
+type StaticColor struct {
+	Col glm.RGBA
+}
+func (r StaticColor) Get() glm.RGBA {
+	return r.Col
+}
+
+type RandomVariableColor struct {
+	Col glm.RGBA
+	Mult glm.RGBA
+}
+func (r RandomVariableColor) Get() glm.RGBA {
+
+	multCol := glm.RGBA{
+		R: (pgen.CenteredFloat64(r.Mult.R)),
+		G: (pgen.CenteredFloat64(r.Mult.G)),
+		B: (pgen.CenteredFloat64(r.Mult.B)),
+		A: 1.0,
+	}
+
+	col := r.Col.Add(multCol)
+	return col
+
+	// alpha := 1 + pgen.CenteredFloat64(r.Mult.A)
+	// multCol := glm.RGBA{
+	// 	R: (1 + pgen.CenteredFloat64(r.Mult.R)) * alpha,
+	// 	G: (1 + pgen.CenteredFloat64(r.Mult.G)) * alpha,
+	// 	B: (1 + pgen.CenteredFloat64(r.Mult.B)) * alpha,
+	// 	A: alpha,
+	// }
+
+	// col := r.Col.Mult(multCol)
+	// return col
+}
+
+type RandomValueColor struct {
+	Col glm.RGBA
+	ValueRadius float64
+}
+func (r RandomValueColor) Get() glm.RGBA {
+	valueRadius := pgen.CenteredFloat64(r.ValueRadius)
+	greyscale := glm.Greyscale(1 + valueRadius)
+
+	col := r.Col.Mult(greyscale).Clamp()
+	return col
+}
+
+
+type ColorBuilder interface {
+	Get() Color
+}
+
+type StartOffsetColor struct {
+	Interp interp.Interp
+	Start RGBAGetter
+	Offset RGBAGetter
+}
+
+func (s StartOffsetColor) Get() Color {
+	start := s.Start.Get()
+	offset := s.Offset.Get()
+	end := glm.RGBA{
+		R: start.R + offset.R,
+		G: start.G + offset.G,
+		B: start.B + offset.B,
+		A: start.A + offset.A,
+	}
+	return Color{
+		Interp: s.Interp,
+		Start: start,
+		End: end,
+	}
+}
+
+type StartEndColor struct {
+	Interp interp.Interp
+	Start RGBAGetter
+	End RGBAGetter
+}
+
+func (s StartEndColor) Get() Color {
+	start := s.Start.Get()
+	end := s.End.Get()
+	return Color{
+		Interp: s.Interp,
+		Start: start,
+		End: end,
+	}
+}
+
+//cod:component
 type Size struct {
 	Interp     interp.Interp
 	Start, End glm.Vec2
 }
 
-func NewSize(interpolation interp.Interp, start, end glm.Vec2) Size {
-	return Size{
-		Interp: interpolation,
-		Start:  start,
-		End:    end,
-	}
-}
+// func NewSize(interpolation interp.Interp, start, end glm.Vec2) Size {
+// 	return Size{
+// 		Interp: interpolation,
+// 		Start:  start,
+// 		End:    end,
+// 	}
+// }
 
 func (s *Size) Get(ratio float64) glm.Vec2 {
 	ratio = Clamp(0, 1.0, ratio)
@@ -113,15 +264,6 @@ func (s *Size) Get(ratio float64) glm.Vec2 {
 	}
 
 	return size
-}
-
-var sizeComp = ecs.Comp(Size{})
-
-func (c Size) CompId() ecs.CompId {
-	return sizeComp.CompId()
-}
-func (c Size) CompWrite(w ecs.W) {
-	sizeComp.WriteVal(w, c)
 }
 
 // --------------------------------------------------------------------------------------------------

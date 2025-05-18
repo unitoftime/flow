@@ -25,7 +25,7 @@ func DynamicValue(val float64, fixedTime, dt time.Duration) float64 {
 	return interpVal
 }
 
-var Linear *Lerp = &Lerp{}
+var Linear Lerp = Lerp{}
 
 var EaseOut Bezier = Bezier{
 	bezier2.T{

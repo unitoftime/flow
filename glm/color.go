@@ -8,6 +8,7 @@ import (
 var (
 	White = RGBA{1, 1, 1, 1}
 	Black = RGBA{0, 0, 0, 1}
+	Transparent = RGBA{0, 0, 0, 0}
 )
 
 // Premultipled RGBA value scaled from [0, 1.0]
@@ -95,6 +96,15 @@ func (c1 RGBA) Add(c2 RGBA) RGBA {
 		c1.G + c2.G,
 		c1.B + c2.B,
 		c1.A + c2.A,
+	}
+}
+
+func (c RGBA) Clamp() RGBA {
+	return RGBA{
+		R: Clamp(0, 1, c.R),
+		G: Clamp(0, 1, c.G),
+		B: Clamp(0, 1, c.B),
+		A: Clamp(0, 1, c.A),
 	}
 }
 

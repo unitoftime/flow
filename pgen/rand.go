@@ -8,6 +8,15 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+// Returns a random float with provided radius, centered at 0
+func CenteredFloat64(radius float64) float64 {
+	if radius == 0 {
+		return 0
+	}
+	rngVal := 2 * (rand.Float64() - 0.5)
+	return rngVal * radius
+}
+
 type castable interface {
 	constraints.Integer | constraints.Float
 }
