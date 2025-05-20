@@ -108,6 +108,10 @@ func (c RGBA) Clamp() RGBA {
 	}
 }
 
+func (c1 RGBA) Avg(c2 RGBA) RGBA {
+	return c1.Add(c2).Mult(RGBA{0.5, 0.5, 0.5, 0.5})
+}
+
 func (c RGBA) Desaturate(val float64) RGBA {
 	// https://stackoverflow.com/questions/70966873/algorithm-to-desaturate-rgb-color
 	i := (c.R + c.G + c.B) / 3

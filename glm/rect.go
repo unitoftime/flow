@@ -97,6 +97,15 @@ func (r Rect) FitScale(r2 Rect) float64 {
 	return min
 }
 
+// Calculates the scale required to fill rect r inside r2
+func (r Rect) FillScale(r2 Rect) float64 {
+	scaleX := r2.W() / r.W()
+	scaleY := r2.H() / r.H()
+
+	min := max(scaleX, scaleY)
+	return min
+}
+
 // Fits rect 'r' into another rect 'r2' with same center but only integer scaled
 func (r Rect) FitInt(r2 Rect) Rect {
 	scale := math.Floor(r.FitScale(r2))
