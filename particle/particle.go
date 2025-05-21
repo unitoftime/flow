@@ -412,7 +412,7 @@ type CirclePositioner struct {
 	Scale glm.Vec2 // X is min, Y is max
 }
 
-func (p *CirclePositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
+func (p CirclePositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	theta := 2 * math.Pi * rand.Float64()
 
 	w := p.Scale.Y - p.Scale.X
@@ -459,7 +459,7 @@ type RingPositioner struct {
 	RadiusRange glm.Vec2
 }
 
-func (p *RingPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
+func (p RingPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	angle := interp.Linear.Float64(p.AngleRange.X, p.AngleRange.Y, rand.Float64())
 	radius := interp.Linear.Float64(p.RadiusRange.X, p.RadiusRange.Y, rand.Float64())
 
