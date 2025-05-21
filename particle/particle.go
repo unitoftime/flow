@@ -388,7 +388,7 @@ type GeometricPositioner struct {
 	DistanceRem    int
 }
 
-func (p *GeometricPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
+func (p GeometricPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	theta := 2 * math.Pi * float64(count) * p.Offset
 
 	// w := p.Scale.Y - p.Scale.X
