@@ -39,6 +39,12 @@ func (h *Handle[T]) Gen() int {
 	return int(h.generation.Load())
 }
 
+func (h *Handle[T]) SetErr(err error) {
+	h.err = err
+	h.done.Store(true)
+	h.generation.Add(1)
+}
+
 func (h *Handle[T]) Set(val *T) {
 	h.err = nil
 	h.ptr.Store(val)
@@ -332,7 +338,6 @@ func LoadDir[T any](server *Server, fpath string, recursive bool) []*Handle[T] {
 			}
 
 			dirPath := path.Join(fsys.prefix, fpath, e.Name())
-			fmt.Println("Directory:", dirPath)
 			dirHandles := LoadDir[T](server, dirPath, recursive)
 			ret = append(ret, dirHandles...)
 			continue
@@ -343,23 +348,6 @@ func LoadDir[T any](server *Server, fpath string, recursive bool) []*Handle[T] {
 	}
 
 	return ret
-
-	// fpath = filepath.Clean(fpath)
-
-	// dirEntries, err := fs.ReadDir(server.filesystem, fpath)
-	// if err != nil {
-	// 	return nil // TODO!!! : You're just snuffing an error here, which obviously isn't good
-	// }
-
-	// ret := make([]*Handle[T], 0, len(dirEntries))
-	// for _, e := range dirEntries {
-	// 	if e.IsDir() { continue } // TODO: Recursive?
-
-	// 	handle := Load[T](server, filepath.Join(fpath, e.Name()))
-	// 	ret = append(ret, handle)
-	// }
-
-	// return ret
 }
 
 // Gets the handle, returns true if the handle has already started loading
@@ -391,11 +379,15 @@ func Load[T any](server *Server, name string) *Handle[T] {
 
 	anyLoader, ok := server.extToLoader[ext]
 	if !ok {
-		panic(fmt.Sprintf("could not find loader for extension: %s (%s)", ext, name))
+		handle.SetErr(fmt.Errorf("could not find loader for extension: %s (%s)", ext, name))
+		close(handle.doneChan)
+		return handle
 	}
 	loader, ok := anyLoader.(Loader[T])
 	if !ok {
-		panic(fmt.Sprintf("wrong type for registered loader on extension: %s", ext))
+		handle.SetErr(fmt.Errorf("wrong type for registered loader on extension: %s", ext))
+		close(handle.doneChan)
+		return handle
 	}
 
 	go func() {
