@@ -408,6 +408,17 @@ func (p GeometricPositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
 	return glm.Vec2{x, y}.Add(A)
 }
 
+type SinePositioner struct {
+	Scale          glm.Vec2 // X is min, Y is max
+	Freq float64
+}
+
+func (p SinePositioner) Vec2(count int, A glm.Vec2) glm.Vec2 {
+	x := p.Scale.X * math.Cos(p.Freq * float64(count))
+	y := p.Scale.Y * math.Sin(p.Freq * float64(count))
+	return glm.Vec2{x, y}
+}
+
 type CirclePositioner struct {
 	Scale glm.Vec2 // X is min, Y is max
 }

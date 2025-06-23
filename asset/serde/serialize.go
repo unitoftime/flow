@@ -8,6 +8,11 @@ import (
 	"github.com/unitoftime/gotiny"
 )
 
+func init() {
+	Register(string(""))
+	Register(int32(0))
+}
+
 func Register[T any](value T) {
 	// gob.Register(value)
 	gotiny.Register(value)
