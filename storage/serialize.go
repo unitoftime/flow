@@ -47,7 +47,7 @@ func deserializeWithDefault[T any](dat []byte, def T) (*T, error) {
 	maps.Copy(defaultMap, decodedMap)
 
 	var ret T
-	err = mapstructure.Decode(decodedMap, &ret)
+	err = mapstructure.Decode(defaultMap, &ret)
 	if err != nil {
 		return nil, err
 	}
