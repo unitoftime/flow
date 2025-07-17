@@ -1,6 +1,7 @@
 package pgen
 
 import (
+	"math"
 	"math/rand"
 	"slices"
 
@@ -105,6 +106,31 @@ func RandomPositionInRect(r glm.Rect) glm.Vec2 {
 	randX := Range[float64]{r.Min.X, r.Max.X}.Get()
 	randY := Range[float64]{r.Min.Y, r.Max.Y}.Get()
 	return glm.Vec2{randX, randY}
+}
+
+func SeededRandomPositionInRect(rng *rand.Rand, r glm.Rect) glm.Vec2 {
+	randX := Range[float64]{r.Min.X, r.Max.X}.SeededGet(rng)
+	randY := Range[float64]{r.Min.Y, r.Max.Y}.SeededGet(rng)
+	return glm.Vec2{randX, randY}
+}
+
+func SeededRandomCircle(rng *rand.Rand, radius float64) glm.Vec2 {
+	randomDistance := rng.Float64() * radius
+	randomAngle := 2 * math.Pi * rng.Float64()
+	return glm.Vec2{
+		X: math.Round(randomDistance * math.Cos(randomAngle)),
+		Y: math.Round(randomDistance * math.Sin(randomAngle)),
+	}
+}
+
+func SeededRandomRing(rng *rand.Rand, radius float64, ringRadius float64) glm.Vec2 {
+	rngRingRadius := Range[float64]{-ringRadius, ringRadius}.SeededGet(rng)
+	randomDistance := radius + rngRingRadius
+	randomAngle := 2 * math.Pi * rng.Float64()
+	return glm.Vec2{
+		X: math.Round(randomDistance * math.Cos(randomAngle)),
+		Y: math.Round(randomDistance * math.Sin(randomAngle)),
+	}
 }
 
 //--------------------------------------------------------------------------------
