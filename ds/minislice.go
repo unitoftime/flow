@@ -56,6 +56,12 @@ func (s *MiniSlice[A, T]) Append(val T) {
 	s.nextArrayIdx++
 }
 
+// Returns true if the slice has the requested value
+func (s *MiniSlice[A, T]) Contains(searchVal T) bool {
+	// Logic: If we return a positive value, then we must have found it
+	return (s.Find(searchVal) >= 0)
+}
+
 // Find and return the index of the first element, else return -1
 func (s *MiniSlice[A, T]) Find(searchVal T) int {
 	for i, val := range s.All() {
