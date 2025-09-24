@@ -1,6 +1,7 @@
 package spatial
 
 import (
+	"iter"
 	"slices"
 
 	"github.com/unitoftime/flow/glm"
@@ -59,6 +60,10 @@ func (b *PointBucket[T]) RemoveCollides(bounds glm.Rect) {
 	}
 }
 
+func (b *PointBucket[T]) Length() int {
+	return len(b.List)
+}
+
 func (b *PointBucket[T]) Clear() {
 	b.List = b.List[:0]
 }
@@ -82,6 +87,22 @@ func NewPointmap[T comparable](chunksize [2]int, startingSize int) *Pointmap[T] 
 func (h *Pointmap[T]) Clear() {
 	for i := range h.allBuckets {
 		h.allBuckets[i].Clear()
+	}
+}
+
+// Iterates through all buckets inside the rectangle
+func (h *Pointmap[T]) AllIndexesInside(rect glm.Rect) iter.Seq[Index] {
+	min := h.PositionToIndex(rect.Min)
+	max := h.PositionToIndex(rect.Max)
+
+	return func(yield func(Index) bool) {
+		for x := min.X; x <= max.X; x++ {
+			for y := min.Y; y <= max.Y; y++ {
+				if !yield(Index{x, y}) {
+					return
+				}
+			}
+		}
 	}
 }
 

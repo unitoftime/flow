@@ -156,3 +156,11 @@ func TestIntersectRect(t *testing.T) {
 		}
 	}
 }
+
+func TestIntersectPositionToIndex(t *testing.T) {
+	h := NewPositionHasher([2]int{16, 16})
+	idx := h.PositionToIndex(glm.Vec2{-1, -1})
+	r := h.IndexToRect(idx)
+	fmt.Println("idx:", idx)
+	fmt.Println("rect:", r)
+}

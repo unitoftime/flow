@@ -216,6 +216,16 @@ func (h *PositionHasher) PositionToIndex(pos glm.Vec2) Index {
 	return Index{xPos, yPos}
 }
 
+func (h *PositionHasher) IndexToRect(index Index) glm.Rect {
+	xPos := index.X << h.div[0]
+	yPos := index.Y << h.div[1]
+
+	return glm.Rect{
+		Min: glm.Vec2{float64(xPos), float64(yPos)},
+		Max: glm.Vec2{float64(xPos + h.size[0]), float64(yPos + h.size[1])},
+	}
+}
+
 // --------------------------------------------------------------------------------
 // TODO: rename? ColliderMap?
 type Hashmap[T comparable] struct {
