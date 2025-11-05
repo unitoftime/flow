@@ -146,6 +146,18 @@ func RandomAngle(radius float64) glm.Vec2 {
 	}
 }
 
+func SeededRandomAngle(rng *rand.Rand, radius float64) glm.Vec2 {
+	angle := Range[float64]{
+		Min: 0,
+		Max: 2 * math.Pi,
+	}.SeededGet(rng)
+
+	return glm.Vec2{
+		X: radius * math.Cos(angle),
+		Y: radius * math.Sin(angle),
+	}
+}
+
 //--------------------------------------------------------------------------------
 // - Tables
 //--------------------------------------------------------------------------------
