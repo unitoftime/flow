@@ -133,6 +133,15 @@ func SeededRandomRing(rng *rand.Rand, radius float64, ringRadius float64) glm.Ve
 	}
 }
 
+func RandomRing(minRadius float64, maxRadius float64) glm.Vec2 {
+	randomDistance := Range[float64]{minRadius, maxRadius}.Get()
+	randomAngle := 2 * math.Pi * rand.Float64()
+	return glm.Vec2{
+		X: math.Round(randomDistance * math.Cos(randomAngle)),
+		Y: math.Round(randomDistance * math.Sin(randomAngle)),
+	}
+}
+
 // Returns a random angle vector with provided radius
 func RandomAngle(radius float64) glm.Vec2 {
 	angle := Range[float64]{
