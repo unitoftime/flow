@@ -225,22 +225,24 @@ func (i Bezier) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
 	return Linear.Vec2(a, b, iValue[1])
 }
 
-type Sine struct{}
+type Sine struct{
+	Freq float64
+}
 
 func (i Sine) Float64(a, b float64, t float64) float64 {
-	iValue := math.Sin(t * math.Pi)
+	iValue := math.Sin(t * i.Freq * 2 * math.Pi)
 	return Linear.Float64(a, b, iValue)
 }
 func (i Sine) Float32(a, b float32, t float64) float32 {
-	iValue := math.Sin(t * math.Pi)
+	iValue := math.Sin(t * i.Freq * 2 * math.Pi)
 	return Linear.Float32(a, b, iValue)
 }
 func (i Sine) Uint8(a, b uint8, t float64) uint8 {
-	iValue := math.Sin(t * math.Pi)
+	iValue := math.Sin(t * i.Freq * 2 * math.Pi)
 	return Linear.Uint8(a, b, iValue)
 }
 func (i Sine) Vec2(a, b glm.Vec2, t float64) glm.Vec2 {
-	iValue := math.Sin(t * math.Pi)
+	iValue := math.Sin(t * i.Freq * 2 * math.Pi)
 	return Linear.Vec2(a, b, iValue)
 }
 

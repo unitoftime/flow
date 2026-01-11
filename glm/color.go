@@ -35,8 +35,9 @@ func (c RGBA) ToUint8() color.NRGBA {
 	}
 }
 
+// Converts a non premultiplied hex uint64 and alpha into premultiplied
 func HexColor(col uint64, alpha uint8) RGBA {
-	return FromNRGBA(color.NRGBA{
+	return FromColor(color.RGBA{
 		R: uint8((col >> 16) & 0xff),
 		G: uint8((col >> 8) & 0xff),
 		B: uint8(col & 0xff),
@@ -68,7 +69,7 @@ func FromNRGBA(c color.NRGBA) RGBA {
 }
 
 func FromRGBA(c color.RGBA) RGBA {
-	return FromUint8(c.R, c.G, c.B, c.A)
+	return FromColor(c)
 }
 
 func FromColor(c color.Color) RGBA {
