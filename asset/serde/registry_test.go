@@ -356,7 +356,7 @@ func TestGotiny(t *testing.T) {
 	gotiny.Register(MyData2{})
 	gotiny.Register(MyData3{})
 	gotiny.Register(int(0))
-	gotiny.Register("")
+	// gotiny.Register("")
 	// Register([]inter{})
 
 	myData := MyData{
