@@ -187,6 +187,13 @@ func (b Box) Rect() Rect {
 	}
 }
 
+func (b Box) Moved(v Vec3) Box {
+	return Box{
+		Min: b.Min.Add(v),
+		Max: b.Max.Add(v),
+	}
+}
+
 func (a Box) Union(b Box) Box {
 	x1, _ := minMax(a.Min.X, b.Min.X)
 	_, x2 := minMax(a.Max.X, b.Max.X)
