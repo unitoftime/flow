@@ -635,11 +635,11 @@ func (l *GridLayout) IterateGravity() bool {
 			}
 
 			origCenter := p.Rect.Center()
-			// pos := parent.Rect.Center()
 			p.Rect = l.MoveTowards(p.Rect, origCenter, 1)
 			l.place[child] = p
-			// if HasRectIntersections(l.place, child) || AnyEdgesIntersect(l.dag, l.place) {
+
 			if HasRectIntersections(l.place, child) || !l.AllEdgesAxisAligned(l.tolerance) {
+				// If constraints are violated, then change it back
 				p.Rect = p.Rect.WithCenter(origCenter)
 				l.place[child] = p
 			} else {
@@ -676,14 +676,14 @@ func (l *GridLayout) AllEdgesAxisAligned(tolerance int) bool {
 func AxisAligned(tol int, a, b tile.Rect) bool {
 	// align from center, adjusted for room width
 	minXRadius := math.Min(float64(a.W())/2, float64(b.W())/2)
-	tolX := int(minXRadius) - tol
+	tolX := max(0, int(minXRadius) - tol)
 	xOverlap := int(math.Abs(float64(a.Center().X - b.Center().X)))
 	if xOverlap < tolX {
 		return true
 	}
 
 	minYRadius := math.Min(float64(a.H())/2, float64(b.H())/2)
-	tolY := int(minYRadius) - tol
+	tolY := max(0, int(minYRadius) - tol)
 	yOverlap := int(math.Abs(float64(a.Center().Y - b.Center().Y)))
 	if yOverlap < tolY {
 		return true
