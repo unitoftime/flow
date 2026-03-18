@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/unitoftime/flow/glm"
+	"github.com/unitoftime/flow/tile"
 	"golang.org/x/exp/constraints"
 )
 
@@ -101,6 +102,12 @@ func Percent(chance int) bool {
 // 	}
 // 	return T(rand.Intn(int(delta))) + r.Min
 // }
+
+func RandomPositionInTileRect(r tile.Rect) tile.Position {
+	randX := Range[int]{r.Min.X, r.Max.X}.Get()
+	randY := Range[int]{r.Min.Y, r.Max.Y}.Get()
+	return tile.Position{randX, randY}
+}
 
 func RandomPositionInRect(r glm.Rect) glm.Vec2 {
 	randX := Range[float64]{r.Min.X, r.Max.X}.Get()
