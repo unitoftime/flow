@@ -175,6 +175,30 @@ func (h *Pointmap[T]) NarrowCheck(list []T, bounds glm.Rect) []T {
 	return list
 }
 
+func (h *Pointmap[T]) CircleCheck(list []T, pos glm.Vec2, radius float64) []T {
+	bounds := glm.CR(radius).WithCenter(pos)
+	min := h.PositionToIndex(bounds.Min)
+	max := h.PositionToIndex(bounds.Max)
+
+	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok {
+				continue
+			}
+
+			for i := range bucket.List {
+				if pos.Dist(bucket.List[i].point) <= radius {
+					list = append(list, bucket.List[i].item)
+				}
+			}
+		}
+	}
+
+	return list
+}
+
 // TODO: This only does a broadphase check. no narrow phase
 // Returns true if the bounds collides with anything
 func (h *Pointmap[T]) Collides(bounds glm.Rect) bool {
@@ -190,6 +214,30 @@ func (h *Pointmap[T]) Collides(bounds glm.Rect) bool {
 			}
 			if len(bucket.List) > 0 {
 				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (h *Pointmap[T]) CircleCollides(pos glm.Vec2, radius float64) bool {
+	bounds := glm.CR(radius).WithCenter(pos)
+	min := h.PositionToIndex(bounds.Min)
+	max := h.PositionToIndex(bounds.Max)
+
+	// TODO: Might be nice if this spirals from inside to outside, that way its roughly sorted by distance?
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			bucket, ok := h.Bucket.Get(x, y)
+			if !ok {
+				continue
+			}
+
+			for i := range bucket.List {
+				if pos.Dist(bucket.List[i].point) <= radius {
+					return true
+				}
 			}
 		}
 	}
