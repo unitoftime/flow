@@ -3,6 +3,7 @@ package tile
 import (
 	// "fmt"
 
+	"fmt"
 	"iter"
 
 	"github.com/unitoftime/flow/glm"
@@ -180,7 +181,7 @@ func (c *Chunkmap[T]) AddTile(pos TilePosition, tile T) {
 		c.GenerateChunk(chunkPos, nil)
 		success := c.SetTile(pos, tile)
 		if !success {
-			panic("programmer error")
+			panic(fmt.Sprintf("programmer error: Pos: %v ChunkPos: %v", pos, chunkPos))
 		}
 	}
 }
@@ -198,7 +199,7 @@ func (c *Chunkmap[T]) SetTile(pos TilePosition, tile T) bool {
 	// fmt.Println("chunk.Get:", chunkPos, pos, localTilePos)
 	ok = chunk.Set(localTilePos, tile)
 	if !ok {
-		panic("Programmer error")
+		panic(fmt.Sprintf("programmer error: Pos: %v TileOffset: %v LocalTilePos: %v, ChunkPos: %v", pos, tileOffset, localTilePos, chunkPos))
 	}
 	return true
 }
