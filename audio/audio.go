@@ -131,6 +131,37 @@ func (c *Channel) Play(src *Source) {
 	}()
 }
 
+// Play the source with the requested volume
+// Volume: 0 == Mute
+// Volume: 1 == Normal Volume
+func (c *Channel) Play2(src *Source, volume float64) {
+	if c == nil {
+		return
+	}
+	if src == nil {
+		return
+	}
+
+	if volume <= 0 {
+		return
+	}
+
+	// TODO: You need to pass these via a channel/queue to execute on some other thread. The speaker locks for miliseconds at a time
+	go func() {
+		streamer, err := src.Streamer()
+		if err != nil {
+			return
+		} // TODO: Snuffed error message
+		volStreamer := effects.Volume{
+			Streamer: streamer,
+			Base: 10,
+			Volume: volume - 1,
+			Silent: false,
+		}
+		c.add(&volStreamer)
+	}()
+}
+
 // func (c *Channel) Paused() bool {
 // 	if c == nil { return false }
 // 	return c.ctrl.Paused
