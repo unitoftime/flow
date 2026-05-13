@@ -25,6 +25,14 @@ func (v Vec3) Theta() float64 {
 	return math.Atan2(v.Y, v.X)
 }
 
+func (v Vec3) Norm() Vec3 {
+	len := v.Len()
+	if len == 0 {
+		return Vec3{}
+	}
+	return Vec3{v.X/len, v.Y/len, v.Z/len}
+}
+
 // Rotates the vector by theta on the XY 2d plane
 func (v Vec3) Rotate2D(theta float64) Vec3 {
 	t := theta

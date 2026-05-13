@@ -242,6 +242,38 @@ func (s StartEndColor) Get() Color {
 	}
 }
 
+type RandomHueColor struct {
+	Col       glm.RGBA
+	HueRadius float64 // Maximum amount to shift the hue
+}
+
+func (r RandomHueColor) Get() glm.RGBA {
+	hueShift := pgen.CenteredFloat64(r.HueRadius)
+
+	// Convert base color to HSV to isolate the hue channel
+	hsv := glm.RGBAToHSV(r.Col)
+
+	// Apply the shift
+	hsv.H += hueShift
+
+	// Wrap the hue value to ensure it stays valid on the color wheel.
+	// NOTE: Change 1.0 to 360.0 if your glm package measures Hue in degrees instead of a 0.0 - 1.0 scale.
+	for hsv.H < 0.0 {
+		hsv.H += 1.0
+	}
+	for hsv.H > 1.0 {
+		hsv.H -= 1.0
+	}
+
+	// Convert back to RGBA
+	col := glm.HSVToRGBA(hsv)
+	
+	// Preserve the original alpha channel from the base color
+	col.A = r.Col.A
+
+	return col.Clamp()
+}
+
 //cod:component
 type Size struct {
 	Interp     interp.Interp
