@@ -13,18 +13,30 @@ import (
 // TODO: use https://easings.net/
 // Note: https://cubic-bezier.com
 
-// This will calculate
+// // This will calculate
+// func DynamicValue(val float64, fixedTime, dt time.Duration) float64 {
+// 	// interpVal := val * dt.Seconds() / (16 * time.Millisecond).Seconds()
+// 	interpVal := (val / fixedTime.Seconds()) * dt.Seconds()
+// 	if interpVal > 1.0 {
+// 		return 1.0
+// 	} else if interpVal < 0 {
+// 		return 0.0
+// 	}
+// 	return interpVal
+// }
 func DynamicValue(val float64, fixedTime, dt time.Duration) float64 {
-	// interpVal := val * dt.Seconds() / (16 * time.Millisecond).Seconds()
-	interpVal := (val / fixedTime.Seconds()) * dt.Seconds()
-	if interpVal > 1.0 {
+	// Instant snaps
+	if val >= 1.0 {
 		return 1.0
-	} else if interpVal < 0 {
+	}
+	if val <= 0.0 {
 		return 0.0
 	}
+	ratio := dt.Seconds() / fixedTime.Seconds()
+	interpVal := 1.0 - math.Pow(1.0 - val, ratio)
+
 	return interpVal
 }
-
 var Linear Lerp = Lerp{}
 
 var EaseOut Bezier = Bezier{
