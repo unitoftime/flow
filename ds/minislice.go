@@ -75,41 +75,27 @@ func (s *MiniSlice[A, T]) Find(searchVal T) int {
 // Removes the element at the supplied index, swapping the element that was at the last index to
 // the supplied index
 func (s *MiniSlice[A, T]) Delete(idx int) {
-	if idx < 0 {
-		return
-	}
-	if idx > s.Len() {
+	if idx < 0 || idx >= s.Len() {
 		return
 	}
 
-	lastVal := s.Get(s.Len() - 1)
+	lastVal := s.Get(s.Last())
 	s.Set(idx, lastVal)
 	s.SliceLast()
 }
 
 // Slices the last element
 func (s *MiniSlice[A, T]) SliceLast() {
-	innerIdx, isArray := s.getIdx(s.Len() - 1)
+	if s.Len() == 0 {
+		return
+	}
+	innerIdx, isArray := s.getIdx(s.Last())
 	if isArray {
 		s.nextArrayIdx--
 	} else {
 		s.Slice = s.Slice[:innerIdx]
 	}
 }
-
-// // Returns the last index, or returns -1 if empty
-// func (s *MiniSlice[A, T]) Last() int {
-// 	// If last element is on slice
-// 	if len(s.Slice) > 0 {
-// 		return len(s.Slice)-1
-// 		// val := s.Slice[lastIdx]
-// 		// s.Slice = s.Slice[:lastIdx]
-// 		// return val
-// 	}
-
-// 	// Else last element is on array
-// 	return int(s.nextArrayIdx) - 1
-// }
 
 // Returns the number of elements in the slice
 func (s *MiniSlice[A, T]) Len() int {
@@ -139,4 +125,27 @@ func (s *MiniSlice[A, T]) All() iter.Seq2[int, T] {
 			}
 		}
 	}
+}
+
+func (s *MiniSlice[A, T]) AllReverse() iter.Seq2[int, T] {
+	return func(yield func(int, T) bool) {
+		arrayEnd := int(s.nextArrayIdx)
+
+		for i := len(s.Slice) - 1; i >= 0; i-- {
+			if !yield(i+arrayEnd, s.Slice[i]) {
+				return
+			}
+		}
+
+		for i := arrayEnd - 1; i >= 0; i-- {
+			if !yield(i, s.Array[i]) {
+				return
+			}
+		}
+	}
+}
+
+// Returns the last index, or returns -1 if empty
+func (s *MiniSlice[A, T]) Last() int {
+	return s.Len() - 1
 }

@@ -6,7 +6,7 @@ type Stack[T any] struct {
 
 func NewStack[T any]() *Stack[T] {
 	return &Stack[T]{
-		Buffer: make([]T, 0), // TODO: configurable?
+		Buffer: make([]T, 0),
 	}
 }
 
@@ -18,31 +18,27 @@ func (s *Stack[T]) Add(t T) {
 	s.Buffer = append(s.Buffer, t)
 }
 
-//	func (s *Stack[T]) Peek() (T, bool) {
-//		if q.ReadIdx == q.WriteIdx {
-//			var ret T
-//			return ret, false
-//		}
-//		return q.Buffer[q.ReadIdx], true
-//	}
-//
-//	func (s *Stack[T]) PeekLast() (T, bool) {
-//		if q.ReadIdx == q.WriteIdx {
-//			var ret T
-//			return ret, false
-//		}
-//		idx := (q.WriteIdx + len(q.Buffer) - 1) % len(q.Buffer)
-//		return q.Buffer[idx], true
-//	}
+func (s *Stack[T]) Peek() (T, bool) {
+	if len(s.Buffer) == 0 {
+		var ret T
+		return ret, false
+	}
+	return s.Buffer[len(s.Buffer)-1], true
+}
+
 func (s *Stack[T]) Remove() (T, bool) {
 	if len(s.Buffer) == 0 {
 		var ret T
 		return ret, false
 	}
+	idx := len(s.Buffer) - 1
+	ret := s.Buffer[idx]
+	var zero T
+	s.Buffer[idx] = zero
+	s.Buffer = s.Buffer[:idx]
+	return ret, true
+}
 
-	last := len(s.Buffer) - 1
-	val := s.Buffer[last]
-	s.Buffer = s.Buffer[:last]
-
-	return val, true
+func (s *Stack[T]) Clear() {
+	s.Buffer = s.Buffer[:0]
 }

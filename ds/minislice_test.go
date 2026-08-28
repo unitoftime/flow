@@ -101,3 +101,45 @@ func TestMiniSliceSkipDelete(t *testing.T) {
 	slice.Delete(0)
 	compare(t, slice.Len(), 0)
 }
+
+func TestMiniSliceReverse(t *testing.T) {
+	slice := MiniSlice[[4]int, int]{}
+
+	for i := range 10 {
+		slice.Append(i * 10)
+	}
+
+	compare(t, slice.Len(), 10)
+
+	// In reverse
+	expected := 9
+	for i, val := range slice.AllReverse() {
+		compare(t, i, expected)
+		compare(t, val, expected*10)
+		expected--
+	}
+	compare(t, expected, -1)
+}
+
+func TestMiniSliceLast(t *testing.T) {
+	slice := MiniSlice[[4]int, int]{}
+
+	compare(t, slice.Last(), -1)
+
+	slice.Append(10)
+	compare(t, slice.Last(), 0)
+
+	slice.Append(20)
+	compare(t, slice.Last(), 1)
+
+	slice.Append(30)
+	slice.Append(40)
+	slice.Append(50)
+	compare(t, slice.Last(), 4)
+
+	slice.Delete(slice.Last())
+	compare(t, slice.Last(), 3)
+
+	slice.Clear()
+	compare(t, slice.Last(), -1)
+}
