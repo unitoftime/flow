@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"math"
 	"time"
 
 	"github.com/unitoftime/beep"
@@ -135,6 +136,16 @@ func (c *Channel) Play(src *Source) {
 // Volume: 0 == Mute
 // Volume: 1 == Normal Volume
 func (c *Channel) Play2(src *Source, volume float64) {
+	c.PlayPitched(src, volume, 1)
+}
+
+// Play the source with the requested volume, resampled by pitch.
+// Note: Pitch and speed move together, so the sound also gets shorter as the
+// pitch rises. For short sounds (voice blips) the length change is inaudible.
+// Pitch: 1 == Unmodified
+// Pitch: 2 == One octave up (and twice as fast)
+// Pitch: 0.5 == One octave down (and half as fast)
+func (c *Channel) PlayPitched(src *Source, volume, pitch float64) {
 	if c == nil {
 		return
 	}
@@ -145,6 +156,9 @@ func (c *Channel) Play2(src *Source, volume float64) {
 	if volume <= 0 {
 		return
 	}
+	if pitch <= 0 {
+		pitch = 1
+	}
 
 	// TODO: You need to pass these via a channel/queue to execute on some other thread. The speaker locks for miliseconds at a time
 	go func() {
@@ -152,14 +166,27 @@ func (c *Channel) Play2(src *Source, volume float64) {
 		if err != nil {
 			return
 		} // TODO: Snuffed error message
+
+		var pitched beep.Streamer = streamer
+		if pitch != 1 {
+			// Note: Quality 3 is the recommended range for on-the-fly resampling
+			pitched = beep.ResampleRatio(3, pitch, streamer)
+		}
+
 		volStreamer := effects.Volume{
-			Streamer: streamer,
+			Streamer: pitched,
 			Base: 10,
 			Volume: volume - 1,
 			Silent: false,
 		}
 		c.add(&volStreamer)
 	}()
+}
+
+// Converts a number of semitones into a pitch value for PlayPitched.
+// Semitones(0) == 1 (unmodified), Semitones(12) == 2 (one octave up)
+func Semitones(n float64) float64 {
+	return math.Pow(2, n/12)
 }
 
 // func (c *Channel) Paused() bool {
