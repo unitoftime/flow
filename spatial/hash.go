@@ -18,7 +18,7 @@ type arrayMap[T any] struct {
 func newArrayMap[T any](size int) *arrayMap[T] {
 	size = size / 2 // Note: We cut in half b/c we use 4 quadrants
 	m := &arrayMap[T]{
-		quad: make([][][]*T, size),
+		quad: make([][][]*T, 0, 4),
 	}
 
 	// Create 4 quadrants
