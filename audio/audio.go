@@ -173,10 +173,13 @@ func (c *Channel) PlayPitched(src *Source, volume, pitch float64) {
 			pitched = beep.ResampleRatio(3, pitch, streamer)
 		}
 
+		// The effect applies Base^Volume, so convert the caller's linear gain
+		// into that domain. Passing it through raw would make 1.15 play at
+		// 1.4x and 1.4 at 2.5x, which clips a normalized sample.
 		volStreamer := effects.Volume{
 			Streamer: pitched,
 			Base: 10,
-			Volume: volume - 1,
+			Volume: math.Log10(volume),
 			Silent: false,
 		}
 		c.add(&volStreamer)
