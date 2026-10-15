@@ -55,9 +55,17 @@ func SetItem(key string, val any) error {
 		return err
 	}
 
+	// Note: Written to a temp file and then renamed over the item, so a crash mid-write leaves the old item instead of a partial one
+	// Note: There's no fsync, so this doesn't protect against power loss
+	tmpKey := key + ".tmp"
+
 	// Perm: Read/Write owner, nothing for anyone else
-	err = os.WriteFile(key, buf, 0600)
-	return err
+	err = os.WriteFile(tmpKey, buf, 0600)
+	if err != nil {
+		return err
+	}
+
+	return os.Rename(tmpKey, key)
 }
 
 func GetQueryString(key string) ([]string, error) {
