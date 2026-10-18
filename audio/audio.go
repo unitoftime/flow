@@ -2,6 +2,7 @@ package audio
 
 import (
 	"math"
+	"sync/atomic"
 	"time"
 
 	"github.com/unitoftime/beep"
@@ -21,6 +22,8 @@ type Channel struct {
 	mixer  *beep.Mixer
 	ctrl   *beep.Ctrl
 	volume *effects.Volume
+
+	playOnlyGen atomic.Uint64 // Bumped by every PlayOnly, so that only the newest one plays, see PlayOnly
 }
 
 func NewChannel() *Channel {
@@ -86,24 +89,27 @@ func (c *Channel) PlayOnly(src *Source, loop bool) {
 		return
 	}
 
+	gen := c.playOnlyGen.Add(1)
 	go func() {
-		speaker.Lock()
-		c.mixer.Clear()
-		speaker.Unlock()
-
 		streamer, err := src.Streamer()
 		if err != nil {
 			return
 		} // TODO: Snuffed error message
 
-		if !loop {
-			c.add(streamer)
-			return
+		var playing beep.Streamer = streamer
+		if loop {
+			// Note: -1 indicates to loop forever
+			playing = beep.Loop(-1, streamer)
 		}
 
-		// Note: -1 indicates to loop forever
-		looper := beep.Loop(-1, streamer)
-		c.add(looper)
+		// Note: Checked, cleared and added under one lock, so that when calls overlap only the newest one is left playing
+		speaker.Lock()
+		defer speaker.Unlock()
+		if c.playOnlyGen.Load() != gen {
+			return
+		}
+		c.mixer.Clear()
+		c.mixer.Add(playing)
 	}()
 }
 
