@@ -77,6 +77,15 @@ func (m *Mat4) Translate(x, y, z float64) *Mat4 {
 	return m
 }
 
+// Shears x by y around the origin (x += k * y), so things above the origin lean right for positive k
+func (m *Mat4) ShearX(k float64) *Mat4 {
+	m[i4_0_0] = m[i4_0_0] + k * m[i4_0_1]
+	m[i4_1_0] = m[i4_1_0] + k * m[i4_1_1]
+	m[i4_2_0] = m[i4_2_0] + k * m[i4_2_1]
+	m[i4_3_0] = m[i4_3_0] + k * m[i4_3_1]
+	return m
+}
+
 func (m *Mat4) GetTranslation() Vec3 {
 	return Vec3{m[i4_3_0], m[i4_3_1], m[i4_3_2]}
 }
