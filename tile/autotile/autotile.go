@@ -220,6 +220,23 @@ type Set[T, S any] struct {
 	Rule         Rule[T]
 	Tiles        [][]S
 	VariantNoise *pgen.NoiseMap
+
+	// If set, picks which of a variant's tiles to use, in place of VariantNoise. It gets the tile position and the number of tiles to pick from, and returns an index into them
+	VariantPicker func(pos tile.Position, count int) int
+}
+
+func (s *Set[T, S]) pick(pos tile.Position, variant int) S {
+	tiles := s.Tiles[variant]
+	idx := 0
+	if s.VariantPicker != nil {
+		idx = s.VariantPicker(pos, len(tiles))
+	} else if s.VariantNoise == nil {
+		idx = rand.Intn(len(tiles))
+	} else {
+		noise := s.VariantNoise.Get(pos.X, pos.Y)
+		idx = int(math.Floor(noise * float64(len(tiles))))
+	}
+	return tiles[idx]
 }
 
 func (s *Set[T, S]) GetFull(pos tile.Position, m, t, b, l, r, tl, tr, bl, br T) (S, bool) {
@@ -228,15 +245,7 @@ func (s *Set[T, S]) GetFull(pos tile.Position, m, t, b, l, r, tl, tr, bl, br T) 
 		var ret S
 		return ret, false
 	}
-	// idx := rand.Intn(len(s.Tiles[variant]))
-	idx := 0
-	if s.VariantNoise == nil {
-		idx = rand.Intn(len(s.Tiles[variant]))
-	} else {
-		noise := s.VariantNoise.Get(pos.X, pos.Y)
-		idx = int(math.Floor(noise * float64(len(s.Tiles[variant]))))
-	}
-	return s.Tiles[variant][idx], true
+	return s.pick(pos, variant), true
 }
 
 func (s *Set[T, S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
@@ -245,14 +254,7 @@ func (s *Set[T, S]) Get(tilemap Tilemap[T], pos tile.TilePosition) (S, bool) {
 		var ret S
 		return ret, false
 	}
-	idx := 0
-	if s.VariantNoise == nil {
-		idx = rand.Intn(len(s.Tiles[variant]))
-	} else {
-		noise := s.VariantNoise.Get(pos.X, pos.Y)
-		idx = int(math.Floor(noise * float64(len(s.Tiles[variant]))))
-	}
-	return s.Tiles[variant][idx], true
+	return s.pick(pos, variant), true
 }
 
 // func (s *Set[T]) Get(val Pattern) T {
